@@ -9,6 +9,7 @@
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
+#include <stdint.h>
 
 // USB PIDs
 enum PID {
@@ -74,6 +75,7 @@ enum DescriptorTypes {
 	REPORT = 0x22, // The HID REPORT descriptor
 };
 
+#ifdef __C18
 // This represents the Buffer Descriptor as laid out in the
 // PIC18F4550 Datasheet. It contains data about an endpoint
 // buffer, either in or out. Buffer descriptors must be laid
@@ -106,6 +108,31 @@ struct buffer_descriptor {
 	uchar BDnCNT;
 	uchar *BDnADR; // uchar BDnADRL; uchar BDnADRH;
 };
+#elif defined __XC16__
+/* Represents BDnSTAT in the datasheet */
+struct buffer_descriptor {
+	union {
+		struct {
+			// For OUT (received) packets. (USB Mode)
+			uint16_t BC : 10;
+			uint16_t PID : 4; /* See enum PID */
+			uint16_t DTS: 1;
+			uint16_t UOWN : 1;
+		};
+		struct {
+			// For IN (transmitted) packets. (CPU Mode)
+			uint16_t /*BC*/ : 10;
+			uint16_t BSTALL : 1;
+			uint16_t DTSEN : 1;
+			uint16_t reserved : 2;
+			uint16_t DTS : 1;
+			uint16_t /*UOWN*/ : 1;
+		};
+		uint16_t BDnSTAT;
+	}STAT;
+	void *BDnADR; // uchar BDnADRL; uchar BDnADRH;
+};
+#endif
 
 // Layout of the USTAT. This is different from the one in the
 // Microchip header file because the ENDP here is a 4-bit field
@@ -208,7 +235,9 @@ struct string_descriptor {
 };
 
 
-
+void usb_init(void);
+void usb_isr(void);
+void usb_service(void);
 
 #endif /* USB_H_ */
 
