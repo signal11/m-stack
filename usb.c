@@ -58,10 +58,126 @@ static struct buffer_descriptor_pair __attribute__((aligned(512)))
 #pragma udata usb_buffers=0x500
 #elif __XC16__
 //TODO: Figure out how to handle the buffers.
-uchar ep0_out_buf[0x40]; // 500h
-uchar ep0_in_buf [0x40]; // 540h
-uchar ep1_out_buf[0x40]; // 580h
-uchar ep1_in_buf [0x40]; // 5c0h
+
+
+#define EP_BUF(n) \
+	static uchar ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
+	static uchar ep_##n##_in_buf[EP_##n##_IN_LEN];
+
+#if NUM_ENDPOINT_NUMBERS >= 0
+	EP_BUF(0)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 1
+	EP_BUF(1)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 2
+	EP_BUF(2)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 3
+	EP_BUF(3)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 4
+	EP_BUF(4)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 5
+	EP_BUF(5)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 6
+	EP_BUF(6)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 7
+	EP_BUF(7)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 8
+	EP_BUF(8)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 9
+	EP_BUF(9)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 10
+	EP_BUF(10)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 11
+	EP_BUF(11)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 12
+	EP_BUF(12)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 13
+	EP_BUF(13)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 14
+	EP_BUF(14)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 15
+	EP_BUF(15)
+#endif
+
+#undef EP_BUF
+
+struct ep_buf {
+	uchar *out;
+	uchar *in;
+	uint8_t out_len;
+	uint8_t in_len;
+};
+
+#define EP_BUFS(n) { ep_##n##_out_buf, ep_##n##_in_buf, EP_##n##_OUT_LEN, EP_##n##_IN_LEN },
+
+static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
+#if NUM_ENDPOINT_NUMBERS >= 0
+	EP_BUFS(0)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 1
+	EP_BUFS(1)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 2
+	EP_BUFS(2)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 3
+	EP_BUFS(3)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 4
+	EP_BUFS(4)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 5
+	EP_BUFS(5)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 6
+	EP_BUFS(6)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 7
+	EP_BUFS(7)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 8
+	EP_BUFS(8)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 9
+	EP_BUFS(9)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 10
+	EP_BUFS(10)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 11
+	EP_BUFS(11)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 12
+	EP_BUFS(12)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 13
+	EP_BUFS(13)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 14
+	EP_BUFS(14)
+#endif
+#if NUM_ENDPOINT_NUMBERS >= 15
+	EP_BUFS(15)
+#endif
+
+};
+#undef EP_BUFS
+
+
 #else
 #error compiler not supported
 #endif
@@ -161,15 +277,15 @@ void usb_init(void)
 
 	// Setup endpoint 0 Output buffer descriptor.
 	// Input and output are from the HOST perspective.
-	bds[0].ep_out.BDnADR = ep0_out_buf;
-	bds[0].ep_out.BDnCNT = sizeof(ep0_out_buf);
+	bds[0].ep_out.BDnADR = ep_buf[0].out;//ep0_out_buf;
+	bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
 	bds[0].ep_out.STAT.DTSEN = 0;
 	bds[0].ep_out.STAT.UOWN = 1;
 
 	// Setup endpoint 0 Input buffer descriptor.
 	// Input and output are from the HOST perspective.
-	bds[0].ep_in.BDnADR = ep0_in_buf;
-	bds[0].ep_in.BDnCNT = sizeof(ep0_in_buf);
+	bds[0].ep_in.BDnADR = ep_buf[0].in;
+	bds[0].ep_in.BDnCNT = ep_buf[0].in_len;
 	bds[0].ep_in.STAT.DTSEN = 0;
 	bds[0].ep_in.STAT.DTS = 0;
 	bds[0].ep_in.STAT.UOWN = 0;
@@ -177,15 +293,15 @@ void usb_init(void)
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		// Setup endpoint 1 Output buffer descriptor.
 		// Input and output are from the HOST perspective.
-		bds[i].ep_out.BDnADR = ep1_out_buf;
-		bds[i].ep_out.BDnCNT = sizeof(ep1_out_buf);
+		bds[i].ep_out.BDnADR = ep_buf[i].out;
+		bds[i].ep_out.BDnCNT = ep_buf[i].out_len;
 		bds[i].ep_out.STAT.DTSEN = 0;
 		bds[i].ep_out.STAT.UOWN = 1;
 
 		// Setup endpoint 1 Input buffer descriptor.
 		// Input and output are from the HOST perspective.
-		bds[i].ep_in.BDnADR = ep1_in_buf;
-		bds[i].ep_in.BDnCNT = sizeof(ep1_in_buf);
+		bds[i].ep_in.BDnADR = ep_buf[i].in;
+		bds[i].ep_in.BDnCNT = ep_buf[i].in_len;
 		bds[i].ep_in.STAT.DTSEN = 0;
 		bds[i].ep_in.STAT.DTS = 1;
 		bds[i].ep_in.STAT.UOWN = 0;
@@ -210,7 +326,7 @@ void reset_bd0_out(void)
 	// Set the length and hand it back to the SIE.
 	// The Address stays the same.
 	bds[0].ep_out.STAT.BDnSTAT = 0;
-	bds[0].ep_out.BDnCNT = sizeof(ep0_out_buf);
+	bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
 	bds[0].ep_out.STAT.UOWN = 1;
 }
 
@@ -222,7 +338,7 @@ void stall_ep0(void)
 	bds[0].ep_in.STAT.DTS = 0;
 	bds[0].ep_in.STAT.BSTALL = 1;
 	bds[0].ep_in.STAT.UOWN = 1;
-	bds[0].ep_in.BDnCNT = sizeof(ep0_in_buf);
+	bds[0].ep_in.BDnCNT = ep_buf[0].in_len;
 
 }
 
@@ -259,7 +375,7 @@ void usb_service(void)
 			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
 				// SETUP packet.
 
-				FAR struct setup_packet *setup = (struct setup_packet*) ep0_out_buf;
+				FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
 
 				// SETUP packet sets PKTDIS Per Doc. Not sure why.
 				SFR_USB_PKT_DIS = 0;
@@ -274,7 +390,7 @@ void usb_service(void)
 						SERIAL("Get Descriptor for DEVICE");
 
 						// Return Device Descriptor
-						memcpy_from_rom(ep0_in_buf, &this_device_descriptor, sizeof(struct device_descriptor));
+						memcpy_from_rom(ep_buf[0].in, &this_device_descriptor, sizeof(struct device_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -288,7 +404,7 @@ void usb_service(void)
 						
 						// Return Configuration Descriptor. Make sure to only return
 						// the number of bytes asked for by the host.
-						memcpy_from_rom(ep0_in_buf, &this_configuration_packet, sizeof(struct configuration_packet));
+						memcpy_from_rom(ep_buf[0].in, &this_configuration_packet, sizeof(struct configuration_packet));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -302,20 +418,20 @@ void usb_service(void)
 						reset_bd0_out();
 
 						if (descriptor_index == 0) {
-							memcpy_from_rom(ep0_in_buf, &str00, sizeof(str00));
+							memcpy_from_rom(ep_buf[0].in, &str00, sizeof(str00));
 							len = sizeof(str00);
 						}
 						else if (descriptor_index == 1) {
-							memcpy_from_rom(ep0_in_buf, &vendor_string, sizeof(vendor_string));
+							memcpy_from_rom(ep_buf[0].in, &vendor_string, sizeof(vendor_string));
 							len = sizeof(vendor_string);
 						}
 						else if (descriptor_index == 2) {
-							memcpy_from_rom(ep0_in_buf, &product_string, sizeof(product_string));
+							memcpy_from_rom(ep_buf[0].in, &product_string, sizeof(product_string));
 							len = sizeof(product_string);
 						}
 #if 0 ////////////////////////
 						else if (descriptor_index == 3) {
-							memcpy_from_rom(ep0_in_buf, &interface_string, sizeof(interface_string));
+							memcpy_from_rom(ep_buf[0].in, &interface_string, sizeof(interface_string));
 							len = sizeof(interface_string);
 						}
 //#else ////////////////////////
@@ -335,7 +451,7 @@ void usb_service(void)
 									break;
 							};
 							s.bLength = s.bLength - 2*((i==16)?0: (16-i));
-							memcpy(ep0_in_buf, &s, s.bLength);
+							memcpy(ep_buf[0].in, &s, s.bLength);
 							len = s.bLength;
 						}
 #endif ///////////////////////
@@ -365,7 +481,7 @@ void usb_service(void)
 						SERIAL("Request of HID descriptor.");
 
 						// Return HID Report Descriptor
-						memcpy_from_rom(ep0_in_buf, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
+						memcpy_from_rom(ep_buf[0].in, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -380,7 +496,7 @@ void usb_service(void)
 						SERIAL("Request of HID report descriptor.");
 
 						// Return HID Report Descriptor
-						memcpy_from_rom(ep0_in_buf, &hid_report_descriptor, sizeof(hid_report_descriptor));
+						memcpy_from_rom(ep_buf[0].in, &hid_report_descriptor, sizeof(hid_report_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -458,7 +574,7 @@ void usb_service(void)
 					SERIAL_VAL(g_configuration);
 
 					buf[0] = g_configuration;
-					memcpy(ep0_in_buf, &buf, 1);
+					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -478,7 +594,7 @@ void usb_service(void)
 						// Status for the DEVICE requested
 						// Return as a single byte in the return packet.
 						buf[0] = 0;
-						memcpy(ep0_in_buf, &buf, 1);
+						memcpy(ep_buf[0].in, &buf, 1);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -491,7 +607,7 @@ void usb_service(void)
 						if (setup->wIndex == 0x81/*81=ep1_in*/) {
 							buf[0] = g_ep1_halt;
 							buf[1] = 0;//g_ep1_halt;
-							memcpy(ep0_in_buf, &buf, 2);
+							memcpy(ep_buf[0].in, &buf, 2);
 							bds[0].ep_in.STAT.BDnSTAT = 0;
 							bds[0].ep_in.STAT.DTSEN = 1;
 							bds[0].ep_in.STAT.DTS = 1;
@@ -545,7 +661,7 @@ void usb_service(void)
 					// Return the current interface (hard-coded to 1)
 					// as a single byte in the return packet.
 					buf[0] = 1;
-					memcpy(ep0_in_buf, &buf, 1);
+					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -657,7 +773,7 @@ void usb_service(void)
 					bds[0].ep_out.STAT.BDnSTAT = 0;
 					bds[0].ep_out.STAT.DTS = 1;
 					bds[0].ep_out.STAT.DTSEN = 1;					
-					bds[0].ep_out.BDnCNT = sizeof(ep0_out_buf);
+					bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
 					bds[0].ep_out.STAT.UOWN = 1;
 
 				}
@@ -666,16 +782,16 @@ void usb_service(void)
 					Nop();
 					SERIAL("OUT Data packet on 0.");
 					for (z = 0; z < bds[0].ep_out.BDnCNT; z++)
-						SERIAL_VAL(ep0_out_buf[z]);
+						SERIAL_VAL(ep_buf[0].out[z]);
 					
-					if (ep0_out_buf[0] == 1) {
+					if (ep_buf[0].out[0] == 1) {
 						// Report 1 is data.
-						if (ep0_out_buf[0])
+						if (ep_buf[0].out)
 							PORTAbits.RA1 = 0;
 						else
 							PORTAbits.RA1 = 1;
 					}
-					else if (ep0_out_buf[0] == 2) {
+					else if (ep_buf[0].out[0] == 2) {
 						// Report 2 is feature.
 						// This report contains ASCII to write the Serial Number.
 					}
@@ -740,10 +856,10 @@ void usb_service(void)
 		// For whatever Reason, make sure you clear KEN right here.
 		// When this packet is done sending, the SIE will enable KEN.
 		// IT MUST BE CLEARED!
-		ep1_in_buf[0] = 0x01 << 1;
-		ep1_in_buf[1] = g_throttle_pos;
-		ep1_in_buf[2] = 0x00;
-		ep1_in_buf[3] = 0x00;
+		ep_buf[1].in[0] = 0x01 << 1;
+		ep_buf[1].in[1] = g_throttle_pos;
+		ep_buf[1].in[2] = 0x00;
+		ep_buf[1].in[3] = 0x00;
 		pid = !bds[1].ep_in.STAT.DTS;
 		bds[1].ep_in.STAT.BDnSTAT = 0; // clear all bits (looking at you, KEN)
 		bds[1].ep_in.STAT.DTSEN = 1;

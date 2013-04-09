@@ -18,4 +18,14 @@
    activate endpoints EP 1 IN, EP 1 OUT, EP 2 IN, EP 2 OUT.  */
 #define NUM_ENDPOINT_NUMBERS 1
 
+#define EP_0_OUT_LEN 64
+#define EP_0_IN_LEN 64
+
+#define EP_1_OUT_LEN 64
+#define EP_1_IN_LEN 64
+
+#define EP_2_OUT_LEN 64
+#define EP_2_IN_LEN 64
+
+
 #endif /* USB_CONFIG_H__ */
