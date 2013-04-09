@@ -75,6 +75,15 @@ enum DescriptorTypes {
 	REPORT = 0x22, // The HID REPORT descriptor
 };
 
+enum EndpointAttributes {
+	EP_CONTROL = 0x0,
+	EP_ISOCHRONOUS = 0x1,
+	EP_BULK = 0x2,
+	EP_INTERRUPT = 0x3,
+
+	/* More bits here for ISO endpoints only. */
+};
+
 #ifdef __C18
 // This represents the Buffer Descriptor as laid out in the
 // PIC18F4550 Datasheet. It contains data about an endpoint
