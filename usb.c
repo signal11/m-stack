@@ -333,6 +333,7 @@ void reset_bd0_out(void)
 void stall_ep0(void)
 {
 	// Stall Endpoint 0. It's important that DTSEN and DTS are zero.
+	bds[0].ep_in.STAT.UOWN = 0;
 	bds[0].ep_in.STAT.BDnSTAT = 0;
 	bds[0].ep_in.STAT.DTSEN = 0;
 	bds[0].ep_in.STAT.DTS = 0;
@@ -384,26 +385,21 @@ void usb_service(void)
 					char descriptor = ((setup->wValue >> 8) & 0x00ff);
 					uchar descriptor_index = setup->wValue & 0x00ff;
 					if (descriptor == DEVICE) {
-
-						reset_bd0_out();
-
 						SERIAL("Get Descriptor for DEVICE");
 
 						// Return Device Descriptor
+						bds[0].ep_in.STAT.UOWN = 0;
 						memcpy_from_rom(ep_buf[0].in, &this_device_descriptor, sizeof(struct device_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
 						bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct device_descriptor));
 						bds[0].ep_in.STAT.UOWN = 1;
-						static int cnt;
-						cnt++;
 					}
 					else if (descriptor == CONFIGURATION) {
-						reset_bd0_out();
-						
 						// Return Configuration Descriptor. Make sure to only return
 						// the number of bytes asked for by the host.
+						bds[0].ep_in.STAT.UOWN = 0;
 						memcpy_from_rom(ep_buf[0].in, &this_configuration_packet, sizeof(struct configuration_packet));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
@@ -415,8 +411,7 @@ void usb_service(void)
 						uchar stall=0;
 						uchar len = 0;
 
-						reset_bd0_out();
-
+						bds[0].ep_in.STAT.UOWN = 0;
 						if (descriptor_index == 0) {
 							memcpy_from_rom(ep_buf[0].in, &str00, sizeof(str00));
 							len = sizeof(str00);
@@ -476,11 +471,11 @@ void usb_service(void)
 					}
 #if 0
 					else if (descriptor == HID) {
-						reset_bd0_out();
 
 						SERIAL("Request of HID descriptor.");
 
 						// Return HID Report Descriptor
+						bds[0].ep_in.STAT.UOWN = 0;
 						memcpy_from_rom(ep_buf[0].in, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
@@ -491,11 +486,10 @@ void usb_service(void)
 					}
 					else if (descriptor == REPORT) {
 
-						reset_bd0_out();
-
 						SERIAL("Request of HID report descriptor.");
 
 						// Return HID Report Descriptor
+						bds[0].ep_in.STAT.UOWN = 0;
 						memcpy_from_rom(ep_buf[0].in, &hid_report_descriptor, sizeof(hid_report_descriptor));
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
@@ -508,7 +502,6 @@ void usb_service(void)
 #endif
 					else {
 						// Unknown Descriptor. Stall the endpoint.
-						reset_bd0_out();
 						stall_ep0();
 						SERIAL("Unknown Descriptor");
 						SERIAL_VAL(descriptor);
@@ -516,15 +509,13 @@ void usb_service(void)
 					}
 				}
 				else if (setup->bRequest == SET_ADDRESS) {
-
-					reset_bd0_out();
-
 					// Mark the ADDR as pending. The address gets set only
 					// after the transaction is complete.
 					addr_pending = 1;
 					addr = setup->wValue;
 
 					// Return a zero-length packet.
+					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -535,8 +526,6 @@ void usb_service(void)
 					// Set the configuration. wValue is the configuration.
 					// we only have 1, so do nothing, I guess.
 					uchar req = setup->wValue & 0x00ff;
-
-					reset_bd0_out();
 
 					if (1) { //g_configuration == 0) {
 						if (req == 0) {
@@ -553,6 +542,7 @@ void usb_service(void)
 						}
 	
 						// Return a zero-length packet.
+						bds[0].ep_in.STAT.UOWN = 0;
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -568,11 +558,11 @@ void usb_service(void)
 				else if (setup->bRequest == GET_CONFIGURATION) {
 					// Return the current Configuration.
 					uchar buf[10];
-					reset_bd0_out();
 
 					SERIAL("Get Configuration. Returning:");
 					SERIAL_VAL(g_configuration);
 
+					bds[0].ep_in.STAT.UOWN = 0;
 					buf[0] = g_configuration;
 					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
@@ -584,7 +574,6 @@ void usb_service(void)
 				}
 				else if (setup->bRequest == GET_STATUS) {
 					char buf[10];					
-					reset_bd0_out();
 					
 					SERIAL("Get Status (dst, index):");
 					SERIAL_VAL(setup->REQUEST.destination);
@@ -594,6 +583,7 @@ void usb_service(void)
 						// Status for the DEVICE requested
 						// Return as a single byte in the return packet.
 						buf[0] = 0;
+						bds[0].ep_in.STAT.UOWN = 0;
 						memcpy(ep_buf[0].in, &buf, 1);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
@@ -607,6 +597,7 @@ void usb_service(void)
 						if (setup->wIndex == 0x81/*81=ep1_in*/) {
 							buf[0] = g_ep1_halt;
 							buf[1] = 0;//g_ep1_halt;
+							bds[0].ep_in.STAT.UOWN = 0;
 							memcpy(ep_buf[0].in, &buf, 2);
 							bds[0].ep_in.STAT.BDnSTAT = 0;
 							bds[0].ep_in.STAT.DTSEN = 1;
@@ -630,14 +621,11 @@ void usb_service(void)
 					// Set the interface. wValue is the interface.
 					// we only have 1, so Stall.
 
-
-					
-					reset_bd0_out();
-
 					//stall_ep0();
 					//bds[1].ep_in.STAT.DTS = 1;
 #if 1
 					// Return a zero-length packet.
+					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -649,8 +637,6 @@ void usb_service(void)
 				         setup->bRequest == GET_INTERFACE) {
 					char buf[10];
 
-					reset_bd0_out();
-
 					SERIAL("Get Interface");
 					SERIAL_VAL(setup->bRequest);
 					SERIAL_VAL(setup->REQUEST.destination);
@@ -661,6 +647,7 @@ void usb_service(void)
 					// Return the current interface (hard-coded to 1)
 					// as a single byte in the return packet.
 					buf[0] = 1;
+					bds[0].ep_in.STAT.UOWN = 0;
 					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
@@ -717,9 +704,8 @@ void usb_service(void)
 						}
 					}
 
-					reset_bd0_out();
-
 					// Return a zero-length packet.
+					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -744,6 +730,7 @@ void usb_service(void)
 
 					//stall_ep0();
 					// Return a zero-length packet.
+					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.STAT.DTSEN = 1;
 					bds[0].ep_in.STAT.DTS = 1;
@@ -795,7 +782,6 @@ void usb_service(void)
 						// Report 2 is feature.
 						// This report contains ASCII to write the Serial Number.
 					}
-					reset_bd0_out();
 				}
 			}
 			else {
@@ -804,6 +790,8 @@ void usb_service(void)
 				SERIAL("Unsupported PID. Stall.");
 				stall_ep0();
 			}
+
+			reset_bd0_out();
 		}
 		else if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 1/*1=IN*/) {
 			if (addr_pending) {
