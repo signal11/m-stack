@@ -35,7 +35,7 @@ ROMPTR struct device_descriptor this_device_descriptor =
 	0x0001, // device release (1.0)
 	1, // Manufacturer
 	2, // Product
-	3, // Serial
+	0, // Serial
 	1 // NumConfigurations
 };
 
@@ -71,9 +71,9 @@ ROMPTR struct configuration_packet this_configuration_packet =
 	sizeof(struct endpoint_descriptor),
 	ENDPOINT,
 	0x01 | 0x80, // endpoint #1 0x80=IN
-	0x3, // interrupt
-	8, // wMaxPacketSize
-	200,   // bInterval in ms.
+	EP_BULK, // bmAttributes
+	64, // wMaxPacketSize
+	1,   // bInterval in ms.
 	},
 
 	{
@@ -81,9 +81,9 @@ ROMPTR struct configuration_packet this_configuration_packet =
 	sizeof(struct endpoint_descriptor),
 	ENDPOINT,
 	0x01 /*| 0x00*/, // endpoint #1 0x00=IN
-	0x3, // interrupt
-	8, // wMaxPacketSize
-	16,   // bInterval in ms.
+	EP_BULK, // bmAttributes
+	64, // wMaxPacketSize
+	1,   // bInterval in ms.
 	},
 };
 
