@@ -51,6 +51,13 @@ Signal 11 Software
 #define SFR_USB_STATUS_DIR       USTATbits.DIR
 #define SFR_USB_STATUS_PPBI      USTATbits.PPBI
 
+#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0 //TODO TEST!
+#define CLEAR_USB_RESET_IF()     SFR_USB_RESET_IF = 0
+#define CLEAR_USB_STALL_IF()     SFR_USB_STALL_IF = 0
+#define CLEAR_USB_TOKEN_IF()     SFR_USB_TOKEN_IF = 0
+#define CLEAR_USB_SOF_IF()       SFR_USB_SOF_IF = 0
+
+
 /* Compiler stuff. Probably should be somewhere else. */
 #define FAR far
 #define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z);
@@ -100,6 +107,13 @@ Signal 11 Software
 #define SFR_USB_POWER            U1PWRCbits.USBPWR
 
 #define BDnCNT                   STAT.BC /* buffer descriptor */
+
+#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0xff
+#define CLEAR_USB_RESET_IF()     SFR_USB_INTERRUPT_FLAGS = 0x1
+#define CLEAR_USB_STALL_IF()     SFR_USB_INTERRUPT_FLAGS = 0x80
+#define CLEAR_USB_TOKEN_IF()     SFR_USB_INTERRUPT_FLAGS = 0x08
+#define CLEAR_USB_SOF_IF()       SFR_USB_INTERRUPT_FLAGS = 0x4
+
 
 /* Compiler stuff. Probably should be somewhere else. */
 #define FAR

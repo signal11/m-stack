@@ -206,7 +206,7 @@ void usb_init(void)
 	SFR_USB_EXTENDED_INTERRUPT_EN = 0x0;
 	
 	SFR_USB_EN = 1; /* enable USB module */
-	U1OTGCONbits.OTGEN = 1; // TODO Portable
+	//U1OTGCONbits.OTGEN = 1; // TODO Portable
 
 	
 #ifdef NEEDS_PULL
@@ -221,8 +221,8 @@ void usb_init(void)
 	SFR_TOKEN_COMPLETE = 0;
 	SFR_TOKEN_COMPLETE = 0;
 	SFR_TOKEN_COMPLETE = 0;
-	
-	SFR_USB_INTERRUPT_FLAGS = 0xff; // TODO: Portable?
+
+	CLEAR_ALL_USB_IF();
 	U1EIR = 0xff;
 
 //	UIEbits.TRNIE = 1;   /* USB Transfer Interrupt Enable */
@@ -357,13 +357,12 @@ void usb_service(void)
 	if (SFR_USB_RESET_IF) {
 		// A Reset was detected on the wire. Re-init the SIE.
 		usb_init();
-		U1IR = 0x1;//SFR_USB_RESET_IF = 0; TODO PORTABLE
+		CLEAR_USB_RESET_IF();
 		SERIAL("USB Reset");
 	}
 	
 	if (SFR_USB_STALL_IF) {
-		U1IR = 0x80; // TODO PORTABLE
-		//SFR_USB_STALL_IF = 0;
+		CLEAR_USB_STALL_IF();
 	}
 
 
@@ -819,13 +818,12 @@ void usb_service(void)
 			SERIAL("Request for another endpoint?");
 		}
 
-		U1IR = 0x08; //SFR_USB_TOKEN_IF = 0; TODO PORTABLE
+		CLEAR_USB_TOKEN_IF();
 	}
 	
 	// Check for Start-of-Frame interrupt.
 	if (SFR_USB_SOF_IF) {
-		U1IR = 0x4; //TODO PORTABLE
-		//SFR_USB_SOF_IF = 0;
+		CLEAR_USB_SOF_IF();
 	}
 
 	// Check for USB Interrupt.
