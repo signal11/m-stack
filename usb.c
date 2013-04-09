@@ -864,3 +864,36 @@ void usb_isr (void)
 	usb_service();
 }
 
+uchar *usb_get_in_buffer(uint8_t endpoint)
+{
+	return ep_buf[endpoint].in;
+}
+
+void usb_send_in_buffer(uint8_t endpoint, size_t len)
+{
+	if (g_configuration > 0) {
+		uchar pid;
+		bds[endpoint].ep_in.STAT.UOWN = 0;
+		pid = !bds[endpoint].ep_in.STAT.DTS;
+		bds[endpoint].ep_in.STAT.BDnSTAT = 0; // clear all bits (looking at you, KEN)
+		bds[endpoint].ep_in.STAT.DTSEN = 1;
+		bds[endpoint].ep_in.STAT.DTS = pid;
+		bds[endpoint].ep_in.BDnCNT = len;
+		bds[endpoint].ep_in.STAT.UOWN = 1;
+	}
+}
+
+bool usb_in_endpoint_busy(uint8_t endpoint)
+{
+	return bds[endpoint].ep_in.STAT.UOWN;
+}
+
+uchar *usb_get_out_buffer(uint8_t endpoint)
+{
+	return ep_buf[endpoint].out;
+}
+
+bool usb_out_endpoint_busy(uint8_t endpoint)
+{
+	return bds[endpoint].ep_out.STAT.UOWN;
+}

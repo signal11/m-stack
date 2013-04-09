@@ -10,6 +10,8 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 #include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 // USB PIDs
 enum PID {
@@ -247,6 +249,13 @@ struct string_descriptor {
 void usb_init(void);
 void usb_isr(void);
 void usb_service(void);
+
+uchar *usb_get_in_buffer(uint8_t endpoint);
+void usb_send_in_buffer(uint8_t endpoint, size_t len);
+bool usb_in_endpoint_busy(uint8_t endpoint);
+
+bool usb_out_endpoint_busy(uint8_t endpoint);
+uchar *usb_get_out_buffer(uint8_t endpoint);
 
 #endif /* USB_H_ */
 
