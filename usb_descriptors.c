@@ -11,7 +11,12 @@
    contains a configuration, interface, class, and endpoint
    data. The packets contained in here will be specific to the
    device. */
+#ifdef __XC16__
 #pragma pack(push, 1)
+#elif __XC8
+#else
+#error "Compiler not supported"
+#endif
 struct configuration_packet {
 	struct configuration_descriptor  config;
 	struct interface_descriptor      interface;
@@ -112,4 +117,10 @@ ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } interfac
 	STRING,
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
 };
+
+#ifdef __XC16__
 #pragma pack(pop)
+#elif __XC8
+#else
+#error "Compiler not supported"
+#endif

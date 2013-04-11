@@ -10,14 +10,16 @@ Signal 11 Software
 #ifndef USB_HAL_H__
 #define UAB_HAL_H__
 
-#ifdef __C18
+#ifdef _PIC18
 #define NEEDS_PULL /* Whether to pull up D+/D- with SFR_PULL_EN. */
 #define HAS_LOW_SPEED
+
+#define BDNADR_TYPE              uint16_t
 
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
 #define SFR_ON_CHIP_XCVR_DIS     UCFGbits.UTRDIS
-#define SFR_PING_PONG_MODE       UCFGbits.PPB
+#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = n & 2; } while (0)
 #define SFR_TOKEN_COMPLETE       UIRbits.TRNIF
 
 #define SFR_USB_INTERRUPT_FLAGS  UIR
@@ -25,7 +27,7 @@ Signal 11 Software
 #define SFR_USB_STALL_IF         UIRbits.STALLIF
 #define SFR_USB_TOKEN_IF         UIRbits.TRNIF
 #define SFR_USB_SOF_IF           UIRbits.SOFIF
-#define SFR_USB_IF               UIRbits.USBIF
+#define SFR_USB_IF               PIR2bits.USBIF
 
 #define SFR_USB_INTERRUPT_EN     UIE
 #define SFR_TRANSFER_IE          UIE.TRNIE
@@ -34,8 +36,8 @@ Signal 11 Software
 
 #define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
 
-#define SFR_EP_MGMT_TYP          U1EPBITS /* TODO test */
-#define SFR_EP_MGMT(n)           U1EP##n##bits
+#define SFR_EP_MGMT_TYPE         UEP1bits_t /* TODO test */
+#define SFR_EP_MGMT(n)           UEP##n##bits
 #define SFR_EP_MGMT_HANDSHAKE    EPHSHK
 #define SFR_EP_MGMT_STALL        EPSTALL
 #define SFR_EP_MGMT_OUT_EN       EPOUTEN
@@ -57,19 +59,40 @@ Signal 11 Software
 #define CLEAR_USB_TOKEN_IF()     SFR_USB_TOKEN_IF = 0
 #define CLEAR_USB_SOF_IF()       SFR_USB_SOF_IF = 0
 
+#ifdef _18F46J50
+#define BD_ADDR 0x400
+//#define BUFFER_ADDR
+#else
+#error "CPU not supported yet"
+#endif
 
 /* Compiler stuff. Probably should be somewhere else. */
-#define FAR far
-#define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z);
+#ifdef __C18
+	#define FAR far
+	#define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z);
+	#define XC8_BD_ADDR_TAG
+	#define XC8_BUFFER_ADDR_TAG
+#elif defined __XC8
+	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
+	#define FAR
+	#define XC8_BD_ADDR_TAG @##BD_ADDR
+	#ifdef BUFFER_ADDR
+		#define XC8_BUFFER_ADDR_TAG @##BUFFER_ADDR
+	#else
+		#define XC8_BUFFER_ADDR_TAG
+	#endif
+#endif
 
 #elif __XC16__
 
 #define USB_NEEDS_POWER_ON
+#define USB_NEEDS_SET_BD_ADDR_REG
 
+#define BDNADR_TYPE              void *
 
 #define SFR_PULL_EN              /* Not used on PIC24 */
 #define SFR_ON_CHIP_XCVR_DIS     U1CNFG2bits.UTRDIS
-#define SFR_PING_PONG_MODE       U1CNFG1bits.PPB
+#define SET_PING_PONG_MODE(n)    U1CNFG1bits.PPB = n
 #define SFR_TOKEN_COMPLETE       U1IRbits.TRNIF
 
 #define SFR_USB_INTERRUPT_FLAGS  U1IR
@@ -105,20 +128,24 @@ Signal 11 Software
 #define SFR_USB_STATUS_PPBI      U1STATbits.PPBI
 
 #define SFR_USB_POWER            U1PWRCbits.USBPWR
+#define SFR_BD_ADDR_REG          U1BDTP1
 
 #define BDnCNT                   STAT.BC /* buffer descriptor */
 
-#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0xff
+#define CLEAR_ALL_USB_IF()       do { SFR_USB_INTERRUPT_FLAGS = 0xff; U1EIR = 0xff; } while(0)
 #define CLEAR_USB_RESET_IF()     SFR_USB_INTERRUPT_FLAGS = 0x1
 #define CLEAR_USB_STALL_IF()     SFR_USB_INTERRUPT_FLAGS = 0x80
 #define CLEAR_USB_TOKEN_IF()     SFR_USB_INTERRUPT_FLAGS = 0x08
 #define CLEAR_USB_SOF_IF()       SFR_USB_INTERRUPT_FLAGS = 0x4
 
+#define BD_ADDR
+#define BUFFER_ADDR
+#define XC8_BD_ADDR_TAG
+#define XC8_BUFFER_ADDR_TAG
 
 /* Compiler stuff. Probably should be somewhere else. */
 #define FAR
 #define memcpy_from_rom(x,y,z) memcpy(x,y,z);
-
 
 #endif
 

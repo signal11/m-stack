@@ -14,7 +14,8 @@ Signal 11 Software
 #elif __C18
 #include <p18f4550.h>
 #include <delays.h>
-#include <usart.h>
+#elif __XC8
+#include <xc.h>
 #endif
 
 #include <string.h>
@@ -42,13 +43,15 @@ struct buffer_descriptor_pair {
    ping-pong buffering, these must be laid out sequentially starting at
    address 0x0400 in the following order, ep0_out, ep0_in,ep1_out, ep1_in,
    etc. These must be initialized prior to use. */
-#pragma udata buffer_descriptors=0x400
+#pragma udata buffer_descriptors=BD_ADDR
 #elif __XC16__
 static struct buffer_descriptor_pair __attribute__((aligned(512)))
-	bds[NUM_ENDPOINT_NUMBERS+1];
+#elif __XC8
+static struct buffer_descriptor_pair
 #else
 #error compiler not supported
 #endif
+bds[NUM_ENDPOINT_NUMBERS+1] XC8_BD_ADDR_TAG;
 
 #ifdef __C18
 /* The actual buffers to and from which the data is transferred from the SIE
@@ -57,12 +60,17 @@ static struct buffer_descriptor_pair __attribute__((aligned(512)))
 /* This addr is for the PIC18F4550 */
 #pragma udata usb_buffers=0x500
 #elif __XC16__
-//TODO: Figure out how to handle the buffers.
+	/* Buffers can go anywhere on PIC24 parts which are supported (so far). */
+#elif __XC8
+	/* Addresses are set by BD_ADDR and BUF_ADDR below. */
+#else
+	#error compiler not supported
+#endif
 
-
+static struct {
 #define EP_BUF(n) \
-	static uchar ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
-	static uchar ep_##n##_in_buf[EP_##n##_IN_LEN];
+	uchar ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
+	uchar ep_##n##_in_buf[EP_##n##_IN_LEN];
 
 #if NUM_ENDPOINT_NUMBERS >= 0
 	EP_BUF(0)
@@ -114,6 +122,7 @@ static struct buffer_descriptor_pair __attribute__((aligned(512)))
 #endif
 
 #undef EP_BUF
+} ep_buffers XC8_BUFFER_ADDR_TAG;
 
 struct ep_buf {
 	uchar *out;
@@ -122,7 +131,11 @@ struct ep_buf {
 	uint8_t in_len;
 };
 
-#define EP_BUFS(n) { ep_##n##_out_buf, ep_##n##_in_buf, EP_##n##_OUT_LEN, EP_##n##_IN_LEN },
+#ifdef __C18
+#pragma idata
+#endif
+
+#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf, ep_buffers.ep_##n##_in_buf, EP_##n##_OUT_LEN, EP_##n##_IN_LEN },
 
 static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 #if NUM_ENDPOINT_NUMBERS >= 0
@@ -177,11 +190,6 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 };
 #undef EP_BUFS
 
-
-#else
-#error compiler not supported
-#endif
-
 // Global data pertaining to addressing the device.
 static uchar addr_pending = 0; // boolean
 static uchar addr = 0x0;
@@ -201,7 +209,7 @@ void usb_init(void)
 	uchar i;
 
 	/* Initialize the USB. 18.4 of PIC24FJ64GB004 datasheet */
-	SFR_PING_PONG_MODE = 0;   /* 0 = disable ping-pong buffer */
+	SET_PING_PONG_MODE(0);   /* 0 = disable ping-pong buffer */
 	SFR_USB_INTERRUPT_EN = 0x0;
 	SFR_USB_EXTENDED_INTERRUPT_EN = 0x0;
 	
@@ -223,13 +231,12 @@ void usb_init(void)
 	SFR_TOKEN_COMPLETE = 0;
 
 	CLEAR_ALL_USB_IF();
-	U1EIR = 0xff;
 
 //	UIEbits.TRNIE = 1;   /* USB Transfer Interrupt Enable */
 //	UIEbits.URSTIE = 1;  /* USB Reset Interrupt Enable */
 //	UIEbits.SOFIE = 1;   /* USB Start-Of-Frame Interrupt Enable */
 
-	// TODO reg
+#ifdef USB_NEEDS_SET_BD_ADDR_REG
 	union WORD {
 		struct {
 			uint8_t lb;
@@ -240,8 +247,9 @@ void usb_init(void)
 	};
 	union WORD w;
 	w.ptr = bds;
-	
-	U1BDTP1 = w.hb;
+
+	SFR_BD_ADDR_REG = w.hb;
+#endif
 
 	/* These are the UEP/U1EP endpoint management registers. */
 	
@@ -257,7 +265,7 @@ void usb_init(void)
 	SFR_EP_MGMT(0).SFR_EP_MGMT_STALL = 0; /* Stall */
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
-		SFR_EP_MGMT_TYPE *ep = &SFR_EP_MGMT(1) + (i-1);
+		volatile SFR_EP_MGMT_TYPE *ep = &SFR_EP_MGMT(1) + (i-1);
 		ep->SFR_EP_MGMT_HANDSHAKE = 1; /* Endpoint handshaking enable */
 		ep->SFR_EP_MGMT_CON_DIS = 1; /* 1=Disable control operations */
 		ep->SFR_EP_MGMT_OUT_EN = 1; /* Endpoint Out Transaction Enable */
@@ -277,14 +285,14 @@ void usb_init(void)
 
 	// Setup endpoint 0 Output buffer descriptor.
 	// Input and output are from the HOST perspective.
-	bds[0].ep_out.BDnADR = ep_buf[0].out;//ep0_out_buf;
+	bds[0].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[0].out;
 	bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
 	bds[0].ep_out.STAT.DTSEN = 0;
 	bds[0].ep_out.STAT.UOWN = 1;
 
 	// Setup endpoint 0 Input buffer descriptor.
 	// Input and output are from the HOST perspective.
-	bds[0].ep_in.BDnADR = ep_buf[0].in;
+	bds[0].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[0].in;
 	bds[0].ep_in.BDnCNT = ep_buf[0].in_len;
 	bds[0].ep_in.STAT.DTSEN = 0;
 	bds[0].ep_in.STAT.DTS = 0;
@@ -293,14 +301,14 @@ void usb_init(void)
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		// Setup endpoint 1 Output buffer descriptor.
 		// Input and output are from the HOST perspective.
-		bds[i].ep_out.BDnADR = ep_buf[i].out;
+		bds[i].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[i].out;
 		bds[i].ep_out.BDnCNT = ep_buf[i].out_len;
 		bds[i].ep_out.STAT.DTSEN = 0;
 		bds[i].ep_out.STAT.UOWN = 1;
 
 		// Setup endpoint 1 Input buffer descriptor.
 		// Input and output are from the HOST perspective.
-		bds[i].ep_in.BDnADR = ep_buf[i].in;
+		bds[i].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[i].in;
 		bds[i].ep_in.BDnCNT = ep_buf[i].in_len;
 		bds[i].ep_in.STAT.DTSEN = 0;
 		bds[i].ep_in.STAT.DTS = 1;
@@ -311,9 +319,10 @@ void usb_init(void)
 	SFR_USB_POWER = 1;
 	#endif
 
-	//TODO reg
+#ifdef __XC16__
 	U1OTGCONbits.DPPULUP = 1;
-
+#warning Find out if this is needed
+#endif
 	/* TODO: Interrupts */
 	//PIE2bits.USBIE = 1;     /* USB Interrupt enable */
 	

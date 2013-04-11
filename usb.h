@@ -13,6 +13,8 @@ typedef unsigned short ushort;
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "usb_hal.h"
+
 // USB PIDs
 enum PID {
 	PID_OUT = 0x01,
@@ -86,7 +88,7 @@ enum EndpointAttributes {
 	/* More bits here for ISO endpoints only. */
 };
 
-#ifdef __C18
+#ifdef _PIC18
 // This represents the Buffer Descriptor as laid out in the
 // PIC18F4550 Datasheet. It contains data about an endpoint
 // buffer, either in or out. Buffer descriptors must be laid
@@ -117,7 +119,7 @@ struct buffer_descriptor {
 		uchar BDnSTAT;
 	} STAT;
 	uchar BDnCNT;
-	uchar *BDnADR; // uchar BDnADRL; uchar BDnADRH;
+	BDNADR_TYPE BDnADR; // uchar BDnADRL; uchar BDnADRH;
 };
 #elif defined __XC16__
 /* Represents BDnSTAT in the datasheet */
@@ -141,7 +143,7 @@ struct buffer_descriptor {
 		};
 		uint16_t BDnSTAT;
 	}STAT;
-	void *BDnADR; // uchar BDnADRL; uchar BDnADRH;
+	BDNADR_TYPE BDnADR; // uchar BDnADRL; uchar BDnADRH;
 };
 #endif
 
