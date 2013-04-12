@@ -25,7 +25,7 @@ Signal 11 Software
 #include "usb_config.h"
 #include "usb_descriptors.c" // TODO HACK!
 
-#define MIN(x,y) (x<y)?x:y
+#define MIN(x,y) ((x<y)?x:y)
 
 struct serial_struct{
 	uchar bLength;
@@ -359,6 +359,21 @@ void brake(void)
 	Nop();
 }
 
+static char *control_return_ptr;
+static int  control_bytes_remaining;
+static int control_need_zlp;
+
+static uint8_t start_control_return(void *ptr, size_t len, size_t bytes_asked_for)
+{
+	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
+	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
+	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
+	control_return_ptr = ((char*)ptr) + bytes_to_send;
+	control_bytes_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
+
+	return bytes_to_send;
+}
+
 /* checkUSB() is called repeatedly to check for USB interrupts
    and service USB requests */
 void usb_service(void)
@@ -392,45 +407,43 @@ void usb_service(void)
 				if (setup->bRequest == GET_DESCRIPTOR) {
 					char descriptor = ((setup->wValue >> 8) & 0x00ff);
 					uchar descriptor_index = setup->wValue & 0x00ff;
+					uint8_t bytes_to_send;
+
 					if (descriptor == DEVICE) {
 						SERIAL("Get Descriptor for DEVICE");
 
 						// Return Device Descriptor
 						bds[0].ep_in.STAT.UOWN = 0;
-						memcpy_from_rom(ep_buf[0].in, &this_device_descriptor, sizeof(struct device_descriptor));
+						bytes_to_send =  start_control_return(&this_device_descriptor, sizeof(this_device_descriptor), setup->wLength);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct device_descriptor));
+						bds[0].ep_in.BDnCNT = bytes_to_send;
 						bds[0].ep_in.STAT.UOWN = 1;
 					}
 					else if (descriptor == CONFIGURATION) {
 						// Return Configuration Descriptor. Make sure to only return
 						// the number of bytes asked for by the host.
 						bds[0].ep_in.STAT.UOWN = 0;
-						memcpy_from_rom(ep_buf[0].in, &this_configuration_packet, sizeof(struct configuration_packet));
+						bytes_to_send = start_control_return(&this_configuration_packet, sizeof(struct configuration_packet), setup->wLength);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct configuration_packet));
+						bds[0].ep_in.BDnCNT = bytes_to_send;
 						bds[0].ep_in.STAT.UOWN = 1;
 					}
 					else if (descriptor == STRING) {
 						uchar stall=0;
-						uchar len = 0;
 
 						bds[0].ep_in.STAT.UOWN = 0;
 						if (descriptor_index == 0) {
-							memcpy_from_rom(ep_buf[0].in, &str00, sizeof(str00));
-							len = sizeof(str00);
+							bytes_to_send = start_control_return(&str00, sizeof(str00), setup->wLength);
 						}
 						else if (descriptor_index == 1) {
-							memcpy_from_rom(ep_buf[0].in, &vendor_string, sizeof(vendor_string));
-							len = sizeof(vendor_string);
+							bytes_to_send = start_control_return(&vendor_string, sizeof(vendor_string), setup->wLength);
 						}
 						else if (descriptor_index == 2) {
-							memcpy_from_rom(ep_buf[0].in, &product_string, sizeof(product_string));
-							len = sizeof(product_string);
+							bytes_to_send = start_control_return(&product_string, sizeof(product_string), setup->wLength);
 						}
 #if 0 ////////////////////////
 						else if (descriptor_index == 3) {
@@ -473,7 +486,7 @@ void usb_service(void)
 							bds[0].ep_in.STAT.BDnSTAT = 0;
 							bds[0].ep_in.STAT.DTSEN = 1;
 							bds[0].ep_in.STAT.DTS = 1;
-							bds[0].ep_in.BDnCNT = sizeof(vendor_string);
+							bds[0].ep_in.BDnCNT = bytes_to_send;
 							bds[0].ep_in.STAT.UOWN = 1;
 						}
 					}
@@ -757,7 +770,8 @@ void usb_service(void)
 				}
 			}
 			else if (bds[0].ep_out.STAT.PID == PID_IN) {
-				Nop();
+				/* Nonsense condition:
+				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
 			}
 			else if (bds[0].ep_out.STAT.PID == PID_OUT) {
 				if (bds[0].ep_out.BDnCNT == 0) {
@@ -807,8 +821,26 @@ void usb_service(void)
 				addr_pending = 0;
 				got_addr = 1;
 			}
-			//else
-			//	brake();
+
+			if (control_bytes_remaining) {
+				/* There's already a multi-transaction transfer in process. */
+				uint8_t bytes_to_send = MIN(control_bytes_remaining, EP_0_IN_LEN);
+
+				memcpy_from_rom(ep_buf[0].in, control_return_ptr, bytes_to_send);
+				control_bytes_remaining -= bytes_to_send;
+				control_return_ptr += bytes_to_send;
+
+				/* If we hit the end with a full-length packet, set up
+				   to send a zero-length packet at the next IN token. */
+				if (control_bytes_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
+					control_need_zlp = 1;
+
+				usb_send_in_buffer(0, bytes_to_send);
+			}
+			else if (control_need_zlp) {
+				usb_send_in_buffer(0, 0);
+				control_need_zlp = 0;
+			}
 		}
 		else if (SFR_USB_STATUS_EP == 1) {
 			if (SFR_USB_STATUS_DIR == 1 /*1=IN*/) {
@@ -880,7 +912,7 @@ uchar *usb_get_in_buffer(uint8_t endpoint)
 
 void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
-	if (g_configuration > 0) {
+	if (g_configuration > 0 || endpoint == 0) {
 		uchar pid;
 		bds[endpoint].ep_in.STAT.UOWN = 0;
 		pid = !bds[endpoint].ep_in.STAT.DTS;

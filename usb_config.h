@@ -18,8 +18,9 @@
    activate endpoints EP 1 IN, EP 1 OUT, EP 2 IN, EP 2 OUT.  */
 #define NUM_ENDPOINT_NUMBERS 1
 
-#define EP_0_OUT_LEN 64
-#define EP_0_IN_LEN 64
+/* Only 8, 16, 32 and 64 are supported for endpoint zero length. */
+#define EP_0_OUT_LEN 8
+#define EP_0_IN_LEN 8
 
 #define EP_1_OUT_LEN 64
 #define EP_1_IN_LEN 64
