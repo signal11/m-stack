@@ -13,7 +13,15 @@ typedef unsigned short ushort;
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "usb_config.h"
 #include "usb_hal.h"
+
+#ifdef __XC16__
+#pragma pack(push, 1)
+#elif __XC8
+#else
+#error "Compiler not supported"
+#endif
 
 // USB PIDs
 enum PID {
@@ -239,14 +247,30 @@ struct endpoint_descriptor {
 	uchar bInterval;
 };
 
-
-
 struct string_descriptor {
 	uchar bLength;
 	uchar bDescriptorType; // STRING;
 	ushort chars[];
 };
 
+extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, void **ptr);
+
+//TODO Find a better place for this stuff
+#define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
+#define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]
+#define USB_CONCAT(X,Y)  USB_CONCAT_HIDDEN(X,Y)
+#define USB_CONCAT_HIDDEN(X,Y) X ## Y
+
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct endpoint_descriptor), 7);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct hid_descriptor), 9);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
+
+extern struct device_descriptor USB_DEVICE_DESCRIPTOR;
+extern struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
 void usb_init(void);
 void usb_isr(void);
@@ -258,6 +282,14 @@ bool usb_in_endpoint_busy(uint8_t endpoint);
 
 bool usb_out_endpoint_busy(uint8_t endpoint);
 uchar *usb_get_out_buffer(uint8_t endpoint);
+
+
+#ifdef __XC16__
+#pragma pack(pop)
+#elif __XC8
+#else
+#error "Compiler not supported"
+#endif
 
 #endif /* USB_H_ */
 

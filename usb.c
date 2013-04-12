@@ -23,7 +23,6 @@ Signal 11 Software
 #include "usb.h"
 #include "usb_hal.h"
 #include "usb_config.h"
-#include "usb_descriptors.c" // TODO HACK!
 
 #define MIN(x,y) ((x<y)?x:y)
 
@@ -197,6 +196,8 @@ static int got_addr = 0; // whether addr is set DEBUG
 static char g_configuration = 0;
 static char g_ep1_halt = 0;
 
+extern struct device_descriptor USB_DEVICE_DESCRIPTOR;
+extern struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
 #define SERIAL(x)
 #define SERIAL_VAL(x)
@@ -414,7 +415,7 @@ void usb_service(void)
 
 						// Return Device Descriptor
 						bds[0].ep_in.STAT.UOWN = 0;
-						bytes_to_send =  start_control_return(&this_device_descriptor, sizeof(this_device_descriptor), setup->wLength);
+						bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
 						bds[0].ep_in.STAT.DTSEN = 1;
 						bds[0].ep_in.STAT.DTS = 1;
@@ -422,67 +423,39 @@ void usb_service(void)
 						bds[0].ep_in.STAT.UOWN = 1;
 					}
 					else if (descriptor == CONFIGURATION) {
-						// Return Configuration Descriptor. Make sure to only return
-						// the number of bytes asked for by the host.
-						bds[0].ep_in.STAT.UOWN = 0;
-						bytes_to_send = start_control_return(&this_configuration_packet, sizeof(struct configuration_packet), setup->wLength);
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = bytes_to_send;
-						bds[0].ep_in.STAT.UOWN = 1;
+						struct configuration_descriptor *desc;
+						if (descriptor_index >= NUMBER_OF_CONFIGURATIONS)
+							stall_ep0();
+						else {
+							desc = USB_CONFIG_DESCRIPTOR_MAP[descriptor_index];
+
+							// Return Configuration Descriptor. Make sure to only return
+							// the number of bytes asked for by the host.
+							bds[0].ep_in.STAT.UOWN = 0;
+							//CHECK check length
+							bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
+							bds[0].ep_in.STAT.BDnSTAT = 0;
+							bds[0].ep_in.STAT.DTSEN = 1;
+							bds[0].ep_in.STAT.DTS = 1;
+							bds[0].ep_in.BDnCNT = bytes_to_send;
+							bds[0].ep_in.STAT.UOWN = 1;
+						}
 					}
 					else if (descriptor == STRING) {
-						uchar stall=0;
+						void *desc;
+						int16_t len;
 
 						bds[0].ep_in.STAT.UOWN = 0;
-						if (descriptor_index == 0) {
-							bytes_to_send = start_control_return(&str00, sizeof(str00), setup->wLength);
-						}
-						else if (descriptor_index == 1) {
-							bytes_to_send = start_control_return(&vendor_string, sizeof(vendor_string), setup->wLength);
-						}
-						else if (descriptor_index == 2) {
-							bytes_to_send = start_control_return(&product_string, sizeof(product_string), setup->wLength);
-						}
-#if 0 ////////////////////////
-						else if (descriptor_index == 3) {
-							memcpy_from_rom(ep_buf[0].in, &interface_string, sizeof(interface_string));
-							len = sizeof(interface_string);
-						}
-//#else ////////////////////////
-						else if (descriptor_index == 3) {
-							struct serial_struct s;
-							int i;
-							s.bLength = sizeof(struct serial_struct);
-							s.bDescriptorType = STRING;
-							s.chars;
-							for (i = 0; i < 16; i++) {
-								// Read each part of the serial from EEPROM
-								EEADR = i;
-								EECON1bits.EEPGD = 0;
-								EECON1bits.RD = 1;
-								s.chars[i] = EEDATA;
-								if (s.chars[i] == 0)
-									break;
-							};
-							s.bLength = s.bLength - 2*((i==16)?0: (16-i));
-							memcpy(ep_buf[0].in, &s, s.bLength);
-							len = s.bLength;
-						}
-#endif ///////////////////////
-						else {
-							brake();
-							// Unsupported string descriptor.
-							// Stall the endpoint
-							stall_ep0();
 
+						len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
+						if (len < 0) {
+							stall_ep0();
 							SERIAL("Unsupported string descriptor requested");
-							
-							stall = 1;
 						}
-						if (!stall) {
-							// Return Descriptor				
+						else {
+							bytes_to_send = start_control_return(desc, len, setup->wLength);
+
+							// Return Descriptor
 							bds[0].ep_in.STAT.BDnSTAT = 0;
 							bds[0].ep_in.STAT.DTSEN = 1;
 							bds[0].ep_in.STAT.DTS = 1;

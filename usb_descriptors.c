@@ -1,4 +1,5 @@
 
+#include "usb_config.h"
 #include "usb.h"
 
 #ifdef __C18
@@ -11,12 +12,7 @@
    contains a configuration, interface, class, and endpoint
    data. The packets contained in here will be specific to the
    device. */
-#ifdef __XC16__
-#pragma pack(push, 1)
-#elif __XC8
-#else
-#error "Compiler not supported"
-#endif
+
 struct configuration_packet {
 	struct configuration_descriptor  config;
 	struct interface_descriptor      interface;
@@ -33,7 +29,7 @@ ROMPTR struct device_descriptor this_device_descriptor =
 	0x00, // Device class
 	0x00, // Device Subclass
 	0x00, // Protocol.
-	0x8, // bMaxPacketSize0
+	EP_0_OUT_LEN, // bMaxPacketSize0
 	0xA0A0, // Vendor
 	0x0001, // Product
 	//0x0c12, 0x0005, // Vendor,Product for zeroplus joystick
@@ -41,7 +37,7 @@ ROMPTR struct device_descriptor this_device_descriptor =
 	1, // Manufacturer
 	2, // Product
 	0, // Serial
-	1 // NumConfigurations
+	NUMBER_OF_CONFIGURATIONS // NumConfigurations
 };
 
 ROMPTR struct configuration_packet this_configuration_packet =
@@ -118,9 +114,33 @@ ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } interfac
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
 };
 
-#ifdef __XC16__
-#pragma pack(pop)
-#elif __XC8
-#else
-#error "Compiler not supported"
-#endif
+int16_t usb_application_get_string(uint8_t string_number, void **ptr)
+{
+	if (string_number == 0) {
+		*ptr = &str00;
+		return sizeof(str00);
+	}
+	else if (string_number == 1) {
+		*ptr = &vendor_string;
+		return sizeof(vendor_string);
+	}
+	else if (string_number == 2) {
+		*ptr = &product_string;
+		return sizeof(product_string);
+	}
+	else if (string_number == 3) {
+		/* This is where you might have code to do something like read
+		   a serial number out of EEPROM and return it. */
+		return -1;
+	}
+
+	return -1;
+}
+
+/* Configuration Descriptor List: The order here is not important */
+struct configuration_descriptor *usb_application_config_descs[] =
+{
+	(struct configuration_descriptor*) &this_configuration_packet, /* Configuration #1 */
+};
+STATIC_SIZE_CHECK_EQUAL(USB_ARRAYLEN(USB_CONFIG_DESCRIPTOR_MAP), NUMBER_OF_CONFIGURATIONS);
+STATIC_SIZE_CHECK_EQUAL(sizeof(USB_DEVICE_DESCRIPTOR), 18);

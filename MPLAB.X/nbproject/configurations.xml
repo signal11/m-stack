@@ -16,6 +16,7 @@
         <itemPath>../usb.c</itemPath>
         <itemPath>../usb.h</itemPath>
         <itemPath>../usb_hal.h</itemPath>
+        <itemPath>../usb_config.h</itemPath>
       </logicalFolder>
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
@@ -58,7 +59,7 @@
         <makeCustomizationEnableLongLines>false</makeCustomizationEnableLongLines>
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
-      <item path="../usb_descriptors.c" ex="true" overriding="false">
+      <item path="../usb_descriptors.c" ex="false" overriding="false">
         <C30>
         </C30>
         <C30-AS>
@@ -143,7 +144,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>SKDEPIC18FJPlatformTool</platformTool>
         <languageToolchain>XC8</languageToolchain>
-        <languageToolchainVersion>1.12</languageToolchainVersion>
+        <languageToolchainVersion>1.10</languageToolchainVersion>
         <platform>2</platform>
       </toolsSet>
       <compileType>
@@ -165,7 +166,7 @@
         <makeCustomizationEnableLongLines>false</makeCustomizationEnableLongLines>
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
-      <item path="../usb_descriptors.c" ex="true" overriding="false">
+      <item path="../usb_descriptors.c" ex="false" overriding="false">
         <HI-TECH-COMP>
         </HI-TECH-COMP>
         <HI-TECH-LINK>

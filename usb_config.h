@@ -28,5 +28,12 @@
 #define EP_2_OUT_LEN 64
 #define EP_2_IN_LEN 64
 
+#define NUMBER_OF_CONFIGURATIONS 1
+
+/* Objects from usb_descriptors.c */
+#define USB_DEVICE_DESCRIPTOR this_device_descriptor
+#define USB_CONFIG_DESCRIPTOR_MAP usb_application_config_descs
+#define USB_STRING_DESCRIPTOR_FUNC usb_application_get_string
+
 
 #endif /* USB_CONFIG_H__ */
