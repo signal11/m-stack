@@ -344,13 +344,6 @@ void stall_ep0(void)
 		BDNSTAT_UOWN|BDNSTAT_BSTALL;
 }
 
-void brake(void)
-{
-	Nop();
-	Nop();
-	Nop();
-}
-
 static char *control_return_ptr;
 static int  control_bytes_remaining;
 static int control_need_zlp;
@@ -614,7 +607,6 @@ void usb_service(void)
 				}
 				else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
 					if (setup->REQUEST.destination == 0/*0=device*/) {
-						brake();
 						SERIAL("Set/Clear feature for device");
 					}
 
@@ -623,7 +615,6 @@ void usb_service(void)
 							if (setup->wIndex == 0x81 /*Endpoint 1 IN*/) {
 								if (setup->bRequest == SET_FEATURE) {
 									// SET_FEATURE. Halt the Endpoint
-									brake();
 									SERIAL("Set Feature on Endpoint 1 in.");
 									g_ep1_halt = 1;
 									//bds[1].ep_in.STAT.BDnSTAT = 0;
@@ -642,7 +633,6 @@ void usb_service(void)
 							else if (setup->wIndex == 0x80 /*Endpoint 1 OUT*/) {
 								if (setup->bRequest == SET_FEATURE) {
 									// SET_FEATURE. Halt the Endpoint
-									brake();
 									SERIAL("Set Feature on endpoint 1 out.");
 									bds[1].ep_out.STAT.BDnSTAT =
 										BDNSTAT_UOWN|BDNSTAT_BSTALL;
@@ -739,7 +729,6 @@ void usb_service(void)
 			}
 			else {
 				// Unsupported PID. Stall the Endpoint.
-				brake();
 				SERIAL("Unsupported PID. Stall.");
 				stall_ep0();
 			}
@@ -775,18 +764,15 @@ void usb_service(void)
 		}
 		else if (SFR_USB_STATUS_EP == 1) {
 			if (SFR_USB_STATUS_DIR == 1 /*1=IN*/) {
-				brake();
 				SERIAL("IN Data packet request on 1.");
 			}
 			else {
 				// OUT
-				brake();
 				SERIAL("OUT Data packet on 1.");
 			}
 		}
 		else {
 			// For another endpoint
-			brake();
 			SERIAL("Request for another endpoint?");
 		}
 
