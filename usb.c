@@ -196,9 +196,6 @@ static int got_addr = 0; // whether addr is set DEBUG
 static char g_configuration = 0;
 static char g_ep1_halt = 0;
 
-extern struct device_descriptor USB_DEVICE_DESCRIPTOR;
-extern struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
-
 #define SERIAL(x)
 #define SERIAL_VAL(x)
 
