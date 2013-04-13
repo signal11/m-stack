@@ -288,32 +288,26 @@ void usb_init(void)
 	// Input and output are from the HOST perspective.
 	bds[0].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[0].out;
 	bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
-	bds[0].ep_out.STAT.DTSEN = 0;
-	bds[0].ep_out.STAT.UOWN = 1;
+	bds[0].ep_out.STAT.BDnSTAT = BDNSTAT_UOWN;
 
 	// Setup endpoint 0 Input buffer descriptor.
 	// Input and output are from the HOST perspective.
 	bds[0].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[0].in;
 	bds[0].ep_in.BDnCNT = ep_buf[0].in_len;
-	bds[0].ep_in.STAT.DTSEN = 0;
-	bds[0].ep_in.STAT.DTS = 0;
-	bds[0].ep_in.STAT.UOWN = 0;
+	bds[0].ep_in.STAT.BDnSTAT = 0;
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		// Setup endpoint 1 Output buffer descriptor.
 		// Input and output are from the HOST perspective.
 		bds[i].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[i].out;
 		bds[i].ep_out.BDnCNT = ep_buf[i].out_len;
-		bds[i].ep_out.STAT.DTSEN = 0;
-		bds[i].ep_out.STAT.UOWN = 1;
+		bds[i].ep_out.STAT.BDnSTAT = BDNSTAT_UOWN;
 
 		// Setup endpoint 1 Input buffer descriptor.
 		// Input and output are from the HOST perspective.
 		bds[i].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[i].in;
 		bds[i].ep_in.BDnCNT = ep_buf[i].in_len;
-		bds[i].ep_in.STAT.DTSEN = 0;
-		bds[i].ep_in.STAT.DTS = 1;
-		bds[i].ep_in.STAT.UOWN = 0;
+		bds[i].ep_in.STAT.BDnSTAT = BDNSTAT_DTS;
 	}
 	
 	#ifdef USB_NEEDS_POWER_ON
@@ -335,22 +329,17 @@ void reset_bd0_out(void)
 	// Clean up the Buffer Descriptors.
 	// Set the length and hand it back to the SIE.
 	// The Address stays the same.
-	bds[0].ep_out.STAT.BDnSTAT = 0;
 	bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
-	bds[0].ep_out.STAT.UOWN = 1;
+	bds[0].ep_out.STAT.BDnSTAT =
+		BDNSTAT_UOWN;
 }
 
 void stall_ep0(void)
 {
 	// Stall Endpoint 0. It's important that DTSEN and DTS are zero.
-	bds[0].ep_in.STAT.UOWN = 0;
-	bds[0].ep_in.STAT.BDnSTAT = 0;
-	bds[0].ep_in.STAT.DTSEN = 0;
-	bds[0].ep_in.STAT.DTS = 0;
-	bds[0].ep_in.STAT.BSTALL = 1;
-	bds[0].ep_in.STAT.UOWN = 1;
 	bds[0].ep_in.BDnCNT = ep_buf[0].in_len;
-
+	bds[0].ep_in.STAT.BDnSTAT =
+		BDNSTAT_UOWN|BDNSTAT_BSTALL;
 }
 
 void brake(void)
@@ -414,13 +403,11 @@ void usb_service(void)
 						SERIAL("Get Descriptor for DEVICE");
 
 						// Return Device Descriptor
-						bds[0].ep_in.STAT.UOWN = 0;
-						bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
 						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
+						bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
 						bds[0].ep_in.BDnCNT = bytes_to_send;
-						bds[0].ep_in.STAT.UOWN = 1;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 					}
 					else if (descriptor == CONFIGURATION) {
 						struct configuration_descriptor *desc;
@@ -431,21 +418,17 @@ void usb_service(void)
 
 							// Return Configuration Descriptor. Make sure to only return
 							// the number of bytes asked for by the host.
-							bds[0].ep_in.STAT.UOWN = 0;
 							//CHECK check length
-							bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
 							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bds[0].ep_in.STAT.DTSEN = 1;
-							bds[0].ep_in.STAT.DTS = 1;
+							bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
 							bds[0].ep_in.BDnCNT = bytes_to_send;
-							bds[0].ep_in.STAT.UOWN = 1;
+							bds[0].ep_in.STAT.BDnSTAT =
+								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 						}
 					}
 					else if (descriptor == STRING) {
 						void *desc;
 						int16_t len;
-
-						bds[0].ep_in.STAT.UOWN = 0;
 
 						len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
 						if (len < 0) {
@@ -457,10 +440,9 @@ void usb_service(void)
 
 							// Return Descriptor
 							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bds[0].ep_in.STAT.DTSEN = 1;
-							bds[0].ep_in.STAT.DTS = 1;
 							bds[0].ep_in.BDnCNT = bytes_to_send;
-							bds[0].ep_in.STAT.UOWN = 1;
+							bds[0].ep_in.STAT.BDnSTAT =
+								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 						}
 					}
 #if 0
@@ -509,12 +491,10 @@ void usb_service(void)
 					addr = setup->wValue;
 
 					// Return a zero-length packet.
-					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
 					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.UOWN = 1;
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else if (setup->bRequest == SET_CONFIGURATION) {
 					// Set the configuration. wValue is the configuration.
@@ -536,12 +516,10 @@ void usb_service(void)
 						}
 	
 						// Return a zero-length packet.
-						bds[0].ep_in.STAT.UOWN = 0;
 						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
 						bds[0].ep_in.BDnCNT = 0;
-						bds[0].ep_in.STAT.UOWN = 1;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 					}
 					else {
 						SERIAL("Set Configuration, but configuration not zero. Stalling.");
@@ -551,23 +529,17 @@ void usb_service(void)
 				}
 				else if (setup->bRequest == GET_CONFIGURATION) {
 					// Return the current Configuration.
-					uchar buf[10];
 
 					SERIAL("Get Configuration. Returning:");
 					SERIAL_VAL(g_configuration);
 
-					bds[0].ep_in.STAT.UOWN = 0;
-					buf[0] = g_configuration;
-					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
+					ep_buf[0].in[0] = g_configuration;
 					bds[0].ep_in.BDnCNT = 1;
-					bds[0].ep_in.STAT.UOWN = 1;
-				
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else if (setup->bRequest == GET_STATUS) {
-					char buf[10];					
 					
 					SERIAL("Get Status (dst, index):");
 					SERIAL_VAL(setup->REQUEST.destination);
@@ -576,28 +548,24 @@ void usb_service(void)
 					if (setup->REQUEST.destination == 0 /*0=device*/) {
 						// Status for the DEVICE requested
 						// Return as a single byte in the return packet.
-						buf[0] = 0;
-						bds[0].ep_in.STAT.UOWN = 0;
-						memcpy(ep_buf[0].in, &buf, 1);
+
 						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = 1;
-						bds[0].ep_in.STAT.UOWN = 1;
+						ep_buf[0].in[0] = 0;
+						ep_buf[0].in[1] = 0;
+						bds[0].ep_in.BDnCNT = 2;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 					}
 					else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
 						// Status of endpoint
 						
 						if (setup->wIndex == 0x81/*81=ep1_in*/) {
-							buf[0] = g_ep1_halt;
-							buf[1] = 0;//g_ep1_halt;
-							bds[0].ep_in.STAT.UOWN = 0;
-							memcpy(ep_buf[0].in, &buf, 2);
 							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bds[0].ep_in.STAT.DTSEN = 1;
-							bds[0].ep_in.STAT.DTS = 1;
+							ep_buf[0].in[0] = g_ep1_halt;
+							ep_buf[0].in[1] = 0;//g_ep1_halt;
 							bds[0].ep_in.BDnCNT = 2;
-							bds[0].ep_in.STAT.UOWN = 1;
+							bds[0].ep_in.STAT.BDnSTAT =
+								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 						}
 						else {
 							// Endpoint doesn't exist. STALL.
@@ -619,12 +587,10 @@ void usb_service(void)
 					//bds[1].ep_in.STAT.DTS = 1;
 #if 1
 					// Return a zero-length packet.
-					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
 					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.UOWN = 1;
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 #endif
 				}
 				else if (/*setup->REQUEST.type == 0 //0=usb_std_req &&*/
@@ -640,14 +606,12 @@ void usb_service(void)
 
 					// Return the current interface (hard-coded to 1)
 					// as a single byte in the return packet.
-					buf[0] = 1;
-					bds[0].ep_in.STAT.UOWN = 0;
-					memcpy(ep_buf[0].in, &buf, 1);
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
+					ep_buf[0].in[0] = 1;
 					bds[0].ep_in.BDnCNT = 1;
-					bds[0].ep_in.STAT.UOWN = 1;
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+
 				}
 				else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
 					if (setup->REQUEST.destination == 0/*0=device*/) {
@@ -681,17 +645,14 @@ void usb_service(void)
 									// SET_FEATURE. Halt the Endpoint
 									brake();
 									SERIAL("Set Feature on endpoint 1 out.");
-									bds[1].ep_out.STAT.BDnSTAT = 0;
-									bds[1].ep_out.STAT.BSTALL = 1;
-									bds[1].ep_out.STAT.UOWN = 1;
+									bds[1].ep_out.STAT.BDnSTAT =
+										BDNSTAT_UOWN|BDNSTAT_BSTALL;
 								}
 								else {
 									// CLEAR_FEATURE. Enable (un-halt) Endpoint.
 									SERIAL("Clear feature on endpoint 1 out.");
-									bds[1].ep_out.STAT.BDnSTAT = 0;
-									bds[1].ep_out.STAT.DTSEN = 1;
-									bds[1].ep_out.STAT.DTS = 0;									
-									bds[1].ep_out.STAT.UOWN = 1;
+									bds[1].ep_out.STAT.BDnSTAT =
+										BDNSTAT_DTSEN|BDNSTAT_UOWN;
 								}
 
 							}
@@ -699,13 +660,10 @@ void usb_service(void)
 					}
 
 					// Return a zero-length packet.
-					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
 					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.UOWN = 1;
-					 
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else if (setup->REQUEST.destination == 1/*1=interface*/ &&
 				         setup->bRequest == GET_IDLE) {
@@ -724,13 +682,10 @@ void usb_service(void)
 
 					//stall_ep0();
 					// Return a zero-length packet.
-					bds[0].ep_in.STAT.UOWN = 0;
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.STAT.DTSEN = 1;
-					bds[0].ep_in.STAT.DTS = 1;
 					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.UOWN = 1;
-
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else {
 					// Unsupported Request. Stall the Endpoint.
@@ -753,11 +708,9 @@ void usb_service(void)
 					// Clean up the Buffer Descriptors.
 					// Set the length and hand it back to the SIE.
 					bds[0].ep_out.STAT.BDnSTAT = 0;
-					bds[0].ep_out.STAT.DTS = 1;
-					bds[0].ep_out.STAT.DTSEN = 1;					
 					bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
-					bds[0].ep_out.STAT.UOWN = 1;
-
+					bds[0].ep_out.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else {
 					int z;
@@ -887,13 +840,16 @@ void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
 	if (g_configuration > 0 || endpoint == 0) {
 		uchar pid;
-		bds[endpoint].ep_in.STAT.UOWN = 0;
 		pid = !bds[endpoint].ep_in.STAT.DTS;
-		bds[endpoint].ep_in.STAT.BDnSTAT = 0; // clear all bits (looking at you, KEN)
-		bds[endpoint].ep_in.STAT.DTSEN = 1;
-		bds[endpoint].ep_in.STAT.DTS = pid;
+		bds[endpoint].ep_in.STAT.BDnSTAT = 0;
+
 		bds[endpoint].ep_in.BDnCNT = len;
-		bds[endpoint].ep_in.STAT.UOWN = 1;
+		if (pid)
+			bds[endpoint].ep_in.STAT.BDnSTAT =
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+		else
+			bds[endpoint].ep_in.STAT.BDnSTAT =
+				BDNSTAT_UOWN|BDNSTAT_DTSEN;
 	}
 }
 

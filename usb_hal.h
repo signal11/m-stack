@@ -130,7 +130,7 @@ Signal 11 Software
 #define SFR_USB_POWER            U1PWRCbits.USBPWR
 #define SFR_BD_ADDR_REG          U1BDTP1
 
-#define BDnCNT                   STAT.BC /* buffer descriptor */
+#define BDnCNT                   STAT.BDnCNT_byte /* buffer descriptor */
 
 #define CLEAR_ALL_USB_IF()       do { SFR_USB_INTERRUPT_FLAGS = 0xff; U1EIR = 0xff; } while(0)
 #define CLEAR_USB_RESET_IF()     SFR_USB_INTERRUPT_FLAGS = 0x1

@@ -96,6 +96,16 @@ enum EndpointAttributes {
 	/* More bits here for ISO endpoints only. */
 };
 
+/* Buffer Descriptor BDnSTAT flags. On Some MCUs, apparently, when handing
+ * a buffer descriptor to the SIE, there's a race condition that can happen
+ * if you don't set the BDnSTAT byte as a single operation. This was observed
+ * on the PIC18F46J50 when sending 8-byte IN-transactions while doing control
+ * transfers. */
+#define BDNSTAT_UOWN   0x80
+#define BDNSTAT_DTS    0x40
+#define BDNSTAT_DTSEN  0x08
+#define BDNSTAT_BSTALL 0x04
+
 #ifdef _PIC18
 // This represents the Buffer Descriptor as laid out in the
 // PIC18F4550 Datasheet. It contains data about an endpoint
@@ -149,7 +159,10 @@ struct buffer_descriptor {
 			uint16_t DTS : 1;
 			uint16_t /*UOWN*/ : 1;
 		};
-		uint16_t BDnSTAT;
+		struct {
+			uint8_t BDnCNT_byte; //BDnCNT is a macro on PIC24
+			uint8_t BDnSTAT;
+		};
 	}STAT;
 	BDNADR_TYPE BDnADR; // uchar BDnADRL; uchar BDnADRH;
 };
