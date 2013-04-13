@@ -124,10 +124,10 @@ static struct {
 } ep_buffers XC8_BUFFER_ADDR_TAG;
 
 struct ep_buf {
-	uchar *out;
-	uchar *in;
-	uint8_t out_len;
-	uint8_t in_len;
+	uchar * const out;
+	uchar * const in;
+	const uint8_t out_len;
+	const uint8_t in_len;
 };
 
 #ifdef __C18
