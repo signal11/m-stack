@@ -30,9 +30,11 @@ Signal 11 Software
 #define SFR_USB_IF               PIR2bits.USBIF
 
 #define SFR_USB_INTERRUPT_EN     UIE
-#define SFR_TRANSFER_IE          UIE.TRNIE
-#define SFR_RESET_IE             UIE.URSTIE
-#define SFR_SOF_IE               UIE.SOFIE
+#define SFR_TRANSFER_IE          UIEbits.TRNIE
+#define SFR_STALL_IE             UIEbits.STALLIE
+#define SFR_RESET_IE             UIEbits.URSTIE
+#define SFR_SOF_IE               UIEbits.SOFIE
+#define SFR_USB_IE               PIE2bits.USBIE
 
 #define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
 
@@ -103,9 +105,11 @@ Signal 11 Software
 #define SFR_USB_IF               IFS5bits.USB1IF
 
 #define SFR_USB_INTERRUPT_EN     U1IE
-#define SFR_TRANSFER_IE          U1IE.TRNIE
-#define SFR_RESET_IE             U1IE.URSTIE
-#define SFR_SOF_IE               U1IE.SOFIE
+#define SFR_TRANSFER_IE          U1IEbits.TRNIE
+#define SFR_STALL_IE             U1IEbits.STALLIE
+#define SFR_RESET_IE             U1IEbits.URSTIE
+#define SFR_SOF_IE               U1IEbits.SOFIE
+#define SFR_USB_IE               IEC5bits.USB1IE
 
 #define SFR_USB_EXTENDED_INTERRUPT_EN U1EIE
 
