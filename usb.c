@@ -388,9 +388,6 @@ void usb_service(void)
 
 				FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
 
-				// SETUP packet sets PKTDIS Per Doc. Not sure why.
-				SFR_USB_PKT_DIS = 0;
-
 				if (setup->bRequest == GET_DESCRIPTOR) {
 					char descriptor = ((setup->wValue >> 8) & 0x00ff);
 					uchar descriptor_index = setup->wValue & 0x00ff;
@@ -693,6 +690,12 @@ void usb_service(void)
 					SERIAL_VAL(setup->REQUEST.type);
 					SERIAL_VAL(setup->REQUEST.direction);
 				}
+
+				/* SETUP packet sets PKTDIS which disables
+				 * future SETUP packet reception. Turn it off
+				 * afer we've processed the current SETUP
+				 * packet to avoid a race condition. */
+				SFR_USB_PKT_DIS = 0;
 			}
 			else if (bds[0].ep_out.STAT.PID == PID_IN) {
 				/* Nonsense condition:
