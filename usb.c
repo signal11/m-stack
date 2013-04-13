@@ -223,10 +223,10 @@ void usb_init(void)
 	SFR_FULL_SPEED_EN = 1;   /* Full-speed enable */
 #endif
 
-	SFR_TOKEN_COMPLETE = 0;   /* Clear 4 times to clear out USTAT FIFO */
-	SFR_TOKEN_COMPLETE = 0;
-	SFR_TOKEN_COMPLETE = 0;
-	SFR_TOKEN_COMPLETE = 0;
+	CLEAR_USB_TOKEN_IF();   /* Clear 4 times to clear out USTAT FIFO */
+	CLEAR_USB_TOKEN_IF();
+	CLEAR_USB_TOKEN_IF();
+	CLEAR_USB_TOKEN_IF();
 
 	CLEAR_ALL_USB_IF();
 

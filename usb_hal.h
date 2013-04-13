@@ -20,7 +20,6 @@ Signal 11 Software
 #define SFR_PULL_EN              UCFGbits.UPUEN
 #define SFR_ON_CHIP_XCVR_DIS     UCFGbits.UTRDIS
 #define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = n & 2; } while (0)
-#define SFR_TOKEN_COMPLETE       UIRbits.TRNIF
 
 #define SFR_USB_INTERRUPT_FLAGS  UIR
 #define SFR_USB_RESET_IF         UIRbits.URSTIF
@@ -95,7 +94,6 @@ Signal 11 Software
 #define SFR_PULL_EN              /* Not used on PIC24 */
 #define SFR_ON_CHIP_XCVR_DIS     U1CNFG2bits.UTRDIS
 #define SET_PING_PONG_MODE(n)    U1CNFG1bits.PPB = n
-#define SFR_TOKEN_COMPLETE       U1IRbits.TRNIF
 
 #define SFR_USB_INTERRUPT_FLAGS  U1IR
 #define SFR_USB_RESET_IF         U1IRbits.URSTIF
