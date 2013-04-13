@@ -189,12 +189,14 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 };
 #undef EP_BUFS
 
-// Global data pertaining to addressing the device.
-static uchar addr_pending = 0; // boolean
-static uchar addr = 0x0;
-static int got_addr = 0; // whether addr is set DEBUG
-static char g_configuration = 0;
-static char g_ep1_halt = 0;
+/* Global data */
+static uchar addr_pending; // boolean
+static uchar addr;
+static char g_configuration;
+static char g_ep1_halt;
+static char *control_return_ptr;
+static int  control_bytes_remaining;
+static uchar control_need_zlp; // boolean
 
 #define SERIAL(x)
 #define SERIAL_VAL(x)
@@ -277,7 +279,6 @@ void usb_init(void)
 	// Reset the Address.
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
-	got_addr = 0;
 	g_configuration = 0;
 	g_ep1_halt = 0;
 	
@@ -343,10 +344,6 @@ void stall_ep0(void)
 	bds[0].ep_in.STAT.BDnSTAT =
 		BDNSTAT_UOWN|BDNSTAT_BSTALL;
 }
-
-static char *control_return_ptr;
-static int  control_bytes_remaining;
-static int control_need_zlp;
 
 static uint8_t start_control_return(void *ptr, size_t len, size_t bytes_asked_for)
 {
@@ -739,7 +736,6 @@ void usb_service(void)
 			if (addr_pending) {
 				SFR_USB_ADDR =  addr;
 				addr_pending = 0;
-				got_addr = 1;
 			}
 
 			if (control_bytes_remaining) {
