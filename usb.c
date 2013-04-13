@@ -230,9 +230,12 @@ void usb_init(void)
 
 	CLEAR_ALL_USB_IF();
 
-//	UIEbits.TRNIE = 1;   /* USB Transfer Interrupt Enable */
-//	UIEbits.URSTIE = 1;  /* USB Reset Interrupt Enable */
-//	UIEbits.SOFIE = 1;   /* USB Start-Of-Frame Interrupt Enable */
+#ifdef USB_USE_INTERRUPTS
+	SFR_TRANSFER_IE = 1; /* USB Transfer Interrupt Enable */
+	SFR_STALL_IE = 1;    /* USB Stall Interrupt Enable */
+	SFR_RESET_IE = 1;    /* USB Reset Interrupt Enable */
+	SFR_SOF_IE = 1;      /* USB Start-Of-Frame Interrupt Enable */
+#endif
 
 #ifdef USB_NEEDS_SET_BD_ADDR_REG
 	union WORD {
@@ -315,8 +318,10 @@ void usb_init(void)
 	U1OTGCONbits.DPPULUP = 1;
 #warning Find out if this is needed
 #endif
-	/* TODO: Interrupts */
-	//PIE2bits.USBIE = 1;     /* USB Interrupt enable */
+
+#ifdef USB_USE_INTERRUPTS
+	SFR_USB_IE = 1;     /* USB Interrupt enable */
+#endif
 	
 	//UIRbits.URSTIF = 0; /* Clear USB Reset on Start */
 }
@@ -867,3 +872,20 @@ bool usb_out_endpoint_busy(uint8_t endpoint)
 {
 	return bds[endpoint].ep_out.STAT.UOWN;
 }
+
+#ifdef USB_USE_INTERRUPTS
+#ifdef __XC16__
+
+void _ISR _USB1Interrupt()
+{
+	usb_service();
+}
+
+#elif __C18
+#elif __XC8
+	/* On these systems, interupt handlers are shared. An interrupt
+	 * handler from the application must call usb_service(). */
+#else
+#error Compiler not supported yet
+#endif
+#endif

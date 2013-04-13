@@ -30,6 +30,10 @@
 
 #define NUMBER_OF_CONFIGURATIONS 1
 
+/* Comment the following line to use polling USB operation. You are responsible
+   then for calling usb_service() periodically from your application. */
+#define USB_USE_INTERRUPTS
+
 /* Objects from usb_descriptors.c */
 #define USB_DEVICE_DESCRIPTOR this_device_descriptor
 #define USB_CONFIG_DESCRIPTOR_MAP usb_application_config_descs

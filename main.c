@@ -47,17 +47,32 @@ int main(void)
 		;
 #endif
 
+#if defined(USB_USE_INTERRUPTS) && defined (_PIC18)
+	INTCONbits.PEIE = 1;
+	INTCONbits.GIE = 1;
+#endif
 	usb_init();
 	
 	uchar *buf = usb_get_in_buffer(1);
 	memset(buf, 0xa0, EP_1_IN_LEN);
 
 	while (1) {
-	if (!usb_in_endpoint_busy(1))
-		usb_send_in_buffer(1, 64);
+		if (!usb_in_endpoint_busy(1))
+			usb_send_in_buffer(1, 64);
 
+		#ifndef USB_USE_INTERRUPTS
 		usb_service();
+		#endif
 	}
 
 	return 0;
 }
+
+#ifdef __XC8
+void interrupt high_priority isr()
+{
+	usb_service();
+}
+#elif _PICC18
+#error need to make ISR
+#endif
