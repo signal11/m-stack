@@ -524,10 +524,13 @@ void usb_service(void)
 					if (setup->REQUEST.destination == 0 /*0=device*/) {
 						// Status for the DEVICE requested
 						// Return as a single byte in the return packet.
-
 						bds[0].ep_in.STAT.BDnSTAT = 0;
+#ifdef GET_DEVICE_STATUS_CALLBACK
+						*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
+#else
 						ep_buf[0].in[0] = 0;
 						ep_buf[0].in[1] = 0;
+#endif
 						bds[0].ep_in.BDnCNT = 2;
 						bds[0].ep_in.STAT.BDnSTAT =
 							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;

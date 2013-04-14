@@ -284,6 +284,18 @@ extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, void **ptr);
 void SET_CONFIGURATION_CALLBACK(uint8_t configuration);
 #endif
 
+#ifdef GET_DEVICE_STATUS_CALLBACK
+/* GET_DEVICE_STATUS_CALLBACK() is called when a GET_STATUS request is
+ * received from the host for the device (not the interface or the endpoint).
+ * The callback is to return the status of the device as a 16-bit
+ * unsigned integer per section 9.4.5 of the USB 2.0 specification.
+ *   Bit 0 (LSB) - 0=bus_powered, 1=self_powered
+ *   Bit 1       - 0=no_remote_wakeup, 1=remote_wakeup
+ *   Bits 2-15   - reserved, set to zero.
+ */
+uint16_t GET_DEVICE_STATUS_CALLBACK();
+#endif
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]

@@ -73,6 +73,11 @@ void app_set_configuration_callback(uint8_t configuration)
 {
 
 }
+uint16_t app_get_device_status_callback()
+{
+	return 0x0000;
+}
+
 
 #ifdef __XC8
 void interrupt high_priority isr()

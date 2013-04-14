@@ -43,6 +43,7 @@
    use them. For the prototypes and documentation for each one, see usb.h. */
 
 #define SET_CONFIGURATION_CALLBACK app_set_configuration_callback
+#define GET_DEVICE_STATUS_CALLBACK app_get_device_status_callback
 
 
 
