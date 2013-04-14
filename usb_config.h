@@ -39,5 +39,11 @@
 #define USB_CONFIG_DESCRIPTOR_MAP usb_application_config_descs
 #define USB_STRING_DESCRIPTOR_FUNC usb_application_get_string
 
+/* Optional callbacks from usb.c. Leave them commented if you don't want to
+   use them. For the prototypes and documentation for each one, see usb.h. */
+
+#define SET_CONFIGURATION_CALLBACK app_set_configuration_callback
+
+
 
 #endif /* USB_CONFIG_H__ */

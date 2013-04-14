@@ -68,6 +68,12 @@ int main(void)
 	return 0;
 }
 
+/* Callbacks. These function names are set in usb_config.h. */
+void app_set_configuration_callback(uint8_t configuration)
+{
+
+}
+
 #ifdef __XC8
 void interrupt high_priority isr()
 {

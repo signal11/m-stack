@@ -486,35 +486,22 @@ void usb_service(void)
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else if (setup->bRequest == SET_CONFIGURATION) {
-					// Set the configuration. wValue is the configuration.
-					// we only have 1, so do nothing, I guess.
+					/* Set the configuration. wValue is the configuration.
+					 * A value of 0 means to un-set the configuration and
+					 * go back to the ADDRESS state. */
 					uchar req = setup->wValue & 0x00ff;
+#ifdef SET_CONFIGURATION_CALLBACK
+					SET_CONFIGURATION_CALLBACK(req);
+#endif
+					/* Return a zero-length packet. */
+					bds[0].ep_in.STAT.BDnSTAT = 0;
+					bds[0].ep_in.BDnCNT = 0;
+					bds[0].ep_in.STAT.BDnSTAT =
+						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					g_configuration = req;
 
-					if (1) { //g_configuration == 0) {
-						if (req == 0) {
-							// Go to the Address state (unconfigured)
-							g_configuration = 0;
-							SERIAL("Unsetting configuration (cfg 0)");
-						}
-						else {
-							// Set the configuration
-							g_configuration = req;
-							//bds[1].ep_in.STAT.DTS = 1;
-							SERIAL("Set configuration to");
-							SERIAL_VAL(req);
-						}
-	
-						// Return a zero-length packet.
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.BDnCNT = 0;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-					}
-					else {
-						SERIAL("Set Configuration, but configuration not zero. Stalling.");
-						stall_ep0();
-					}
-				
+					SERIAL("Set configuration to");
+					SERIAL_VAL(req);
 				}
 				else if (setup->bRequest == GET_CONFIGURATION) {
 					// Return the current Configuration.

@@ -266,7 +266,23 @@ struct string_descriptor {
 	ushort chars[];
 };
 
+/* Required functions from application-provided usb_descriptors.c */
 extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, void **ptr);
+
+/* Optional user-defined functions from usb_config.c */
+
+#ifdef SET_CONFIGURATION_CALLBACK
+/* SET_CONFIGURATION_CALLBACK() is called whenever a SET_CONFIGURATION request
+ * is received from the host. The configuration parameter is the new
+ * configuration the host requests. If configuration is zero, then the device
+ * is to enter the ADDRESS state. If it is non-zero then the device is to enter
+ * the CONFIGURED state.
+ *
+ * There's no way to fail. The host commands a configuration be set, and it
+ * shall be done.
+ */
+void SET_CONFIGURATION_CALLBACK(uint8_t configuration);
+#endif
 
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
