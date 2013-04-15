@@ -45,6 +45,8 @@
 #define SET_CONFIGURATION_CALLBACK app_set_configuration_callback
 #define GET_DEVICE_STATUS_CALLBACK app_get_device_status_callback
 #define ENDPOINT_HALT_CALLBACK     app_endpoint_halt_callback
+#define SET_INTERFACE_CALLBACK     app_set_interface_callback
+#define GET_INTERFACE_CALLBACK     app_get_interface_callback
 
 
 

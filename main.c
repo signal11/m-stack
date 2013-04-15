@@ -85,6 +85,15 @@ void app_endpoint_halt_callback(uint8_t endpoint, uint8_t halted)
 
 }
 
+int8_t app_set_interface_callback(uint8_t interface, uint8_t alt_setting)
+{
+	return 0;
+}
+
+int8_t app_get_interface_callback(uint8_t interface)
+{
+	return 0;
+}
 
 #ifdef __XC8
 void interrupt high_priority isr()

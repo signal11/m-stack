@@ -308,6 +308,39 @@ uint16_t GET_DEVICE_STATUS_CALLBACK();
 void ENDPOINT_HALT_CALLBACK(uint8_t endpoint, uint8_t halted);
 #endif
 
+#ifdef SET_INTERFACE_CALLBACK
+/* SET_INTERFACE_CALLBACK() is called when a SET_INTERFACE request is
+ * received from the host. SET_INTERFACE is used to set the alternate setting
+ * for the specified interface. The parameters interface and alt_setting come
+ * directly from the device request (from the host). The callback should
+ * return 0 if the new alternate setting can be set or -1 if it cannot.
+ * This callback is completely unnecessary if you only have one alternate
+ * setting (alternate setting zero) for each interface.
+ * Parameters:
+ *   interface   - the interface on which to set the alternate setting
+ *   alt_setting - the alternate setting
+ * Return:
+ *   Return 0 for success and -1 for error (will send a STALL to the host)
+ */
+int8_t SET_INTERFACE_CALLBACK(uint8_t interface, uint8_t alt_setting);
+#endif
+
+#ifdef GET_INTERFACE_CALLBACK
+/* GET_INTERFACE_CALLBACK() is called when a GET_INTERFACE request is received
+ * from the host. GET_INTERFACE is a request for the current alternate setting
+ * selected for a given interface. The application should return the
+ * interface's current alternate setting from this callback function.
+ * If this callback is not present, zero will be returned as the current
+ * alternate setting for all interfaces.
+ * Parameters:
+ *   interface - the interface queried for current altertate setting
+ * Return:
+ *   Return the current alternate setting for the interface requested or -1
+ *   if the interface does not exist.
+ */
+int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
+#endif
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]

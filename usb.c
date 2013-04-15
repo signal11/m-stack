@@ -582,12 +582,26 @@ void usb_service(void)
 				
 				}
 				else if (setup->bRequest == SET_INTERFACE) {
-					// Set the interface. wValue is the interface.
-					// we only have 1, so Stall.
-
-					//stall_ep0();
-					//bds[1].ep_in.STAT.DTS = 1;
-#if 1
+					/* Set the alternate setting for an interface.
+					 * wIndex is the interface.
+					 * wValue is the alternate setting. */
+#ifdef SET_INTERFACE_CALLBACK
+					int8_t res;
+					res = SET_INTERFACE_CALLBACK(setup->wIndex, setup->wValue);
+					if (res < 0) {
+						stall_ep0();
+					}
+					else {
+						// Return a zero-length packet.
+						bds[0].ep_in.STAT.BDnSTAT = 0;
+						bds[0].ep_in.BDnCNT = 0;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					}
+#else
+					/* If there's no callback, then assume that
+					 * we only have one alternate setting per
+					 * interface. */
 					// Return a zero-length packet.
 					bds[0].ep_in.STAT.BDnSTAT = 0;
 					bds[0].ep_in.BDnCNT = 0;
@@ -595,25 +609,36 @@ void usb_service(void)
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 #endif
 				}
-				else if (/*setup->REQUEST.type == 0 //0=usb_std_req &&*/
-				         setup->bRequest == GET_INTERFACE) {
-					char buf[10];
-
+				else if (setup->bRequest == GET_INTERFACE) {
 					SERIAL("Get Interface");
 					SERIAL_VAL(setup->bRequest);
 					SERIAL_VAL(setup->REQUEST.destination);
 					SERIAL_VAL(setup->REQUEST.type);
 					SERIAL_VAL(setup->REQUEST.direction);
-					
-
-					// Return the current interface (hard-coded to 1)
-					// as a single byte in the return packet.
+#ifdef GET_INTERFACE_CALLBACK
+					int8_t res = GET_INTERFACE_CALLBACK(setup->wIndex);
+					if (res < 0)
+						stall_ep0();
+					else {
+						// Return the current alternate setting
+						// as a single byte in the return packet.
+						bds[0].ep_in.STAT.BDnSTAT = 0;
+						ep_buf[0].in[0] = res;
+						bds[0].ep_in.BDnCNT = 1;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					}
+#else
+					/* If there's no callback, then assume that
+					 * we only have one alternate setting per
+					 * interface and return zero as that
+					 * alternate setting. */
 					bds[0].ep_in.STAT.BDnSTAT = 0;
-					ep_buf[0].in[0] = 1;
+					ep_buf[0].in[0] = 0;
 					bds[0].ep_in.BDnCNT = 1;
 					bds[0].ep_in.STAT.BDnSTAT =
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-
+#endif
 				}
 				else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
 					uint8_t stall = 1;
