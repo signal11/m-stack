@@ -59,17 +59,6 @@ enum ControlRequest {
 	SYNCH_FRAME = 0xC,
 };
 
-// Requests from the SETUP packet when wIndex is INTERFACE
-// and the interface is of class HID.
-enum HIDRequest {
-	GET_REPORT = 0x1,
-	GET_IDLE = 0x2,
-	GET_PROTOCOL = 0x3,
-	SET_REPORT = 0x9,
-	SET_IDLE = 0xA,
-	SET_PROTOCOL = 0xB,
-};
-
 enum DescriptorTypes {
 	DEVICE = 0x1,
 	CONFIGURATION = 0x2,

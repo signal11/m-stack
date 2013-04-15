@@ -691,28 +691,6 @@ void usb_service(void)
 					else
 						stall_ep0();
 				}
-				else if (setup->REQUEST.destination == 1/*1=interface*/ &&
-				         setup->bRequest == GET_IDLE) {
-					stall_ep0();
-					SERIAL("Get Idle. Stalling.");
-				}
-				else if (setup->REQUEST.destination == 1/*1=interface*/ &&
-				         setup->REQUEST.type == 1 /*1=class*/ &&
-				         setup->bRequest == SET_IDLE) {
-					uchar duration = ((setup->wValue >> 8) & 0x00ff);
-					uchar report = setup->wValue & 0x00ff;
-
-					SERIAL("Set Idle. (dur, rpt)");
-					SERIAL_VAL(duration);
-					SERIAL_VAL(report);
-
-					//stall_ep0();
-					// Return a zero-length packet.
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-				}
 				else {
 					// Unsupported Request. Stall the Endpoint.
 					stall_ep0();
