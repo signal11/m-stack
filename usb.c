@@ -723,23 +723,21 @@ void usb_service(void)
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else {
-					int z;
-					Nop();
-					SERIAL("OUT Data packet on 0.");
-					for (z = 0; z < bds[0].ep_out.BDnCNT; z++)
-						SERIAL_VAL(ep_buf[0].out[z]);
-					
-					if (ep_buf[0].out[0] == 1) {
-						// Report 1 is data.
-						if (ep_buf[0].out)
-							PORTAbits.RA1 = 0;
-						else
-							PORTAbits.RA1 = 1;
-					}
-					else if (ep_buf[0].out[0] == 2) {
-						// Report 2 is feature.
-						// This report contains ASCII to write the Serial Number.
-					}
+					/* A packet received as part of the data stage. */
+
+					/* TODO: This needs to make it to the application somehow
+					 * and there needs to be a good mechanism to make it so
+					 * that the application can tie this data stage packet
+					 * to the SETUP packet which was received prior, so that
+					 * it can have some context. Also, it'd be nice to tie
+					 * all the data stage packets together into a single
+					 * buffer if the user wants, in other words giving the
+					 * the application the entire transfer when it completes.
+					 * To do that, the application would need to provide the
+					 * buffer. It's more important on the control endpoint
+					 * than on other endpoints because control endpoints
+					 * are typically short.
+					 */
 				}
 			}
 			else {
@@ -812,33 +810,6 @@ void usb_service(void)
 	if (SFR_USB_IF) {
 		SFR_USB_IF = 0;
 	}
-
-#if 0
-	// If the packet in the the in buffer of ep1 gets sent (UOWN gets
-	// set back to zero by the SIE), put another packet in the buffer.
-	if (g_configuration > 0 && !g_ep1_halt && bds[1].ep_in.STAT.UOWN == 0) {
-		uchar pid;
-
-		// Nothing is in the transmit buffer. Send the Data.
-
-		// For whatever Reason, make sure you clear KEN right here.
-		// When this packet is done sending, the SIE will enable KEN.
-		// IT MUST BE CLEARED!
-		ep_buf[1].in[0] = 0x01 << 1;
-		ep_buf[1].in[1] = g_throttle_pos;
-		ep_buf[1].in[2] = 0x00;
-		ep_buf[1].in[3] = 0x00;
-		pid = !bds[1].ep_in.STAT.DTS;
-		bds[1].ep_in.STAT.BDnSTAT = 0; // clear all bits (looking at you, KEN)
-		bds[1].ep_in.STAT.DTSEN = 1;
-		bds[1].ep_in.STAT.DTS = pid;
-		bds[1].ep_in.BDnCNT = MY_HID_RESPONSE_SIZE;
-		bds[1].ep_in.STAT.UOWN = 1;
-
-		SERIAL("Sending EP 1. DTS:");
-		SERIAL_VAL(pid);
-	}
-#endif
 }
 
 void usb_isr (void)
