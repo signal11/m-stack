@@ -128,6 +128,10 @@ struct ep_buf {
 	uchar * const in;
 	const uint8_t out_len;
 	const uint8_t in_len;
+
+#define EP_OUT_HALT_FLAG 0x1
+#define EP_IN_HALT_FLAG 0x2
+	uint8_t flags;
 };
 
 #ifdef __C18
@@ -193,7 +197,6 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 static uchar addr_pending; // boolean
 static uchar addr;
 static char g_configuration;
-static char g_ep1_halt;
 static char *control_return_ptr;
 static int  control_bytes_remaining;
 static uchar control_need_zlp; // boolean
@@ -280,8 +283,8 @@ void usb_init(void)
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
 	g_configuration = 0;
-	g_ep1_halt = 0;
-	
+	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++)
+		ep_buf[i].flags = 0;
 
 	memset(bds, 0x0, sizeof(bds));
 
@@ -344,6 +347,23 @@ void stall_ep0(void)
 	bds[0].ep_in.STAT.BDnSTAT =
 		BDNSTAT_UOWN|BDNSTAT_BSTALL;
 }
+
+void stall_ep_in(uint8_t ep)
+{
+	// Stall Endpoint. It's important that DTSEN and DTS are zero.
+	bds[ep].ep_in.BDnCNT = ep_buf[ep].in_len;
+	bds[ep].ep_in.STAT.BDnSTAT =
+		BDNSTAT_UOWN|BDNSTAT_BSTALL;
+}
+
+void stall_ep_out(uint8_t ep)
+{
+	// Stall Endpoint. It's important that DTSEN and DTS are zero.
+	bds[ep].ep_out.BDnCNT = ep_buf[ep].out_len;
+	bds[ep].ep_out.STAT.BDnSTAT =
+		BDNSTAT_UOWN|BDNSTAT_BSTALL;
+}
+
 
 static uint8_t start_control_return(void *ptr, size_t len, size_t bytes_asked_for)
 {
@@ -537,11 +557,14 @@ void usb_service(void)
 					}
 					else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
 						// Status of endpoint
-						
-						if (setup->wIndex == 0x81/*81=ep1_in*/) {
+						uint8_t ep_num = setup->wIndex & 0x0f;
+						if (ep_num <= NUM_ENDPOINT_NUMBERS) {
+							uint8_t flags = ep_buf[ep_num].flags;
 							bds[0].ep_in.STAT.BDnSTAT = 0;
-							ep_buf[0].in[0] = g_ep1_halt;
-							ep_buf[0].in[1] = 0;//g_ep1_halt;
+							ep_buf[0].in[0] = ((setup->wIndex & 0x80) ?
+								flags & EP_IN_HALT_FLAG :
+								flags & EP_OUT_HALT_FLAG) != 0;
+							ep_buf[0].in[1] = 0;
 							bds[0].ep_in.BDnCNT = 2;
 							bds[0].ep_in.STAT.BDnSTAT =
 								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
@@ -593,53 +616,55 @@ void usb_service(void)
 
 				}
 				else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
+					uint8_t stall = 1;
 					if (setup->REQUEST.destination == 0/*0=device*/) {
 						SERIAL("Set/Clear feature for device");
+						// TODO Remote Wakeup flag
 					}
 
 					if (setup->REQUEST.destination == 2/*2=endpoint*/) {
 						if (setup->wValue == 0/*0=ENDPOINT_HALT*/) {
-							if (setup->wIndex == 0x81 /*Endpoint 1 IN*/) {
+							uint8_t ep_num = setup->wIndex & 0x0f;
+							uint8_t ep_dir = setup->wIndex & 0x80;
+							if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 								if (setup->bRequest == SET_FEATURE) {
-									// SET_FEATURE. Halt the Endpoint
-									SERIAL("Set Feature on Endpoint 1 in.");
-									g_ep1_halt = 1;
-									//bds[1].ep_in.STAT.BDnSTAT = 0;
-									//bds[1].ep_in.STAT.BSTALL = 1;
-									//bds[1].ep_in.STAT.UOWN = 1;
+									if (ep_dir) {
+										ep_buf[ep_num].flags |= EP_IN_HALT_FLAG;
+										stall_ep_in(ep_num);
+									}
+									else {
+										ep_buf[ep_num].flags |= EP_OUT_HALT_FLAG;
+										stall_ep_out(ep_num);
+									}
 								}
 								else {
-									// CLEAR_FEATURE. Enable (un-halt) Endpoint.
-									SERIAL("Clear Feature on Endpoint 1 in");
-									g_ep1_halt = 0;
-									//bds[1].ep_in.STAT.BDnSTAT = 0;
-									////bds[1].ep_in.STAT.DTS = 1;
-									//bds[1].ep_in.STAT.UOWN = 0;
+									/* Clear Feature */
+									if (ep_dir) {
+										ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
+										bds[ep_num].ep_in.STAT.BDnSTAT = BDNSTAT_DTS;
+									}
+									else {
+										ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
+										bds[ep_num].ep_out.STAT.BDnSTAT = BDNSTAT_UOWN;
+									}
 								}
-							}
-							else if (setup->wIndex == 0x80 /*Endpoint 1 OUT*/) {
-								if (setup->bRequest == SET_FEATURE) {
-									// SET_FEATURE. Halt the Endpoint
-									SERIAL("Set Feature on endpoint 1 out.");
-									bds[1].ep_out.STAT.BDnSTAT =
-										BDNSTAT_UOWN|BDNSTAT_BSTALL;
-								}
-								else {
-									// CLEAR_FEATURE. Enable (un-halt) Endpoint.
-									SERIAL("Clear feature on endpoint 1 out.");
-									bds[1].ep_out.STAT.BDnSTAT =
-										BDNSTAT_DTSEN|BDNSTAT_UOWN;
-								}
-
+#ifdef ENDPOINT_HALT_CALLBACK
+								ENDPOINT_HALT_CALLBACK(setup->wIndex, (setup->bRequest == SET_FEATURE));
+#endif
+								stall = 0;
 							}
 						}
 					}
 
-					// Return a zero-length packet.
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					if (!stall) {
+						// Return a zero-length packet.
+						bds[0].ep_in.STAT.BDnSTAT = 0;
+						bds[0].ep_in.BDnCNT = 0;
+						bds[0].ep_in.STAT.BDnSTAT =
+							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					}
+					else
+						stall_ep0();
 				}
 				else if (setup->REQUEST.destination == 1/*1=interface*/ &&
 				         setup->bRequest == GET_IDLE) {
@@ -748,13 +773,23 @@ void usb_service(void)
 				control_need_zlp = 0;
 			}
 		}
-		else if (SFR_USB_STATUS_EP == 1) {
+		else if (SFR_USB_STATUS_EP > 0 && SFR_USB_STATUS_EP <= NUM_ENDPOINT_NUMBERS) {
 			if (SFR_USB_STATUS_DIR == 1 /*1=IN*/) {
 				SERIAL("IN Data packet request on 1.");
+				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_IN_HALT_FLAG)
+					stall_ep_in(SFR_USB_STATUS_EP);
+				else {
+
+				}
 			}
 			else {
 				// OUT
 				SERIAL("OUT Data packet on 1.");
+				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_OUT_HALT_FLAG)
+					stall_ep_out(SFR_USB_STATUS_EP);
+				else {
+
+				}
 			}
 		}
 		else {
@@ -815,7 +850,7 @@ uchar *usb_get_in_buffer(uint8_t endpoint)
 
 void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
-	if (g_configuration > 0 || endpoint == 0) {
+	if ((g_configuration > 0 || endpoint == 0) && !usb_in_endpoint_halted(endpoint)) {
 		uchar pid;
 		pid = !bds[endpoint].ep_in.STAT.DTS;
 		bds[endpoint].ep_in.STAT.BDnSTAT = 0;
@@ -835,6 +870,11 @@ bool usb_in_endpoint_busy(uint8_t endpoint)
 	return bds[endpoint].ep_in.STAT.UOWN;
 }
 
+bool usb_in_endpoint_halted(uint8_t endpoint)
+{
+	return ep_buf[endpoint].flags & EP_IN_HALT_FLAG;
+}
+
 uchar *usb_get_out_buffer(uint8_t endpoint)
 {
 	return ep_buf[endpoint].out;
@@ -844,6 +884,12 @@ bool usb_out_endpoint_busy(uint8_t endpoint)
 {
 	return bds[endpoint].ep_out.STAT.UOWN;
 }
+
+bool usb_out_endpoint_halted(uint8_t endpoint)
+{
+	return ep_buf[endpoint].flags & EP_OUT_HALT_FLAG;
+}
+
 
 #ifdef USB_USE_INTERRUPTS
 #ifdef __XC16__

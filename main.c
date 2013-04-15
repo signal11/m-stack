@@ -57,8 +57,10 @@ int main(void)
 	memset(buf, 0xa0, EP_1_IN_LEN);
 
 	while (1) {
-		if (!usb_in_endpoint_busy(1))
+		if (!usb_in_endpoint_busy(1) && !usb_in_endpoint_halted(1)) {
+			buf[0]++;
 			usb_send_in_buffer(1, 64);
+		}
 
 		#ifndef USB_USE_INTERRUPTS
 		usb_service();
@@ -76,6 +78,11 @@ void app_set_configuration_callback(uint8_t configuration)
 uint16_t app_get_device_status_callback()
 {
 	return 0x0000;
+}
+
+void app_endpoint_halt_callback(uint8_t endpoint, uint8_t halted)
+{
+
 }
 
 

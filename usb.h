@@ -296,6 +296,18 @@ void SET_CONFIGURATION_CALLBACK(uint8_t configuration);
 uint16_t GET_DEVICE_STATUS_CALLBACK();
 #endif
 
+#ifdef ENDPOINT_HALT_CALLBACK
+/* ENDPOINT_HALT_CALLBACK() is called when a SET_FEATURE or CLEAR_FEATURE is
+ * received from the host changing the endpoint halt value. This is a
+ * notification only. There is no way to reject this request.
+ * Parameters:
+ *   endpoint - the endpoint identifier of the affected endpoint
+ *              (direction and number, e.g.: 0x81 means EP 1 IN).
+ *   halted   - 1=endpoint_halted (set), 0=endpoint_not_halted (clear)
+ */
+void ENDPOINT_HALT_CALLBACK(uint8_t endpoint, uint8_t halted);
+#endif
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]
@@ -320,8 +332,10 @@ void usb_service(void);
 uchar *usb_get_in_buffer(uint8_t endpoint);
 void usb_send_in_buffer(uint8_t endpoint, size_t len);
 bool usb_in_endpoint_busy(uint8_t endpoint);
+bool usb_in_endpoint_halted(uint8_t endpoint);
 
 bool usb_out_endpoint_busy(uint8_t endpoint);
+bool usb_out_endpoint_halted(uint8_t endpoint);
 uchar *usb_get_out_buffer(uint8_t endpoint);
 
 
