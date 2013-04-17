@@ -21,7 +21,7 @@ struct configuration_packet {
 };
 
 
-ROMPTR struct device_descriptor this_device_descriptor =
+const ROMPTR struct device_descriptor this_device_descriptor =
 {
 	sizeof(struct device_descriptor), // bLength
 	DEVICE, // bDescriptorType
@@ -40,7 +40,7 @@ ROMPTR struct device_descriptor this_device_descriptor =
 	NUMBER_OF_CONFIGURATIONS // NumConfigurations
 };
 
-ROMPTR struct configuration_packet this_configuration_packet =
+const ROMPTR struct configuration_packet this_configuration_packet =
 {
 	{
 	// Members from struct configuration_descriptor
@@ -90,31 +90,31 @@ ROMPTR struct configuration_packet this_configuration_packet =
 
 /* String index 0, only has one character in it, which is to be set to the
    language ID of the language which the other strings are in. */
-ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort lang; } str00 = {
+const ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort lang; } str00 = {
 	sizeof(str00),
 	STRING,
 	0x0409 // US English
 };
 
-ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[23]; } vendor_string = {
+const ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[23]; } vendor_string = {
 	sizeof(vendor_string),
 	STRING,
 	{'S','i','g','n','a','l',' ','1','1',' ','S','o','f','t','w','a','r','e',' ','L','L','C','.'}
 };
 
-ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } product_string = {
+const ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } product_string = {
 	sizeof(product_string),
 	STRING,
 	{'S','i','g','n','a','l','S','h','a','f','t'}
 };
 
-ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } interface_string = {
+const ROMPTR struct {uchar bLength;uchar bDescriptorType; ushort chars[11]; } interface_string = {
 	sizeof(interface_string),
 	STRING,
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
 };
 
-int16_t usb_application_get_string(uint8_t string_number, void **ptr)
+int16_t usb_application_get_string(uint8_t string_number, const void **ptr)
 {
 	if (string_number == 0) {
 		*ptr = &str00;
@@ -138,7 +138,7 @@ int16_t usb_application_get_string(uint8_t string_number, void **ptr)
 }
 
 /* Configuration Descriptor List: The order here is not important */
-struct configuration_descriptor *usb_application_config_descs[] =
+const struct configuration_descriptor *usb_application_config_descs[] =
 {
 	(struct configuration_descriptor*) &this_configuration_packet, /* Configuration #1 */
 };

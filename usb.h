@@ -256,7 +256,7 @@ struct string_descriptor {
 };
 
 /* Required functions from application-provided usb_descriptors.c */
-extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, void **ptr);
+extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, const void **ptr);
 
 /* Optional user-defined functions from usb_config.c */
 
@@ -395,8 +395,8 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 
-extern struct device_descriptor USB_DEVICE_DESCRIPTOR;
-extern struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
+extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
+extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
 void usb_init(void);
 void usb_isr(void);

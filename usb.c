@@ -438,7 +438,7 @@ static inline void handle_ep0_setup()
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 		}
 		else if (descriptor == CONFIGURATION) {
-			struct configuration_descriptor *desc;
+			const struct configuration_descriptor *desc;
 			if (descriptor_index >= NUMBER_OF_CONFIGURATIONS)
 				stall_ep0();
 			else {
@@ -455,7 +455,7 @@ static inline void handle_ep0_setup()
 			}
 		}
 		else if (descriptor == STRING) {
-			void *desc;
+			const void *desc;
 			int16_t len;
 
 			len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
