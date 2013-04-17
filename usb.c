@@ -739,37 +739,8 @@ static inline void handle_ep0_setup()
 
 }
 
-
-/* checkUSB() is called repeatedly to check for USB interrupts
-   and service USB requests */
-void usb_service(void)
+static inline void handle_ep0_out()
 {
-	if (SFR_USB_RESET_IF) {
-		// A Reset was detected on the wire. Re-init the SIE.
-		usb_init();
-		CLEAR_USB_RESET_IF();
-		SERIAL("USB Reset");
-	}
-	
-	if (SFR_USB_STALL_IF) {
-		CLEAR_USB_STALL_IF();
-	}
-
-
-	if (SFR_USB_TOKEN_IF) {
-
-		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
-
-		if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 0/*OUT*/) {
-			// Packet for us on Endpoint 0.
-			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
-				handle_ep0_setup();
-			}
-			else if (bds[0].ep_out.STAT.PID == PID_IN) {
-				/* Nonsense condition:
-				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
-			}
-			else if (bds[0].ep_out.STAT.PID == PID_OUT) {
 				uint8_t pkt_len = bds[0].ep_out.BDnCNT;
 				if (ep0_data_stage_direc == 1/*1=IN*/) {
 					/* An empty OUT packet on an IN control transfer
@@ -823,6 +794,39 @@ void usb_service(void)
 						}
 					}
 				}
+}
+
+/* checkUSB() is called repeatedly to check for USB interrupts
+   and service USB requests */
+void usb_service(void)
+{
+	if (SFR_USB_RESET_IF) {
+		// A Reset was detected on the wire. Re-init the SIE.
+		usb_init();
+		CLEAR_USB_RESET_IF();
+		SERIAL("USB Reset");
+	}
+	
+	if (SFR_USB_STALL_IF) {
+		CLEAR_USB_STALL_IF();
+	}
+
+
+	if (SFR_USB_TOKEN_IF) {
+
+		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
+
+		if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 0/*OUT*/) {
+			// Packet for us on Endpoint 0.
+			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
+				handle_ep0_setup();
+			}
+			else if (bds[0].ep_out.STAT.PID == PID_IN) {
+				/* Nonsense condition:
+				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
+			}
+			else if (bds[0].ep_out.STAT.PID == PID_OUT) {
+				handle_ep0_out();
 			}
 			else {
 				// Unsupported PID. Stall the Endpoint.
