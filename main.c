@@ -95,6 +95,61 @@ int8_t app_get_interface_callback(uint8_t interface)
 	return 0;
 }
 
+static char buf[512];
+
+static void data_cb(bool transfer_ok, void *context)
+{
+	/* For OUT control transfers, data from the data stage of the request
+	 * is in buf[]. */
+}
+
+int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
+{
+#define MIN(X,Y) ((X)<(Y)?(X):(Y))
+
+	/* This handler handles request 254/dest=other/type=vendor only.*/
+	if (setup->bRequest != 245 ||
+	    setup->REQUEST.destination != 3 /*other*/ ||
+	    setup->REQUEST.type != 2 /*vendor*/)
+		return -1;
+
+	if (setup->REQUEST.direction == 0/*OUT*/) {
+		if (setup->wLength == 0) {
+			/* There will be NO data stage. This sends back the
+			 * STATUS stage packet. */
+			usb_send_data_stage(NULL, 0, data_cb, NULL);
+		}
+		memset(buf,0,sizeof(buf));
+
+		/* Set up an OUT data stage (we will receive data) */
+		if (setup->wLength > sizeof(buf)) {
+			/* wLength is too big. Return -1 to
+			   refuse this transfer*/
+			return -1;
+		}
+		usb_start_receive_ep0_data_stage(buf, setup->wLength, &data_cb, NULL);
+	}
+	else {
+		/* Direction is 1 (IN) */
+		int i;
+
+		for (i = 0; i < sizeof(buf); i++) {
+			buf[i] = sizeof(buf)-i;
+		}
+
+		/* Set up an OUT data stage (we will receive data) */
+		if (setup->wLength > sizeof(buf)) {
+			/* wLength is too big. Return -1 to
+			   refuse this transfer*/
+			return -1;
+		}
+		usb_send_data_stage(buf ,setup->wLength, data_cb, NULL);
+	}
+
+	return 0; /* 0 = can handle this request. */
+#undef MIN
+}
+
 #ifdef __XC8
 void interrupt high_priority isr()
 {

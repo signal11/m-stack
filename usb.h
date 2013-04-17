@@ -330,6 +330,37 @@ int8_t SET_INTERFACE_CALLBACK(uint8_t interface, uint8_t alt_setting);
 int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
 #endif
 
+#ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
+/* UNKNOWN_SETUP_REQUEST_CALLBACK() is called when a SETUP packet is
+ * received with a request (bmRequestType,bRequest) which is unknown to the
+ * the USB stack. This could be because it is a vendor-defined
+ * request or because it is some other request which is not supported, for
+ * example if you were implementing a device class in your application. There
+ * are four ways to handle this:
+ * 0. For unknown requests, return -1. This will send a STALL to the host.
+ * 1. For requests which have no data stage, the callback should call
+ *    usb_send_data_stage() with a length of zero to send a zero-length packet
+ *    back to the host.
+ * 2. For requests which expect an IN data stage, the callback should call
+ *    usb_send_data_stage() with the data to be sent, and a callback which will
+ *    get called when the data stage is complete. The callback is required, and
+ *    the data buffer passed to usb_send_data_stage() must remain valid until
+ *    the callback is called.
+ * 3. For requests which will come with an OUT data stage, the callback
+ *    should call usb_start_receive_ep0_data_stage() and provide a buffer,
+ *    and a callback which will get called when the data stage has completed.
+ *    The callback is required, and the data in the buffer passed to
+ *    usb_start_receive_ep0_data_stage() is not valid until the callback is
+ *    called.
+ * Parameters:
+ *   pkt - The SETUP packet
+ * Return
+ *   Return 0 if the SETUP can be handled or -1 if it cannot. Returning -1
+ *   will cause STALL to be returned to the host.
+ */
+int8_t UNKNOWN_SETUP_REQUEST_CALLBACK(const struct setup_packet *pkt);
+#endif
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]
@@ -359,6 +390,14 @@ bool usb_in_endpoint_halted(uint8_t endpoint);
 bool usb_out_endpoint_busy(uint8_t endpoint);
 bool usb_out_endpoint_halted(uint8_t endpoint);
 uchar *usb_get_out_buffer(uint8_t endpoint);
+
+typedef void (*usb_ep0_data_stage_callback)(bool transfer_ok, void *context);
+
+void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
+	usb_ep0_data_stage_callback callback, void *context);
+
+void usb_send_data_stage(char *buffer, size_t len,
+	usb_ep0_data_stage_callback callback, void *context);
 
 
 #ifdef __XC16__

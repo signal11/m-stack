@@ -197,9 +197,27 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 static uchar addr_pending; // boolean
 static uchar addr;
 static char g_configuration;
-static char *control_return_ptr;
-static int  control_bytes_remaining;
 static uchar control_need_zlp; // boolean
+
+/* Data associated with multi-packet control transfers */
+static usb_ep0_data_stage_callback ep0_data_stage_callback;
+static char   *ep0_data_stage_buffer;
+static size_t  ep0_data_stage_buf_remaining;
+static void   *ep0_data_stage_context;
+static uint8_t ep0_data_stage_direc; /*1=IN, 0=OUT, Same as USB spec.*/
+
+static void reset_ep0_data_stage()
+{
+	ep0_data_stage_buffer = NULL;
+	ep0_data_stage_buf_remaining = 0;
+
+	/* There's no need to reset the following because no decisions are
+	   made based on them:
+	     ep0_data_stage_callback,
+	     ep0_data_stage_context,
+	     ep0_data_stage_direc
+	 */
+}
 
 #define SERIAL(x)
 #define SERIAL_VAL(x)
@@ -323,6 +341,8 @@ void usb_init(void)
 #warning Find out if this is needed
 #endif
 
+	reset_ep0_data_stage();
+
 #ifdef USB_USE_INTERRUPTS
 	SFR_USB_IE = 1;     /* USB Interrupt enable */
 #endif
@@ -370,8 +390,9 @@ static uint8_t start_control_return(void *ptr, size_t len, size_t bytes_asked_fo
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
 	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
-	control_return_ptr = ((char*)ptr) + bytes_to_send;
-	control_bytes_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
+	ep0_data_stage_buffer = ((char*)ptr) + bytes_to_send;
+	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
+	ep0_data_stage_direc = 1;
 
 	return bytes_to_send;
 }
@@ -402,6 +423,18 @@ void usb_service(void)
 				// SETUP packet.
 
 				FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+				ep0_data_stage_direc = setup->REQUEST.direction;
+
+				if (ep0_data_stage_buf_remaining) {
+					/* A SETUP transaction has been received while waiting
+					 * for a DATA stage to complete; something is broken.
+					 * If this was an application-controlled transfer (and
+					 * there's a callback), notify the application of this. */
+					if (ep0_data_stage_callback)
+						ep0_data_stage_callback(0/*fail*/, ep0_data_stage_context);
+
+					reset_ep0_data_stage();
+				}
 
 				if (setup->bRequest == GET_DESCRIPTOR) {
 					char descriptor = ((setup->wValue >> 8) & 0x00ff);
@@ -692,13 +725,27 @@ void usb_service(void)
 						stall_ep0();
 				}
 				else {
-					// Unsupported Request. Stall the Endpoint.
+
+#ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
+					int8_t res;
+					res = UNKNOWN_SETUP_REQUEST_CALLBACK(setup);
+					if (res < 0)
+						stall_ep0();
+					else {
+						/* If the application has handled this request, it
+						 * will have already set up whatever needs to be set
+						 * up for the data stage. */
+					}
+#else
+					/* Unsupported Request. Stall the Endpoint. */
 					stall_ep0();
+#endif
 					SERIAL("unsupported request (req, dest, type, dir) ");
 					SERIAL_VAL(setup->bRequest);
 					SERIAL_VAL(setup->REQUEST.destination);
 					SERIAL_VAL(setup->REQUEST.type);
 					SERIAL_VAL(setup->REQUEST.direction);
+
 				}
 
 				/* SETUP packet sets PKTDIS which disables
@@ -712,8 +759,16 @@ void usb_service(void)
 				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
 			}
 			else if (bds[0].ep_out.STAT.PID == PID_OUT) {
-				if (bds[0].ep_out.BDnCNT == 0) {
-					// Empty Packet. Handshake. End of Control Transfer.
+				uint8_t pkt_len = bds[0].ep_out.BDnCNT;
+				if (ep0_data_stage_direc == 1/*1=IN*/) {
+					/* An empty OUT packet on an IN control transfer
+					 * means the STATUS stage of the control
+					 * transfer has completed (possibly early). */
+
+					/* Notify the application (if applicable) */
+					if (ep0_data_stage_callback)
+						ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+					reset_ep0_data_stage();
 
 					// Clean up the Buffer Descriptors.
 					// Set the length and hand it back to the SIE.
@@ -723,21 +778,44 @@ void usb_service(void)
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else {
-					/* A packet received as part of the data stage. */
-
-					/* TODO: This needs to make it to the application somehow
-					 * and there needs to be a good mechanism to make it so
-					 * that the application can tie this data stage packet
-					 * to the SETUP packet which was received prior, so that
-					 * it can have some context. Also, it'd be nice to tie
-					 * all the data stage packets together into a single
-					 * buffer if the user wants, in other words giving the
-					 * the application the entire transfer when it completes.
-					 * To do that, the application would need to provide the
-					 * buffer. It's more important on the control endpoint
-					 * than on other endpoints because control endpoints
-					 * are typically short.
+					/* A packet received as part of the data stage of
+					 * a control transfer. Pack what data we received
+					 * into the application's buffer (if it has
+					 * provided one). When all the data has been
+					 * received, call the application-provided callback.
 					 */
+
+					if (ep0_data_stage_buffer) {
+						uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
+						memcpy(ep0_data_stage_buffer, ep_buf[0].out, bytes_to_copy);
+						ep0_data_stage_buffer += bytes_to_copy;
+						ep0_data_stage_buf_remaining -= bytes_to_copy;
+
+						/* It's possible that bytes_to_copy is less than pkt_len
+						 * here because the application provided too small a buffer. */
+
+						if (pkt_len < EP_0_OUT_LEN || ep0_data_stage_buf_remaining == 0) {
+							/* Short packet or we've received the expected length.
+							 * All data has been transferred (or all the data
+							 * has been received which can be received). */
+
+							if (bytes_to_copy < pkt_len) {
+								/* The buffer provided by the application was too short */
+								stall_ep0();
+								ep0_data_stage_callback(0/*false*/, ep0_data_stage_context);
+								reset_ep0_data_stage();
+							}
+							else {
+								/* The data stage has completed. Set up the status stage. */
+
+								// Return a zero-length packet.
+								bds[0].ep_in.STAT.BDnSTAT = 0;
+								bds[0].ep_in.BDnCNT = 0;
+								bds[0].ep_in.STAT.BDnSTAT =
+									BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+							}
+						}
+					}
 				}
 			}
 			else {
@@ -754,17 +832,17 @@ void usb_service(void)
 				addr_pending = 0;
 			}
 
-			if (control_bytes_remaining) {
+			if (ep0_data_stage_buf_remaining) {
 				/* There's already a multi-transaction transfer in process. */
-				uint8_t bytes_to_send = MIN(control_bytes_remaining, EP_0_IN_LEN);
+				uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
 
-				memcpy_from_rom(ep_buf[0].in, control_return_ptr, bytes_to_send);
-				control_bytes_remaining -= bytes_to_send;
-				control_return_ptr += bytes_to_send;
+				memcpy_from_rom(ep_buf[0].in, ep0_data_stage_buffer, bytes_to_send);
+				ep0_data_stage_buf_remaining -= bytes_to_send;
+				ep0_data_stage_buffer += bytes_to_send;
 
 				/* If we hit the end with a full-length packet, set up
 				   to send a zero-length packet at the next IN token. */
-				if (control_bytes_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
+				if (ep0_data_stage_buf_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
 					control_need_zlp = 1;
 
 				usb_send_in_buffer(0, bytes_to_send);
@@ -772,6 +850,18 @@ void usb_service(void)
 			else if (control_need_zlp) {
 				usb_send_in_buffer(0, 0);
 				control_need_zlp = 0;
+				reset_ep0_data_stage();
+			}
+			else {
+				if (ep0_data_stage_direc == 0/*OUT*/) {
+					/* An IN on the control endpoint with no data pending
+					 * and during an OUT transfer means the STATUS stage
+					 * of the control transfer has completed. Notify the
+					 * application, if applicable. */
+					if (ep0_data_stage_callback)
+						ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+					reset_ep0_data_stage();
+				}
 			}
 		}
 		else if (SFR_USB_STATUS_EP > 0 && SFR_USB_STATUS_EP <= NUM_ENDPOINT_NUMBERS) {
@@ -863,6 +953,34 @@ bool usb_out_endpoint_halted(uint8_t endpoint)
 {
 	return ep_buf[endpoint].flags & EP_OUT_HALT_FLAG;
 }
+
+void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
+                                      usb_ep0_data_stage_callback callback, void *context)
+{
+	reset_ep0_data_stage();
+
+	ep0_data_stage_callback = callback;
+	ep0_data_stage_buffer = buffer;
+	ep0_data_stage_buf_remaining = len;
+	ep0_data_stage_context = context;
+}
+
+void usb_send_data_stage(char *buffer, size_t len,
+	usb_ep0_data_stage_callback callback, void *context)
+{
+	uint8_t bytes_to_send = start_control_return(buffer, len, len);
+
+	/* Start sending the first block. Subsequent blocks will be sent
+	   when IN tokens are received on endpoint zero. */
+	bds[0].ep_in.STAT.BDnSTAT = 0;
+	bds[0].ep_in.BDnCNT = bytes_to_send;
+	bds[0].ep_in.STAT.BDnSTAT =
+		BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+
+	ep0_data_stage_callback = callback;
+	ep0_data_stage_context = context;
+}
+
 
 
 #ifdef USB_USE_INTERRUPTS

@@ -47,6 +47,7 @@
 #define ENDPOINT_HALT_CALLBACK     app_endpoint_halt_callback
 #define SET_INTERFACE_CALLBACK     app_set_interface_callback
 #define GET_INTERFACE_CALLBACK     app_get_interface_callback
+#define UNKNOWN_SETUP_REQUEST_CALLBACK app_unknown_setup_request_callback
 
 
 
