@@ -404,29 +404,8 @@ static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_as
 	return bytes_to_send;
 }
 
-/* checkUSB() is called repeatedly to check for USB interrupts
-   and service USB requests */
-void usb_service(void)
+static inline void handle_ep0_setup()
 {
-	if (SFR_USB_RESET_IF) {
-		// A Reset was detected on the wire. Re-init the SIE.
-		usb_init();
-		CLEAR_USB_RESET_IF();
-		SERIAL("USB Reset");
-	}
-	
-	if (SFR_USB_STALL_IF) {
-		CLEAR_USB_STALL_IF();
-	}
-
-
-	if (SFR_USB_TOKEN_IF) {
-
-		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
-
-		if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 0/*OUT*/) {
-			// Packet for us on Endpoint 0.
-			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
 				// SETUP packet.
 
 				FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
@@ -586,7 +565,7 @@ void usb_service(void)
 						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else if (setup->bRequest == GET_STATUS) {
-					
+
 					SERIAL("Get Status (dst, index):");
 					SERIAL_VAL(setup->REQUEST.destination);
 					SERIAL_VAL(setup->wIndex);
@@ -629,7 +608,7 @@ void usb_service(void)
 						SERIAL("Stalling. Status Requested for destination:");
 						SERIAL_VAL(setup->REQUEST.destination);
 					}
-				
+
 				}
 				else if (setup->bRequest == SET_INTERFACE) {
 					/* Set the alternate setting for an interface.
@@ -757,6 +736,34 @@ void usb_service(void)
 				 * afer we've processed the current SETUP
 				 * packet to avoid a race condition. */
 				SFR_USB_PKT_DIS = 0;
+
+}
+
+
+/* checkUSB() is called repeatedly to check for USB interrupts
+   and service USB requests */
+void usb_service(void)
+{
+	if (SFR_USB_RESET_IF) {
+		// A Reset was detected on the wire. Re-init the SIE.
+		usb_init();
+		CLEAR_USB_RESET_IF();
+		SERIAL("USB Reset");
+	}
+	
+	if (SFR_USB_STALL_IF) {
+		CLEAR_USB_STALL_IF();
+	}
+
+
+	if (SFR_USB_TOKEN_IF) {
+
+		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
+
+		if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 0/*OUT*/) {
+			// Packet for us on Endpoint 0.
+			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
+				handle_ep0_setup();
 			}
 			else if (bds[0].ep_out.STAT.PID == PID_IN) {
 				/* Nonsense condition:
