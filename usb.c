@@ -741,59 +741,59 @@ static inline void handle_ep0_setup()
 
 static inline void handle_ep0_out()
 {
-				uint8_t pkt_len = bds[0].ep_out.BDnCNT;
-				if (ep0_data_stage_direc == 1/*1=IN*/) {
-					/* An empty OUT packet on an IN control transfer
-					 * means the STATUS stage of the control
-					 * transfer has completed (possibly early). */
+	uint8_t pkt_len = bds[0].ep_out.BDnCNT;
+	if (ep0_data_stage_direc == 1/*1=IN*/) {
+		/* An empty OUT packet on an IN control transfer
+		 * means the STATUS stage of the control
+		 * transfer has completed (possibly early). */
 
-					/* Notify the application (if applicable) */
-					if (ep0_data_stage_callback)
-						ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+		/* Notify the application (if applicable) */
+		if (ep0_data_stage_callback)
+			ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+		reset_ep0_data_stage();
+
+		// Clean up the Buffer Descriptors.
+		// Set the length and hand it back to the SIE.
+		bds[0].ep_out.STAT.BDnSTAT = 0;
+		bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
+		bds[0].ep_out.STAT.BDnSTAT =
+			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+	}
+	else {
+		/* A packet received as part of the data stage of
+		 * a control transfer. Pack what data we received
+		 * into the application's buffer (if it has
+		 * provided one). When all the data has been
+		 * received, call the application-provided callback.
+		 */
+
+		if (ep0_data_stage_buffer) {
+			uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
+			memcpy(ep0_data_stage_buffer, ep_buf[0].out, bytes_to_copy);
+			ep0_data_stage_buffer += bytes_to_copy;
+			ep0_data_stage_buf_remaining -= bytes_to_copy;
+
+			/* It's possible that bytes_to_copy is less than pkt_len
+			 * here because the application provided too small a buffer. */
+
+			if (pkt_len < EP_0_OUT_LEN || ep0_data_stage_buf_remaining == 0) {
+				/* Short packet or we've received the expected length.
+				 * All data has been transferred (or all the data
+				 * has been received which can be received). */
+
+				if (bytes_to_copy < pkt_len) {
+					/* The buffer provided by the application was too short */
+					stall_ep0();
+					ep0_data_stage_callback(0/*false*/, ep0_data_stage_context);
 					reset_ep0_data_stage();
-
-					// Clean up the Buffer Descriptors.
-					// Set the length and hand it back to the SIE.
-					bds[0].ep_out.STAT.BDnSTAT = 0;
-					bds[0].ep_out.BDnCNT = ep_buf[0].out_len;
-					bds[0].ep_out.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 				}
 				else {
-					/* A packet received as part of the data stage of
-					 * a control transfer. Pack what data we received
-					 * into the application's buffer (if it has
-					 * provided one). When all the data has been
-					 * received, call the application-provided callback.
-					 */
-
-					if (ep0_data_stage_buffer) {
-						uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
-						memcpy(ep0_data_stage_buffer, ep_buf[0].out, bytes_to_copy);
-						ep0_data_stage_buffer += bytes_to_copy;
-						ep0_data_stage_buf_remaining -= bytes_to_copy;
-
-						/* It's possible that bytes_to_copy is less than pkt_len
-						 * here because the application provided too small a buffer. */
-
-						if (pkt_len < EP_0_OUT_LEN || ep0_data_stage_buf_remaining == 0) {
-							/* Short packet or we've received the expected length.
-							 * All data has been transferred (or all the data
-							 * has been received which can be received). */
-
-							if (bytes_to_copy < pkt_len) {
-								/* The buffer provided by the application was too short */
-								stall_ep0();
-								ep0_data_stage_callback(0/*false*/, ep0_data_stage_context);
-								reset_ep0_data_stage();
-							}
-							else {
-								/* The data stage has completed. Set up the status stage. */
-								send_zero_length_packet_ep0();
-							}
-						}
-					}
+					/* The data stage has completed. Set up the status stage. */
+					send_zero_length_packet_ep0();
 				}
+			}
+		}
+	}
 }
 
 /* checkUSB() is called repeatedly to check for USB interrupts
