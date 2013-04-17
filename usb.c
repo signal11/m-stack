@@ -406,336 +406,336 @@ static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_as
 
 static inline void handle_ep0_setup()
 {
-				// SETUP packet.
+	// SETUP packet.
 
-				FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
-				ep0_data_stage_direc = setup->REQUEST.direction;
+	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+	ep0_data_stage_direc = setup->REQUEST.direction;
 
-				if (ep0_data_stage_buf_remaining) {
-					/* A SETUP transaction has been received while waiting
-					 * for a DATA stage to complete; something is broken.
-					 * If this was an application-controlled transfer (and
-					 * there's a callback), notify the application of this. */
-					if (ep0_data_stage_callback)
-						ep0_data_stage_callback(0/*fail*/, ep0_data_stage_context);
+	if (ep0_data_stage_buf_remaining) {
+		/* A SETUP transaction has been received while waiting
+		 * for a DATA stage to complete; something is broken.
+		 * If this was an application-controlled transfer (and
+		 * there's a callback), notify the application of this. */
+		if (ep0_data_stage_callback)
+			ep0_data_stage_callback(0/*fail*/, ep0_data_stage_context);
 
-					reset_ep0_data_stage();
-				}
+		reset_ep0_data_stage();
+	}
 
-				if (setup->bRequest == GET_DESCRIPTOR) {
-					char descriptor = ((setup->wValue >> 8) & 0x00ff);
-					uchar descriptor_index = setup->wValue & 0x00ff;
-					uint8_t bytes_to_send;
+	if (setup->bRequest == GET_DESCRIPTOR) {
+		char descriptor = ((setup->wValue >> 8) & 0x00ff);
+		uchar descriptor_index = setup->wValue & 0x00ff;
+		uint8_t bytes_to_send;
 
-					if (descriptor == DEVICE) {
-						SERIAL("Get Descriptor for DEVICE");
+		if (descriptor == DEVICE) {
+			SERIAL("Get Descriptor for DEVICE");
 
-						// Return Device Descriptor
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
-						bds[0].ep_in.BDnCNT = bytes_to_send;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-					}
-					else if (descriptor == CONFIGURATION) {
-						struct configuration_descriptor *desc;
-						if (descriptor_index >= NUMBER_OF_CONFIGURATIONS)
-							stall_ep0();
-						else {
-							desc = USB_CONFIG_DESCRIPTOR_MAP[descriptor_index];
+			// Return Device Descriptor
+			bds[0].ep_in.STAT.BDnSTAT = 0;
+			bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
+			bds[0].ep_in.BDnCNT = bytes_to_send;
+			bds[0].ep_in.STAT.BDnSTAT =
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+		}
+		else if (descriptor == CONFIGURATION) {
+			struct configuration_descriptor *desc;
+			if (descriptor_index >= NUMBER_OF_CONFIGURATIONS)
+				stall_ep0();
+			else {
+				desc = USB_CONFIG_DESCRIPTOR_MAP[descriptor_index];
 
-							// Return Configuration Descriptor. Make sure to only return
-							// the number of bytes asked for by the host.
-							//CHECK check length
-							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
-							bds[0].ep_in.BDnCNT = bytes_to_send;
-							bds[0].ep_in.STAT.BDnSTAT =
-								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-						}
-					}
-					else if (descriptor == STRING) {
-						void *desc;
-						int16_t len;
+				// Return Configuration Descriptor. Make sure to only return
+				// the number of bytes asked for by the host.
+				//CHECK check length
+				bds[0].ep_in.STAT.BDnSTAT = 0;
+				bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
+				bds[0].ep_in.BDnCNT = bytes_to_send;
+				bds[0].ep_in.STAT.BDnSTAT =
+					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+			}
+		}
+		else if (descriptor == STRING) {
+			void *desc;
+			int16_t len;
 
-						len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
-						if (len < 0) {
-							stall_ep0();
-							SERIAL("Unsupported string descriptor requested");
-						}
-						else {
-							bytes_to_send = start_control_return(desc, len, setup->wLength);
+			len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
+			if (len < 0) {
+				stall_ep0();
+				SERIAL("Unsupported string descriptor requested");
+			}
+			else {
+				bytes_to_send = start_control_return(desc, len, setup->wLength);
 
-							// Return Descriptor
-							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bds[0].ep_in.BDnCNT = bytes_to_send;
-							bds[0].ep_in.STAT.BDnSTAT =
-								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-						}
-					}
+				// Return Descriptor
+				bds[0].ep_in.STAT.BDnSTAT = 0;
+				bds[0].ep_in.BDnCNT = bytes_to_send;
+				bds[0].ep_in.STAT.BDnSTAT =
+					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+			}
+		}
 #if 0
-					else if (descriptor == HID) {
+		else if (descriptor == HID) {
 
-						SERIAL("Request of HID descriptor.");
+			SERIAL("Request of HID descriptor.");
 
-						// Return HID Report Descriptor
-						bds[0].ep_in.STAT.UOWN = 0;
-						memcpy_from_rom(ep_buf[0].in, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct hid_descriptor));
-						bds[0].ep_in.STAT.UOWN = 1;
+			// Return HID Report Descriptor
+			bds[0].ep_in.STAT.UOWN = 0;
+			memcpy_from_rom(ep_buf[0].in, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
+			bds[0].ep_in.STAT.BDnSTAT = 0;
+			bds[0].ep_in.STAT.DTSEN = 1;
+			bds[0].ep_in.STAT.DTS = 1;
+			bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct hid_descriptor));
+			bds[0].ep_in.STAT.UOWN = 1;
 
-					}
-					else if (descriptor == REPORT) {
+		}
+		else if (descriptor == REPORT) {
 
-						SERIAL("Request of HID report descriptor.");
+			SERIAL("Request of HID report descriptor.");
 
-						// Return HID Report Descriptor
-						bds[0].ep_in.STAT.UOWN = 0;
-						memcpy_from_rom(ep_buf[0].in, &hid_report_descriptor, sizeof(hid_report_descriptor));
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.STAT.DTSEN = 1;
-						bds[0].ep_in.STAT.DTS = 1;
-						bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(hid_report_descriptor));
-						bds[0].ep_in.STAT.UOWN = 1;
+			// Return HID Report Descriptor
+			bds[0].ep_in.STAT.UOWN = 0;
+			memcpy_from_rom(ep_buf[0].in, &hid_report_descriptor, sizeof(hid_report_descriptor));
+			bds[0].ep_in.STAT.BDnSTAT = 0;
+			bds[0].ep_in.STAT.DTSEN = 1;
+			bds[0].ep_in.STAT.DTS = 1;
+			bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(hid_report_descriptor));
+			bds[0].ep_in.STAT.UOWN = 1;
 
-						SERIAL_VAL(setup->wLength);
-					}
+			SERIAL_VAL(setup->wLength);
+		}
 #endif
-					else {
+		else {
 #ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
-						int16_t len;
-						const void *desc;
-						len = UNKNOWN_GET_DESCRIPTOR_CALLBACK(setup, &desc);
-						if (len < 0) {
-							stall_ep0();
-							SERIAL("Unsupported descriptor requested");
-						}
-						else {
-							bytes_to_send = start_control_return(desc, len, setup->wLength);
+			int16_t len;
+			const void *desc;
+			len = UNKNOWN_GET_DESCRIPTOR_CALLBACK(setup, &desc);
+			if (len < 0) {
+				stall_ep0();
+				SERIAL("Unsupported descriptor requested");
+			}
+			else {
+				bytes_to_send = start_control_return(desc, len, setup->wLength);
 
-							// Return Descriptor
-							bds[0].ep_in.STAT.BDnSTAT = 0;
-							bds[0].ep_in.BDnCNT = bytes_to_send;
-							bds[0].ep_in.STAT.BDnSTAT =
-								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-						}
+				// Return Descriptor
+				bds[0].ep_in.STAT.BDnSTAT = 0;
+				bds[0].ep_in.BDnCNT = bytes_to_send;
+				bds[0].ep_in.STAT.BDnSTAT =
+					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+			}
 #else
-						// Unknown Descriptor. Stall the endpoint.
-						stall_ep0();
-						SERIAL("Unknown Descriptor");
-						SERIAL_VAL(descriptor);
+			// Unknown Descriptor. Stall the endpoint.
+			stall_ep0();
+			SERIAL("Unknown Descriptor");
+			SERIAL_VAL(descriptor);
 #endif
-					}
-				}
-				else if (setup->bRequest == SET_ADDRESS) {
-					// Mark the ADDR as pending. The address gets set only
-					// after the transaction is complete.
-					addr_pending = 1;
-					addr = setup->wValue;
+		}
+	}
+	else if (setup->bRequest == SET_ADDRESS) {
+		// Mark the ADDR as pending. The address gets set only
+		// after the transaction is complete.
+		addr_pending = 1;
+		addr = setup->wValue;
 
-					send_zero_length_packet_ep0();
-				}
-				else if (setup->bRequest == SET_CONFIGURATION) {
-					/* Set the configuration. wValue is the configuration.
-					 * A value of 0 means to un-set the configuration and
-					 * go back to the ADDRESS state. */
-					uchar req = setup->wValue & 0x00ff;
+		send_zero_length_packet_ep0();
+	}
+	else if (setup->bRequest == SET_CONFIGURATION) {
+		/* Set the configuration. wValue is the configuration.
+		 * A value of 0 means to un-set the configuration and
+		 * go back to the ADDRESS state. */
+		uchar req = setup->wValue & 0x00ff;
 #ifdef SET_CONFIGURATION_CALLBACK
-					SET_CONFIGURATION_CALLBACK(req);
+		SET_CONFIGURATION_CALLBACK(req);
 #endif
-					send_zero_length_packet_ep0();
-					g_configuration = req;
+		send_zero_length_packet_ep0();
+		g_configuration = req;
 
-					SERIAL("Set configuration to");
-					SERIAL_VAL(req);
-				}
-				else if (setup->bRequest == GET_CONFIGURATION) {
-					// Return the current Configuration.
+		SERIAL("Set configuration to");
+		SERIAL_VAL(req);
+	}
+	else if (setup->bRequest == GET_CONFIGURATION) {
+		// Return the current Configuration.
 
-					SERIAL("Get Configuration. Returning:");
-					SERIAL_VAL(g_configuration);
+		SERIAL("Get Configuration. Returning:");
+		SERIAL_VAL(g_configuration);
 
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					ep_buf[0].in[0] = g_configuration;
-					bds[0].ep_in.BDnCNT = 1;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-				}
-				else if (setup->bRequest == GET_STATUS) {
+		bds[0].ep_in.STAT.BDnSTAT = 0;
+		ep_buf[0].in[0] = g_configuration;
+		bds[0].ep_in.BDnCNT = 1;
+		bds[0].ep_in.STAT.BDnSTAT =
+			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+	}
+	else if (setup->bRequest == GET_STATUS) {
 
-					SERIAL("Get Status (dst, index):");
-					SERIAL_VAL(setup->REQUEST.destination);
-					SERIAL_VAL(setup->wIndex);
+		SERIAL("Get Status (dst, index):");
+		SERIAL_VAL(setup->REQUEST.destination);
+		SERIAL_VAL(setup->wIndex);
 
-					if (setup->REQUEST.destination == 0 /*0=device*/) {
-						// Status for the DEVICE requested
-						// Return as a single byte in the return packet.
-						bds[0].ep_in.STAT.BDnSTAT = 0;
+		if (setup->REQUEST.destination == 0 /*0=device*/) {
+			// Status for the DEVICE requested
+			// Return as a single byte in the return packet.
+			bds[0].ep_in.STAT.BDnSTAT = 0;
 #ifdef GET_DEVICE_STATUS_CALLBACK
-						*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
+			*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
 #else
-						ep_buf[0].in[0] = 0;
-						ep_buf[0].in[1] = 0;
+			ep_buf[0].in[0] = 0;
+			ep_buf[0].in[1] = 0;
 #endif
-						bds[0].ep_in.BDnCNT = 2;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-					}
-					else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
-						// Status of endpoint
-						uint8_t ep_num = setup->wIndex & 0x0f;
-						if (ep_num <= NUM_ENDPOINT_NUMBERS) {
-							uint8_t flags = ep_buf[ep_num].flags;
-							bds[0].ep_in.STAT.BDnSTAT = 0;
-							ep_buf[0].in[0] = ((setup->wIndex & 0x80) ?
-								flags & EP_IN_HALT_FLAG :
-								flags & EP_OUT_HALT_FLAG) != 0;
-							ep_buf[0].in[1] = 0;
-							bds[0].ep_in.BDnCNT = 2;
-							bds[0].ep_in.STAT.BDnSTAT =
-								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+			bds[0].ep_in.BDnCNT = 2;
+			bds[0].ep_in.STAT.BDnSTAT =
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+		}
+		else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
+			// Status of endpoint
+			uint8_t ep_num = setup->wIndex & 0x0f;
+			if (ep_num <= NUM_ENDPOINT_NUMBERS) {
+				uint8_t flags = ep_buf[ep_num].flags;
+				bds[0].ep_in.STAT.BDnSTAT = 0;
+				ep_buf[0].in[0] = ((setup->wIndex & 0x80) ?
+					flags & EP_IN_HALT_FLAG :
+					flags & EP_OUT_HALT_FLAG) != 0;
+				ep_buf[0].in[1] = 0;
+				bds[0].ep_in.BDnCNT = 2;
+				bds[0].ep_in.STAT.BDnSTAT =
+					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+			}
+			else {
+				// Endpoint doesn't exist. STALL.
+				stall_ep0();
+			}
+		}
+		else {
+			stall_ep0();
+			SERIAL("Stalling. Status Requested for destination:");
+			SERIAL_VAL(setup->REQUEST.destination);
+		}
+
+	}
+	else if (setup->bRequest == SET_INTERFACE) {
+		/* Set the alternate setting for an interface.
+		 * wIndex is the interface.
+		 * wValue is the alternate setting. */
+#ifdef SET_INTERFACE_CALLBACK
+		int8_t res;
+		res = SET_INTERFACE_CALLBACK(setup->wIndex, setup->wValue);
+		if (res < 0) {
+			stall_ep0();
+		}
+		else
+			send_zero_length_packet_ep0();
+#else
+		/* If there's no callback, then assume that
+		 * we only have one alternate setting per
+		 * interface. */
+		send_zero_length_packet_ep0();
+#endif
+	}
+	else if (setup->bRequest == GET_INTERFACE) {
+		SERIAL("Get Interface");
+		SERIAL_VAL(setup->bRequest);
+		SERIAL_VAL(setup->REQUEST.destination);
+		SERIAL_VAL(setup->REQUEST.type);
+		SERIAL_VAL(setup->REQUEST.direction);
+#ifdef GET_INTERFACE_CALLBACK
+		int8_t res = GET_INTERFACE_CALLBACK(setup->wIndex);
+		if (res < 0)
+			stall_ep0();
+		else {
+			// Return the current alternate setting
+			// as a single byte in the return packet.
+			bds[0].ep_in.STAT.BDnSTAT = 0;
+			ep_buf[0].in[0] = res;
+			bds[0].ep_in.BDnCNT = 1;
+			bds[0].ep_in.STAT.BDnSTAT =
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+		}
+#else
+		/* If there's no callback, then assume that
+		 * we only have one alternate setting per
+		 * interface and return zero as that
+		 * alternate setting. */
+		bds[0].ep_in.STAT.BDnSTAT = 0;
+		ep_buf[0].in[0] = 0;
+		bds[0].ep_in.BDnCNT = 1;
+		bds[0].ep_in.STAT.BDnSTAT =
+			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+#endif
+	}
+	else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
+		uint8_t stall = 1;
+		if (setup->REQUEST.destination == 0/*0=device*/) {
+			SERIAL("Set/Clear feature for device");
+			// TODO Remote Wakeup flag
+		}
+
+		if (setup->REQUEST.destination == 2/*2=endpoint*/) {
+			if (setup->wValue == 0/*0=ENDPOINT_HALT*/) {
+				uint8_t ep_num = setup->wIndex & 0x0f;
+				uint8_t ep_dir = setup->wIndex & 0x80;
+				if (ep_num <= NUM_ENDPOINT_NUMBERS) {
+					if (setup->bRequest == SET_FEATURE) {
+						if (ep_dir) {
+							ep_buf[ep_num].flags |= EP_IN_HALT_FLAG;
+							stall_ep_in(ep_num);
 						}
 						else {
-							// Endpoint doesn't exist. STALL.
-							stall_ep0();
+							ep_buf[ep_num].flags |= EP_OUT_HALT_FLAG;
+							stall_ep_out(ep_num);
 						}
 					}
 					else {
-						stall_ep0();
-						SERIAL("Stalling. Status Requested for destination:");
-						SERIAL_VAL(setup->REQUEST.destination);
+						/* Clear Feature */
+						if (ep_dir) {
+							ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
+							bds[ep_num].ep_in.STAT.BDnSTAT = BDNSTAT_DTS;
+						}
+						else {
+							ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
+							bds[ep_num].ep_out.STAT.BDnSTAT = BDNSTAT_UOWN;
+						}
 					}
-
-				}
-				else if (setup->bRequest == SET_INTERFACE) {
-					/* Set the alternate setting for an interface.
-					 * wIndex is the interface.
-					 * wValue is the alternate setting. */
-#ifdef SET_INTERFACE_CALLBACK
-					int8_t res;
-					res = SET_INTERFACE_CALLBACK(setup->wIndex, setup->wValue);
-					if (res < 0) {
-						stall_ep0();
-					}
-					else
-						send_zero_length_packet_ep0();
-#else
-					/* If there's no callback, then assume that
-					 * we only have one alternate setting per
-					 * interface. */
-					send_zero_length_packet_ep0();
-#endif
-				}
-				else if (setup->bRequest == GET_INTERFACE) {
-					SERIAL("Get Interface");
-					SERIAL_VAL(setup->bRequest);
-					SERIAL_VAL(setup->REQUEST.destination);
-					SERIAL_VAL(setup->REQUEST.type);
-					SERIAL_VAL(setup->REQUEST.direction);
-#ifdef GET_INTERFACE_CALLBACK
-					int8_t res = GET_INTERFACE_CALLBACK(setup->wIndex);
-					if (res < 0)
-						stall_ep0();
-					else {
-						// Return the current alternate setting
-						// as a single byte in the return packet.
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						ep_buf[0].in[0] = res;
-						bds[0].ep_in.BDnCNT = 1;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-					}
-#else
-					/* If there's no callback, then assume that
-					 * we only have one alternate setting per
-					 * interface and return zero as that
-					 * alternate setting. */
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					ep_buf[0].in[0] = 0;
-					bds[0].ep_in.BDnCNT = 1;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-#endif
-				}
-				else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
-					uint8_t stall = 1;
-					if (setup->REQUEST.destination == 0/*0=device*/) {
-						SERIAL("Set/Clear feature for device");
-						// TODO Remote Wakeup flag
-					}
-
-					if (setup->REQUEST.destination == 2/*2=endpoint*/) {
-						if (setup->wValue == 0/*0=ENDPOINT_HALT*/) {
-							uint8_t ep_num = setup->wIndex & 0x0f;
-							uint8_t ep_dir = setup->wIndex & 0x80;
-							if (ep_num <= NUM_ENDPOINT_NUMBERS) {
-								if (setup->bRequest == SET_FEATURE) {
-									if (ep_dir) {
-										ep_buf[ep_num].flags |= EP_IN_HALT_FLAG;
-										stall_ep_in(ep_num);
-									}
-									else {
-										ep_buf[ep_num].flags |= EP_OUT_HALT_FLAG;
-										stall_ep_out(ep_num);
-									}
-								}
-								else {
-									/* Clear Feature */
-									if (ep_dir) {
-										ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
-										bds[ep_num].ep_in.STAT.BDnSTAT = BDNSTAT_DTS;
-									}
-									else {
-										ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
-										bds[ep_num].ep_out.STAT.BDnSTAT = BDNSTAT_UOWN;
-									}
-								}
 #ifdef ENDPOINT_HALT_CALLBACK
-								ENDPOINT_HALT_CALLBACK(setup->wIndex, (setup->bRequest == SET_FEATURE));
+					ENDPOINT_HALT_CALLBACK(setup->wIndex, (setup->bRequest == SET_FEATURE));
 #endif
-								stall = 0;
-							}
-						}
-					}
-
-					if (!stall) {
-						send_zero_length_packet_ep0();
-					}
-					else
-						stall_ep0();
+					stall = 0;
 				}
-				else {
+			}
+		}
+
+		if (!stall) {
+			send_zero_length_packet_ep0();
+		}
+		else
+			stall_ep0();
+	}
+	else {
 
 #ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
-					int8_t res;
-					res = UNKNOWN_SETUP_REQUEST_CALLBACK(setup);
-					if (res < 0)
-						stall_ep0();
-					else {
-						/* If the application has handled this request, it
-						 * will have already set up whatever needs to be set
-						 * up for the data stage. */
-					}
+		int8_t res;
+		res = UNKNOWN_SETUP_REQUEST_CALLBACK(setup);
+		if (res < 0)
+			stall_ep0();
+		else {
+			/* If the application has handled this request, it
+			 * will have already set up whatever needs to be set
+			 * up for the data stage. */
+		}
 #else
-					/* Unsupported Request. Stall the Endpoint. */
-					stall_ep0();
+		/* Unsupported Request. Stall the Endpoint. */
+		stall_ep0();
 #endif
-					SERIAL("unsupported request (req, dest, type, dir) ");
-					SERIAL_VAL(setup->bRequest);
-					SERIAL_VAL(setup->REQUEST.destination);
-					SERIAL_VAL(setup->REQUEST.type);
-					SERIAL_VAL(setup->REQUEST.direction);
+		SERIAL("unsupported request (req, dest, type, dir) ");
+		SERIAL_VAL(setup->bRequest);
+		SERIAL_VAL(setup->REQUEST.destination);
+		SERIAL_VAL(setup->REQUEST.type);
+		SERIAL_VAL(setup->REQUEST.direction);
 
-				}
+	}
 
-				/* SETUP packet sets PKTDIS which disables
-				 * future SETUP packet reception. Turn it off
-				 * afer we've processed the current SETUP
-				 * packet to avoid a race condition. */
-				SFR_USB_PKT_DIS = 0;
+	/* SETUP packet sets PKTDIS which disables
+	 * future SETUP packet reception. Turn it off
+	 * afer we've processed the current SETUP
+	 * packet to avoid a race condition. */
+	SFR_USB_PKT_DIS = 0;
 
 }
 
