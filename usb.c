@@ -384,6 +384,13 @@ void stall_ep_out(uint8_t ep)
 		BDNSTAT_UOWN|BDNSTAT_BSTALL;
 }
 
+static void send_zero_length_packet_ep0()
+{
+	bds[0].ep_in.STAT.BDnSTAT = 0;
+	bds[0].ep_in.BDnCNT = 0;
+	bds[0].ep_in.STAT.BDnSTAT = BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+}
+
 
 static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_asked_for)
 {
@@ -550,11 +557,7 @@ void usb_service(void)
 					addr_pending = 1;
 					addr = setup->wValue;
 
-					// Return a zero-length packet.
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					send_zero_length_packet_ep0();
 				}
 				else if (setup->bRequest == SET_CONFIGURATION) {
 					/* Set the configuration. wValue is the configuration.
@@ -564,11 +567,7 @@ void usb_service(void)
 #ifdef SET_CONFIGURATION_CALLBACK
 					SET_CONFIGURATION_CALLBACK(req);
 #endif
-					/* Return a zero-length packet. */
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					send_zero_length_packet_ep0();
 					g_configuration = req;
 
 					SERIAL("Set configuration to");
@@ -642,22 +641,13 @@ void usb_service(void)
 					if (res < 0) {
 						stall_ep0();
 					}
-					else {
-						// Return a zero-length packet.
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.BDnCNT = 0;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
-					}
+					else
+						send_zero_length_packet_ep0();
 #else
 					/* If there's no callback, then assume that
 					 * we only have one alternate setting per
 					 * interface. */
-					// Return a zero-length packet.
-					bds[0].ep_in.STAT.BDnSTAT = 0;
-					bds[0].ep_in.BDnCNT = 0;
-					bds[0].ep_in.STAT.BDnSTAT =
-						BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+					send_zero_length_packet_ep0();
 #endif
 				}
 				else if (setup->bRequest == GET_INTERFACE) {
@@ -733,11 +723,7 @@ void usb_service(void)
 					}
 
 					if (!stall) {
-						// Return a zero-length packet.
-						bds[0].ep_in.STAT.BDnSTAT = 0;
-						bds[0].ep_in.BDnCNT = 0;
-						bds[0].ep_in.STAT.BDnSTAT =
-							BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+						send_zero_length_packet_ep0();
 					}
 					else
 						stall_ep0();
@@ -825,12 +811,7 @@ void usb_service(void)
 							}
 							else {
 								/* The data stage has completed. Set up the status stage. */
-
-								// Return a zero-length packet.
-								bds[0].ep_in.STAT.BDnSTAT = 0;
-								bds[0].ep_in.BDnCNT = 0;
-								bds[0].ep_in.STAT.BDnSTAT =
-									BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+								send_zero_length_packet_ep0();
 							}
 						}
 					}
