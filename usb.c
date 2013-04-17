@@ -796,6 +796,46 @@ static inline void handle_ep0_out()
 	}
 }
 
+static inline void handle_ep0_in()
+{
+			if (addr_pending) {
+				SFR_USB_ADDR =  addr;
+				addr_pending = 0;
+			}
+
+			if (ep0_data_stage_buf_remaining) {
+				/* There's already a multi-transaction transfer in process. */
+				uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
+
+				memcpy_from_rom(ep_buf[0].in, ep0_data_stage_buffer, bytes_to_send);
+				ep0_data_stage_buf_remaining -= bytes_to_send;
+				ep0_data_stage_buffer += bytes_to_send;
+
+				/* If we hit the end with a full-length packet, set up
+				   to send a zero-length packet at the next IN token. */
+				if (ep0_data_stage_buf_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
+					control_need_zlp = 1;
+
+				usb_send_in_buffer(0, bytes_to_send);
+			}
+			else if (control_need_zlp) {
+				usb_send_in_buffer(0, 0);
+				control_need_zlp = 0;
+				reset_ep0_data_stage();
+			}
+			else {
+				if (ep0_data_stage_direc == 0/*OUT*/) {
+					/* An IN on the control endpoint with no data pending
+					 * and during an OUT transfer means the STATUS stage
+					 * of the control transfer has completed. Notify the
+					 * application, if applicable. */
+					if (ep0_data_stage_callback)
+						ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+					reset_ep0_data_stage();
+				}
+			}
+}
+
 /* checkUSB() is called repeatedly to check for USB interrupts
    and service USB requests */
 void usb_service(void)
@@ -837,42 +877,7 @@ void usb_service(void)
 			reset_bd0_out();
 		}
 		else if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 1/*1=IN*/) {
-			if (addr_pending) {
-				SFR_USB_ADDR =  addr;
-				addr_pending = 0;
-			}
-
-			if (ep0_data_stage_buf_remaining) {
-				/* There's already a multi-transaction transfer in process. */
-				uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
-
-				memcpy_from_rom(ep_buf[0].in, ep0_data_stage_buffer, bytes_to_send);
-				ep0_data_stage_buf_remaining -= bytes_to_send;
-				ep0_data_stage_buffer += bytes_to_send;
-
-				/* If we hit the end with a full-length packet, set up
-				   to send a zero-length packet at the next IN token. */
-				if (ep0_data_stage_buf_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
-					control_need_zlp = 1;
-
-				usb_send_in_buffer(0, bytes_to_send);
-			}
-			else if (control_need_zlp) {
-				usb_send_in_buffer(0, 0);
-				control_need_zlp = 0;
-				reset_ep0_data_stage();
-			}
-			else {
-				if (ep0_data_stage_direc == 0/*OUT*/) {
-					/* An IN on the control endpoint with no data pending
-					 * and during an OUT transfer means the STATUS stage
-					 * of the control transfer has completed. Notify the
-					 * application, if applicable. */
-					if (ep0_data_stage_callback)
-						ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
-					reset_ep0_data_stage();
-				}
-			}
+			handle_ep0_in();
 		}
 		else if (SFR_USB_STATUS_EP > 0 && SFR_USB_STATUS_EP <= NUM_ENDPOINT_NUMBERS) {
 			if (SFR_USB_STATUS_DIR == 1 /*1=IN*/) {
