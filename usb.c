@@ -385,7 +385,7 @@ void stall_ep_out(uint8_t ep)
 }
 
 
-static uint8_t start_control_return(void *ptr, size_t len, size_t bytes_asked_for)
+static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_asked_for)
 {
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
