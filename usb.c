@@ -519,11 +519,29 @@ void usb_service(void)
 					}
 #endif
 					else {
+#ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
+						int16_t len;
+						const void *desc;
+						len = UNKNOWN_GET_DESCRIPTOR_CALLBACK(setup, &desc);
+						if (len < 0) {
+							stall_ep0();
+							SERIAL("Unsupported descriptor requested");
+						}
+						else {
+							bytes_to_send = start_control_return(desc, len, setup->wLength);
+
+							// Return Descriptor
+							bds[0].ep_in.STAT.BDnSTAT = 0;
+							bds[0].ep_in.BDnCNT = bytes_to_send;
+							bds[0].ep_in.STAT.BDnSTAT =
+								BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+						}
+#else
 						// Unknown Descriptor. Stall the endpoint.
 						stall_ep0();
 						SERIAL("Unknown Descriptor");
 						SERIAL_VAL(descriptor);
-
+#endif
 					}
 				}
 				else if (setup->bRequest == SET_ADDRESS) {

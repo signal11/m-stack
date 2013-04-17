@@ -361,6 +361,26 @@ int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
 int8_t UNKNOWN_SETUP_REQUEST_CALLBACK(const struct setup_packet *pkt);
 #endif
 
+#ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
+/* UNKNOWN_GET_DESCRIPTOR_CALLBACK() is called when a GET_DESCRIPTOR
+ * request is received from the host for a descriptor which is unrecognized
+ * by the USB stack. This could be because it is a vendor-defined
+ * descriptor or because it is some other descriptor which is not supported,
+ * for example if you were implementing a device class in your application. The
+ * callback function should set the descriptor pointer and return the number
+ * of bytes in the descriptor. If the descriptor is not supported, the callback
+ * should return -1, which will cause a STALL to be sent to the host.
+ * Parameters:
+ *   pkt - The SETUP packet with the request in it.
+ *   descriptor - a pointer to a pointer which should be set to the descriptor
+ *                data.
+ * Return
+ *   Return the length of the descriptor pointed to by *descriptor, or -1
+ *   if the descriptor does not exist.
+ */
+int16_t UNKNOWN_GET_DESCRIPTOR_CALLBACK(const struct setup_packet *pkt, const void **descriptor);
+#endif
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]

@@ -150,6 +150,12 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 #undef MIN
 }
 
+int16_t app_unknown_get_descriptor_callback(const struct setup_packet *pkt, const void **descriptor)
+{
+	return -1;
+}
+
+
 #ifdef __XC8
 void interrupt high_priority isr()
 {
