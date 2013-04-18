@@ -19,8 +19,7 @@
 #define NUM_ENDPOINT_NUMBERS 1
 
 /* Only 8, 16, 32 and 64 are supported for endpoint zero length. */
-#define EP_0_OUT_LEN 8
-#define EP_0_IN_LEN 8
+#define EP_0_LEN 8
 
 #define EP_1_OUT_LEN 64
 #define EP_1_IN_LEN 64

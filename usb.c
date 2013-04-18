@@ -26,6 +26,13 @@ Signal 11 Software
 
 #define MIN(x,y) ((x<y)?x:y)
 
+/* Even though they're the same, It's convenient below (for the buffer
+ * macros) to have separate #defines for IN and OUT EP 0 lengths which
+ * match the format of the other endpoint length #defines. */
+#define EP_0_OUT_LEN EP_0_LEN
+#define EP_0_IN_LEN  EP_0_LEN
+
+
 struct serial_struct{
 	uchar bLength;
 	uchar bDescriptorType;

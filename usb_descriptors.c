@@ -29,7 +29,7 @@ const ROMPTR struct device_descriptor this_device_descriptor =
 	0x00, // Device class
 	0x00, // Device Subclass
 	0x00, // Protocol.
-	EP_0_OUT_LEN, // bMaxPacketSize0
+	EP_0_LEN, // bMaxPacketSize0
 	0xA0A0, // Vendor
 	0x0001, // Product
 	//0x0c12, 0x0005, // Vendor,Product for zeroplus joystick
