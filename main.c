@@ -57,9 +57,16 @@ int main(void)
 	memset(buf, 0xa0, EP_1_IN_LEN);
 
 	while (1) {
-		if (!usb_in_endpoint_busy(1) && !usb_in_endpoint_halted(1)) {
-			buf[0]++;
-			usb_send_in_buffer(1, 64);
+		if (!usb_out_endpoint_busy(1)) {
+			/* Data received from host */
+
+			/* Wait for EP 1 IN to become free then send. This of
+			 * course only works using interrupts. */
+			while (usb_in_endpoint_busy(1))
+				;
+			memcpy(usb_get_in_buffer(1), usb_get_out_buffer(1), EP_1_IN_LEN);
+			usb_send_in_buffer(1, usb_out_endpoint_received_length(1));
+			usb_out_endpoint_arm(1);
 		}
 
 		#ifndef USB_USE_INTERRUPTS
