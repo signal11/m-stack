@@ -408,6 +408,8 @@ bool usb_in_endpoint_busy(uint8_t endpoint);
 bool usb_in_endpoint_halted(uint8_t endpoint);
 
 bool usb_out_endpoint_busy(uint8_t endpoint);
+uint8_t usb_out_endpoint_received_length(uint8_t endpoint);
+void usb_out_endpoint_arm(uint8_t endpoint);
 bool usb_out_endpoint_halted(uint8_t endpoint);
 uchar *usb_get_out_buffer(uint8_t endpoint);
 

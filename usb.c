@@ -964,6 +964,23 @@ bool usb_out_endpoint_busy(uint8_t endpoint)
 	return bds[endpoint].ep_out.STAT.UOWN;
 }
 
+uint8_t usb_out_endpoint_received_length(uint8_t endpoint)
+{
+	return bds[endpoint].ep_out.BDnCNT;
+}
+
+void usb_out_endpoint_arm(uint8_t endpoint)
+{
+	bds[endpoint].ep_out.BDnCNT = ep_buf[endpoint].out_len;
+	uint8_t pid = !bds[endpoint].ep_out.STAT.DTS;
+	if (pid)
+		bds[endpoint].ep_out.STAT.BDnSTAT =
+			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
+	else
+		bds[endpoint].ep_out.STAT.BDnSTAT =
+			BDNSTAT_UOWN|BDNSTAT_DTSEN;
+}
+
 bool usb_out_endpoint_halted(uint8_t endpoint)
 {
 	return ep_buf[endpoint].flags & EP_OUT_HALT_FLAG;
