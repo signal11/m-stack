@@ -961,22 +961,18 @@ bool usb_in_endpoint_halted(uint8_t endpoint)
 	return ep_buf[endpoint].flags & EP_IN_HALT_FLAG;
 }
 
-uchar *usb_get_out_buffer(uint8_t endpoint)
+uint8_t usb_get_out_buffer(uint8_t endpoint, const uchar **buf)
 {
-	return ep_buf[endpoint].out;
-}
-
-bool usb_out_endpoint_busy(uint8_t endpoint)
-{
-	return bds[endpoint].ep_out.STAT.UOWN;
-}
-
-uint8_t usb_out_endpoint_received_length(uint8_t endpoint)
-{
+	*buf = ep_buf[endpoint].out;
 	return bds[endpoint].ep_out.BDnCNT;
 }
 
-void usb_out_endpoint_arm(uint8_t endpoint)
+bool usb_out_endpoint_has_data(uint8_t endpoint)
+{
+	return !bds[endpoint].ep_out.STAT.UOWN;
+}
+
+void usb_arm_out_endpoint(uint8_t endpoint)
 {
 	bds[endpoint].ep_out.BDnCNT = ep_buf[endpoint].out_len;
 	uint8_t pid = !bds[endpoint].ep_out.STAT.DTS;
