@@ -399,7 +399,6 @@ extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
 extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
 void usb_init(void);
-void usb_isr(void);
 void usb_service(void);
 
 uchar *usb_get_in_buffer(uint8_t endpoint);

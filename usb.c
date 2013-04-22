@@ -924,11 +924,6 @@ void usb_service(void)
 	}
 }
 
-void usb_isr (void)
-{
-	usb_service();
-}
-
 uchar *usb_get_in_buffer(uint8_t endpoint)
 {
 	return ep_buf[endpoint].in;
