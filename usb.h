@@ -398,7 +398,27 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
 extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
+/* @brief Initialize the USB library and hardware
+ *
+ * Call this function at the beginning of execution. This function initializes
+ * the USB peripheral hardware and software library. After calling this
+ * funciton, the library will handle enumeration automatically when attached
+ * to a host.
+ */
 void usb_init(void);
+
+/* @brief Update the USB library and hardware
+ *
+ * This function services the USB peripheral's interrupts and handles all
+ * tasks related to enumeration and transfers. It is non-blocking. Whether an
+ * application should call this function depends on the USB_USE_INTERRUPTS
+ * #define. If USB_USE_INTERRUPTS is not defined, this function should be
+ * called periodically from the main application. If USB_USE_INTERRUPTS is
+ * defined, it should be called from interrupt context. On PIC24, this will
+ * happen automatically, as the interrupt handler is embedded in usb.c. On
+ * 8-bit PIC since the interrupt handlers are shared, this function will need
+ * to be called from the application's interrupt handler.
+ */
 void usb_service(void);
 
 uchar *usb_get_in_buffer(uint8_t endpoint);
