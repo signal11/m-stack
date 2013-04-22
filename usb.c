@@ -1025,7 +1025,7 @@ void usb_send_data_stage(char *buffer, size_t len,
 #ifdef USB_USE_INTERRUPTS
 #ifdef __XC16__
 
-void _ISR _USB1Interrupt()
+void _ISR __attribute((auto_psv)) _USB1Interrupt()
 {
 	usb_service();
 }
