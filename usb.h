@@ -261,20 +261,24 @@ extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, const void **pt
 /* Optional user-defined functions from usb_config.c */
 
 #ifdef SET_CONFIGURATION_CALLBACK
-/* SET_CONFIGURATION_CALLBACK() is called whenever a SET_CONFIGURATION request
- * is received from the host. The configuration parameter is the new
- * configuration the host requests. If configuration is zero, then the device
- * is to enter the ADDRESS state. If it is non-zero then the device is to enter
- * the CONFIGURED state.
+/** @brief Callback for SET_CONFIGURATION requests
  *
- * There's no way to fail. The host commands a configuration be set, and it
- * shall be done.
+ * SET_CONFIGURATION_CALLBACK() is called whenever a @a SET_CONFIGURATION
+ * request is received from the host.  The configuration parameter is the
+ * new configuration the host requests.  If configuration is zero, then the
+ * device is to enter the @a ADDRESS state.  If it is non-zero then the device
+ * is to enter the @a CONFIGURED state.
+ *
+ * There's no way to reject this request. The host commands a configuration
+ * be set, and it shall be done.
  */
 void SET_CONFIGURATION_CALLBACK(uint8_t configuration);
 #endif
 
 #ifdef GET_DEVICE_STATUS_CALLBACK
-/* GET_DEVICE_STATUS_CALLBACK() is called when a GET_STATUS request is
+/** @brief Callback for GET_STATUS requests
+ *
+ * GET_DEVICE_STATUS_CALLBACK() is called when a @a GET_STATUS request is
  * received from the host for the device (not the interface or the endpoint).
  * The callback is to return the status of the device as a 16-bit
  * unsigned integer per section 9.4.5 of the USB 2.0 specification.
@@ -286,44 +290,50 @@ uint16_t GET_DEVICE_STATUS_CALLBACK();
 #endif
 
 #ifdef ENDPOINT_HALT_CALLBACK
-/* ENDPOINT_HALT_CALLBACK() is called when a SET_FEATURE or CLEAR_FEATURE is
- * received from the host changing the endpoint halt value. This is a
- * notification only. There is no way to reject this request.
- * Parameters:
- *   endpoint - the endpoint identifier of the affected endpoint
- *              (direction and number, e.g.: 0x81 means EP 1 IN).
- *   halted   - 1=endpoint_halted (set), 0=endpoint_not_halted (clear)
+/** @brief Callback for SET_FEATURE or CLEAR_FEATURE with ENDPOINT_HALT
+ *
+ * ENDPOINT_HALT_CALLBACK() is called when a @a SET_FEATURE or @a
+ * CLEAR_FEATURE is received from the host changing the endpoint halt value. 
+ * This is a notification only.  There is no way to reject this request.
+ *
+ * @brief endpoint   The endpoint identifier of the affected endpoint
+ *                   (direction and number, e.g.: 0x81 means EP 1 IN).
+ * @brief halted     1=endpoint_halted (set), 0=endpoint_not_halted (clear)
  */
 void ENDPOINT_HALT_CALLBACK(uint8_t endpoint, uint8_t halted);
 #endif
 
 #ifdef SET_INTERFACE_CALLBACK
-/* SET_INTERFACE_CALLBACK() is called when a SET_INTERFACE request is
- * received from the host. SET_INTERFACE is used to set the alternate setting
- * for the specified interface. The parameters interface and alt_setting come
- * directly from the device request (from the host). The callback should
- * return 0 if the new alternate setting can be set or -1 if it cannot.
- * This callback is completely unnecessary if you only have one alternate
- * setting (alternate setting zero) for each interface.
- * Parameters:
- *   interface   - the interface on which to set the alternate setting
- *   alt_setting - the alternate setting
- * Return:
+/** @brief Callback for the SET_INTERFACE request
+ *
+ * SET_INTERFACE_CALLBACK() is called when a @a SET_INTERFACE request is
+ * received from the host.  @a SET_INTERFACE is used to set the alternate
+ * setting for the specified interface.  The parameters @p interface and @p
+ * alt_setting come directly from the device request (from the host).  The
+ * callback should return 0 if the new alternate setting can be set or -1 if
+ * it cannot.  This callback is completely unnecessary if you only have one
+ * alternate setting (alternate setting zero) for each interface.
+ *
+ * @param interface     The interface on which to set the alternate setting
+ * @param alt_setting   The alternate setting
+ * @returns
  *   Return 0 for success and -1 for error (will send a STALL to the host)
  */
 int8_t SET_INTERFACE_CALLBACK(uint8_t interface, uint8_t alt_setting);
 #endif
 
 #ifdef GET_INTERFACE_CALLBACK
-/* GET_INTERFACE_CALLBACK() is called when a GET_INTERFACE request is received
- * from the host. GET_INTERFACE is a request for the current alternate setting
- * selected for a given interface. The application should return the
- * interface's current alternate setting from this callback function.
- * If this callback is not present, zero will be returned as the current
- * alternate setting for all interfaces.
- * Parameters:
- *   interface - the interface queried for current altertate setting
- * Return:
+/** @brief Callback for the GET_INTERFACE request
+ *
+ * GET_INTERFACE_CALLBACK() is called when a @a GET_INTERFACE request is
+ * received from the host.  @a GET_INTERFACE is a request for the current
+ * alternate setting selected for a given interface.  The application should
+ * return the interface's current alternate setting from this callback
+ * function.  If this callback is not present, zero will be returned as the
+ * current alternate setting for all interfaces.
+ *
+ * @param interface   The interface queried for current altertate setting
+ * @returns
  *   Return the current alternate setting for the interface requested or -1
  *   if the interface does not exist.
  */
@@ -331,30 +341,33 @@ int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
 #endif
 
 #ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
-/* UNKNOWN_SETUP_REQUEST_CALLBACK() is called when a SETUP packet is
+/** @brief Callback for an unrecognized SETUP request
+ *
+ * UNKNOWN_SETUP_REQUEST_CALLBACK() is called when a SETUP packet is
  * received with a request (bmRequestType,bRequest) which is unknown to the
- * the USB stack. This could be because it is a vendor-defined
- * request or because it is some other request which is not supported, for
- * example if you were implementing a device class in your application. There
- * are four ways to handle this:
+ * the USB stack.  This could be because it is a vendor-defined request or
+ * because it is some other request which is not supported, for example if
+ * you were implementing a device class in your application.  There are four
+ * ways to handle this:
+ *
  * 0. For unknown requests, return -1. This will send a STALL to the host.
  * 1. For requests which have no data stage, the callback should call
- *    usb_send_data_stage() with a length of zero to send a zero-length packet
- *    back to the host.
+ *    @p usb_send_data_stage() with a length of zero to send a zero-length
+ *    packet back to the host.
  * 2. For requests which expect an IN data stage, the callback should call
- *    usb_send_data_stage() with the data to be sent, and a callback which will
- *    get called when the data stage is complete. The callback is required, and
- *    the data buffer passed to usb_send_data_stage() must remain valid until
- *    the callback is called.
+ *    @p usb_send_data_stage() with the data to be sent, and a callback
+ *    which will get called when the data stage is complete.  The callback
+ *    is required, and the data buffer passed to @p usb_send_data_stage()
+ *    must remain valid until the callback is called.
  * 3. For requests which will come with an OUT data stage, the callback
- *    should call usb_start_receive_ep0_data_stage() and provide a buffer,
- *    and a callback which will get called when the data stage has completed.
- *    The callback is required, and the data in the buffer passed to
- *    usb_start_receive_ep0_data_stage() is not valid until the callback is
- *    called.
- * Parameters:
- *   pkt - The SETUP packet
- * Return
+ *    should call @p usb_start_receive_ep0_data_stage() and provide a
+ *    buffer and a callback which will get called when the data stage has
+ *    completed.  The callback is required, and the data in the buffer
+ *    passed to usb_start_receive_ep0_data_stage() is not valid until the
+ *    callback is called.
+ *
+ * @param pkt   The SETUP packet
+ * @returns
  *   Return 0 if the SETUP can be handled or -1 if it cannot. Returning -1
  *   will cause STALL to be returned to the host.
  */
@@ -362,20 +375,23 @@ int8_t UNKNOWN_SETUP_REQUEST_CALLBACK(const struct setup_packet *pkt);
 #endif
 
 #ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
-/* UNKNOWN_GET_DESCRIPTOR_CALLBACK() is called when a GET_DESCRIPTOR
+/** @brief Callback for a GET_DESCRIPTOR request for an unknown descriptor
+ *
+ * UNKNOWN_GET_DESCRIPTOR_CALLBACK() is called when a @a GET_DESCRIPTOR
  * request is received from the host for a descriptor which is unrecognized
- * by the USB stack. This could be because it is a vendor-defined
+ * by the USB stack.  This could be because it is a vendor-defined
  * descriptor or because it is some other descriptor which is not supported,
- * for example if you were implementing a device class in your application. The
- * callback function should set the descriptor pointer and return the number
- * of bytes in the descriptor. If the descriptor is not supported, the callback
- * should return -1, which will cause a STALL to be sent to the host.
- * Parameters:
- *   pkt - The SETUP packet with the request in it.
- *   descriptor - a pointer to a pointer which should be set to the descriptor
- *                data.
- * Return
- *   Return the length of the descriptor pointed to by *descriptor, or -1
+ * for example if you were implementing a device class in your application.
+ * The callback function should set the @p descriptor pointer and return the
+ * number of bytes in the descriptor.  If the descriptor is not supported,
+ * the callback should return -1, which will cause a STALL to be sent to the
+ * host.
+ *
+ * @param pkt          The SETUP packet with the request in it.
+ * @param descriptor   a pointer to a pointer which should be set to the
+ *                     descriptor data.
+ * @returns
+ *   Return the length of the descriptor pointed to by @p *descriptor, or -1
  *   if the descriptor does not exist.
  */
 int16_t UNKNOWN_GET_DESCRIPTOR_CALLBACK(const struct setup_packet *pkt, const void **descriptor);
@@ -422,10 +438,10 @@ void usb_init(void);
 void usb_service(void);
 
 /** @brief Get a pointer to an endpoint's input buffer
- * 
+ *
  * This function returns a pointer to an endpoint's input buffer. Call this
- * to get a location to copy IN data to in order to send it to the host. 
- * Remember that IN data is data which goes from the device to the host. 
+ * to get a location to copy IN data to in order to send it to the host.
+ * Remember that IN data is data which goes from the device to the host.
  * The maximum length of this buffer is defined by the application in
  * usb_config.h (eg: @p EP_1_IN_LEN).  It is wise to call
  * @p usb_in_endpoint_busy() before calling this function.
@@ -444,7 +460,7 @@ uchar *usb_get_in_buffer(uint8_t endpoint);
  * endpoint. To check later whether the data has been sent, call
  * @p usb_in_endpoint_busy(). If the endpoint is busy, a transmission is
  * pending, but has not been actually transmitted yet.
- * 
+ *
  * @param endpoint   The endpoint on which to send data
  * @param len        The amount of data to send
  */
