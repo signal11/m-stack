@@ -398,7 +398,7 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
 extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
 
-/* @brief Initialize the USB library and hardware
+/** @brief Initialize the USB library and hardware
  *
  * Call this function at the beginning of execution. This function initializes
  * the USB peripheral hardware and software library. After calling this
@@ -407,13 +407,13 @@ extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
  */
 void usb_init(void);
 
-/* @brief Update the USB library and hardware
+/** @brief Update the USB library and hardware
  *
  * This function services the USB peripheral's interrupts and handles all
  * tasks related to enumeration and transfers. It is non-blocking. Whether an
- * application should call this function depends on the USB_USE_INTERRUPTS
- * #define. If USB_USE_INTERRUPTS is not defined, this function should be
- * called periodically from the main application. If USB_USE_INTERRUPTS is
+ * application should call this function depends on the @p USB_USE_INTERRUPTS
+ * #define. If @p USB_USE_INTERRUPTS is not defined, this function should be
+ * called periodically from the main application. If @p USB_USE_INTERRUPTS is
  * defined, it should be called from interrupt context. On PIC24, this will
  * happen automatically, as the interrupt handler is embedded in usb.c. On
  * 8-bit PIC since the interrupt handlers are shared, this function will need
@@ -421,21 +421,179 @@ void usb_init(void);
  */
 void usb_service(void);
 
+/** @brief Get a pointer to an endpoint's input buffer
+ * 
+ * This function returns a pointer to an endpoint's input buffer. Call this
+ * to get a location to copy IN data to in order to send it to the host. 
+ * Remember that IN data is data which goes from the device to the host. 
+ * The maximum length of this buffer is defined by the application in
+ * usb_config.h (eg: @p EP_1_IN_LEN).  It is wise to call
+ * @p usb_in_endpoint_busy() before calling this function.
+ *
+ * @param endpoint   The endpoint requested
+ * @returns
+ *   Return a pointer to the endpoint's buffer.
+ */
 uchar *usb_get_in_buffer(uint8_t endpoint);
+
+/** @brief Send an endpoint's IN buffer to the host
+ *
+ * Send the data in the IN buffer for the specified endpoint to the host.
+ * Since USB is a polled bus, this only queues the data for sending. It will
+ * actually be sent when the device receives an IN token for the specified
+ * endpoint. To check later whether the data has been sent, call
+ * @p usb_in_endpoint_busy(). If the endpoint is busy, a transmission is
+ * pending, but has not been actually transmitted yet.
+ * 
+ * @param endpoint   The endpoint on which to send data
+ * @param len        The amount of data to send
+ */
 void usb_send_in_buffer(uint8_t endpoint, size_t len);
+
+/** @brief Check whether an IN endpoint is busy
+ *
+ * An IN endpoint is said to be busy if there is data in its buffer and it
+ * is waiting for an IN token from the host in order to send it (or if it is
+ * in the process of sending the data).
+ *
+ * @param endpoint   The endpoint requested
+ * @return
+ *    Return true if the endpoint is busy, or false if it is not.
+ */
 bool usb_in_endpoint_busy(uint8_t endpoint);
+
+/** @brief Check whether an endpoint is halted
+ *
+ * Check if an endpoint has been halted by the host. If an endpoint is
+ * halted, don't call usb_send_in_buffer().
+ *
+ * @see ENDPOINT_HALT_CALLBACK.
+ *
+ * @param endpoint   The endpoint requested
+ * @return
+ *   Return true if the endpointed is halted, or false if it is not.
+ */
 bool usb_in_endpoint_halted(uint8_t endpoint);
 
+/** @brief Check whether an OUT endpoint has received data
+ *
+ * Check if an OUT endpoint has completed a transaction and has received
+ * data from the host.  If it has, the application should call @p
+ * usb_get_out_buffer() to get the data and then call @p
+ * usb_arm_out_endpoint() to enable reception of the next transaction.
+ *
+ * @param endpoint   The endpoint requested
+ * @return
+ *   Return true if the endpoint has received data, false if it has not.
+ */
 bool usb_out_endpoint_has_data(uint8_t endpoint);
+
+/** @brief Re-enable reception on an OUT endpoint
+ *
+ * Re-enable reception on the specified endpoint. Call this function after
+ * @p usb_out_endpoint_has_data() indicated that there was data available,
+ * and after the application has dealt with the data.  Calling this function
+ * gives the specified OUT endpoint's buffer back to the USB stack to
+ * receive the next transaction.
+ *
+ * @param endpoint   The endpoint requested
+ */
 void usb_arm_out_endpoint(uint8_t endpoint);
+
+/** @brief Check whether an OUT endpoint is halted
+ *
+ * Check if an endpoint has been halted by the host. If an OUT endpoint is
+ * halted, the USB stack will automatically return STALL in response to any
+ * OUT tokens.
+ *
+ * @see ENDPOINT_HALT_CALLBACK.
+ *
+ * @param endpoint   The endpoint requested
+ * @returns
+ *   Return true if the endpointed is halted, or false if it is not.
+ */
 bool usb_out_endpoint_halted(uint8_t endpoint);
+
+/** @brief Get a pointer to an endpoint's OUT buffer
+ *
+ * Call this function to get a pointer to an endpoint's OUT buffer after
+ * @p usb_out_endpoint_has_data() returns @p true (indicating that
+ * an OUT transaction has been received). Do not call this function if
+ * @p usb_out_endpoint_has_data() does not return true.
+ *
+ * @param endpoint   The endpoint requested
+ * @param buffer     A pointer to a pointer which will be set to the
+ *                   endpoint's OUT buffer.
+ * @returns
+ *   Return the number of bytes received.
+ */
 uint8_t usb_get_out_buffer(uint8_t endpoint, const uchar **buffer);
 
+/** @brief Endpoint 0 data stage callback definition
+ *
+ * This is the callback function type expected to be passed to @p
+ * usb_start_receive_ep0_data_stage() and @p usb_send_data_stage(). 
+ * Callback functions will be called by the stack when the event for which
+ * they are registered occurs.
+ *
+ * @param transfer_ok   @a true if transaction completed successfully, or
+ *                      @a false if there was an error
+ * @param context       A pointer to application-provided context data
+ */
 typedef void (*usb_ep0_data_stage_callback)(bool transfer_ok, void *context);
 
+/** @brief Start the data stage of an OUT control transfer
+ *
+ * Start the data stage of a control transfer for a transfer which has an
+ * OUT data stage.  Call this from @p UNKNOWN_SETUP_REQUEST_CALLBACK for OUT
+ * control transfers which being handled by the application.  Once the
+ * transfer has completed, @p callback will be called with the @p context
+ * pointer provided.  The @p buffer should be considered to be owned by the
+ * USB stack until the @p callback is called and should not be modified by the
+ * application until this time.
+ *
+ * @see UNKNOWN_SETUP_REQUEST_CALLBACK
+ *
+ * @param buffer     A buffer in which to place the data
+ * @param len        The number of bytes to expect. This must be less than or
+ *                   equal to the number of bytes in the buffer, and for
+ *                   proper setup packets will be the wLength parameter.
+ * @param callback   A callback function to call when the transfer completes.
+ *                   This parameter is mandatory. Once the callback is
+ *                   called, the transfer is over, and the buffer can be
+ *                   considered to be owned by the application again. 
+ * @param context    A pointer to be passed to the callback.  The USB stack
+ *                   does not dereference this pointer
+ */
 void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
 	usb_ep0_data_stage_callback callback, void *context);
 
+/** @brief Start the data stage of an IN control transfer
+ * 
+ * Start the data stage of a control transfer for a transfer which has an IN
+ * data stage.  Call this from @p UNKNOWN_SETUP_REQUEST_CALLBACK for IN
+ * control transfers which are being handled by the application.  Once the
+ * transfer has completed, @p callback will be called with the @p context
+ * pointer provided.  The @p buffer should be considered to be owned by the
+ * USB stack until the callback is called and should not be modified by the
+ * application until this time.  Do not pass in a buffer which is on the
+ * stack.  The data will automatically be split into as many transactions as
+ * necessary to complete the transfer.
+ *
+ * @see UNKNOWN_SETUP_REQUEST_CALLBACK
+ *
+ * @param buffer     A buffer containing the data to send. This should be a
+ *                   buffer capable of having an arbitrary lifetime.  Do not
+ *                   use a stack variable for this buffer, and do not free
+ *                   this buffer until the callback has been called.
+ * @param len        The number of bytes to send
+ * @param callback   A callback function to call when the transfer completes.
+ *                   This parameter is mandatory. Once the callback is
+ *                   called, the transfer is over, and the buffer can be
+ *                   considered to be owned by the application again.
+ * @paramcontext     A pointer to be passed to the callback. The USB stack
+ *                   does not dereference this pointer.
+ */
 void usb_send_data_stage(char *buffer, size_t len,
 	usb_ep0_data_stage_callback callback, void *context);
 
