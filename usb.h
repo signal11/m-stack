@@ -7,8 +7,20 @@
 #ifndef USB_H_
 #define USB_H_
 
+/** @file usb.h
+ *  @brief Signal 11 USB Stack
+ *  @defgroup public_api Public API
+ */
+
+/** @addtogroup public_api
+ *  @{
+ */
+
+/** @cond INTERNAL */
 typedef unsigned char uchar;
 typedef unsigned short ushort;
+/** @endcond */
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -23,7 +35,17 @@ typedef unsigned short ushort;
 #error "Compiler not supported"
 #endif
 
-// USB PIDs
+/** @defgroup ch9_packets USB Chapter 9 Packets
+ *  @brief Packet structs from Chapter 9 of the USB spec which deals with
+ *  device enumeration.
+ *
+ *  For more information about these structures, see Chapter 9 of the USB
+ *  specification, available from http://www.usb.org .
+ *  @addtogroup ch9_packets
+ *  @{
+ */
+
+/** USB PIDs */
 enum PID {
 	PID_OUT = 0x01,
 	PID_IN  = 0x09,
@@ -44,7 +66,10 @@ enum PID {
 	PID_RESERVED = 0x00,
 };
 
-// These are requests sent in the SETUP packet (bRequest field)
+/** Control Request
+ *
+ * These are requests sent in the SETUP packet's bRequest field.
+ */
 enum ControlRequest {
 	GET_STATUS = 0x0,
 	CLEAR_FEATURE = 0x1,
@@ -59,6 +84,7 @@ enum ControlRequest {
 	SYNCH_FRAME = 0xC,
 };
 
+/** Descriptor Types */
 enum DescriptorTypes {
 	DEVICE = 0x1,
 	CONFIGURATION = 0x2,
@@ -76,6 +102,7 @@ enum DescriptorTypes {
 	REPORT = 0x22, // The HID REPORT descriptor
 };
 
+/** Endpoint Attributes */
 enum EndpointAttributes {
 	EP_CONTROL = 0x0,
 	EP_ISOCHRONOUS = 0x1,
@@ -84,6 +111,12 @@ enum EndpointAttributes {
 
 	/* More bits here for ISO endpoints only. */
 };
+
+/* Doxygen end-of-group for ch9_packets */
+/** @}*/
+
+
+/** @cond INTERNAL */
 
 /* Buffer Descriptor BDnSTAT flags. On Some MCUs, apparently, when handing
  * a buffer descriptor to the SIE, there's a race condition that can happen
@@ -168,25 +201,35 @@ struct ustat_bits {
 	uchar : 1;
 };
 
-/* USB Packets */
-/* The SETUP packet, as defined by the USB spec. The setup packet
-   is the contents of the packet sent on endpoint 0 with the
-   PID_SETUP endpoint. */
+/** @endcond  */
+
+
+/**  @addtogroup ch9_packets
+ *  @{
+ */
+
+
+/** The SETUP packet, as defined by the USB specification.
+ *
+ * The contents of the packet sent from the host during the SETUP stage of
+ * every control transfer
+ */
 struct setup_packet {
 	union {
 		struct {
-			uchar destination : 5; /* 0=device, 1=interface, 2=endpoint, 3=other_element*/
-			uchar type : 2; /* 0=usb_standard_req, 1=usb_class, 2=vendor_specific*/
-			uchar direction : 1; /* 0=out, 1=in */
+			uchar destination : 5; /**< 0=device, 1=interface, 2=endpoint, 3=other_element*/
+			uchar type : 2; /**< 0=usb_standard_req, 1=usb_class, 2=vendor_specific*/
+			uchar direction : 1; /**< 0=out, 1=in */
 		};
 		uchar bmRequestType;
 	} REQUEST;
-	uchar bRequest;  /* see enum ControlRequest */
+	uchar bRequest;  /**< see enum ControlRequest */
 	ushort wValue;
 	ushort wIndex;
 	ushort wLength;
 };
 
+/** Device Descriptor */
 struct device_descriptor {
 	uchar bLength;
 	uchar bDescriptorType; // DEVICE
@@ -204,6 +247,7 @@ struct device_descriptor {
 	uchar  bNumConfigurations;
 };
 
+/** Configuration Descriptor */
 struct configuration_descriptor {
 	uchar bLength;
 	uchar bDescriptorType; // 0x02 CONFIGURATION
@@ -215,6 +259,7 @@ struct configuration_descriptor {
 	uchar bMaxPower; // one-half the max power required.
 };
 
+/** Interface Descriptor */
 struct interface_descriptor {
 	uchar bLength;
 	uchar bDescriptorType;
@@ -239,6 +284,7 @@ struct hid_descriptor {
 	//wDescriptorLength
 };
 
+/** Endpoint Descriptor */
 struct endpoint_descriptor {
 	// ...
 	uchar bLength;
@@ -249,16 +295,100 @@ struct endpoint_descriptor {
 	uchar bInterval;
 };
 
+/** String Descriptor */
 struct string_descriptor {
 	uchar bLength;
 	uchar bDescriptorType; // STRING;
 	ushort chars[];
 };
 
-/* Required functions from application-provided usb_descriptors.c */
+/* Doxygen end-of-group for ch9_packets */
+/** @}*/
+
+
+/** @defgroup descriptor_items   Descriptor Items
+ *  @brief Items defined by the application which are involved in
+ *  the enumeration of the device.
+ *
+ *  The items listed in this section are macro names. An application needs
+ *  to define these macro names in usb_config.h to whatever actual C names
+ *  are used in the application for these items (typically in
+ *  usb_descriptors.c).
+ *
+ *  It is required that the application #define these items in the
+ *  application's @p usb_config.h so the USB stack can retrieve the Chapter
+ *  9 descriptors to send to the host.
+ *
+ *  While this sounds complex, it is not. See the example programs and their
+ *  usb_descriptors.c that come with the USB stack for an example of what is
+ *  required and how to easily implement it.
+ *
+ *  @addtogroup descriptor_items
+ *  @{
+ */
+
+
+/** String Descriptor Function
+ *
+ * The USB stack will call this function to retrieve string descriptors from
+ * your application.  This function required to be implemented, and will
+ * often be located in the application's @p usb_descriptors.c.
+ *
+ * @param string_number   The string number requested
+ * @param ptr             A pointer to a pointer which should be set to the
+ *                        requested string descriptor by this function.
+ * @returns
+ *   Return the length of the string descriptor in bytes or -1 if the string
+ *   requested does not exist.
+ */
 extern int16_t USB_STRING_DESCRIPTOR_FUNC(uint8_t string_number, const void **ptr);
 
-/* Optional user-defined functions from usb_config.c */
+/** Device Descriptor
+ *
+ * This is the device's device descriptor as defined by the USB
+ * specification, chapter 9.  @p USB_DEVICE_DESCRIPTOR must be defined in
+ * usb_config.h to be the name of the device descriptor structure, which
+ * will often be located in the application's usb_descriptors.c.
+ */
+extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
+
+/** Configuration Descriptor
+ *
+ * This is an array of the device's configuration descriptors, as defined by
+ * the USB specification, chapter 9.  USB_CONFIG_DESCRIPTOR_MAP must be
+ * defined to be the name of an array of pointers to
+ * configuration_descriptor objects, often in the application's
+ * usb_descriptors.c.  The order is not important because the @p
+ * bConfigurationValue field is used by the USB stack to determine the
+ * configuration number for each configuration descriptor.  It is important
+ * that wTotalLength in each configuration descriptor be correct, as this is
+ * used by the USB stack to determine the number of bytes to use (It is
+ * recommended to use the sizeof() operator for this field).
+ *
+ * See the example programs that come with the USB stack (specificallyl
+ * usb_descriptors.c) for a simple example of what is required.
+ */
+extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
+
+
+/* Doxygen end-of-group for descriptor_items */
+/** @}*/
+
+
+
+ /** @defgroup static_callbacks Static Callbacks
+  *  @brief Optional static callback macros to be defined in the
+  *  application's usb_config.h.
+  *
+  *  If desired, #define these callback functions in your application's
+  *  @p usb_config.h to receive notification about specific events which
+  *  happen during enumeration and otherwise. While these are not strictly
+  *  required for all devices, they may be required depending on your
+  *  device configuration.
+  *
+  *  @addtogroup static_callbacks
+  *  @{
+  */
 
 #ifdef SET_CONFIGURATION_CALLBACK
 /** @brief Callback for SET_CONFIGURATION requests
@@ -293,7 +423,7 @@ uint16_t GET_DEVICE_STATUS_CALLBACK();
 /** @brief Callback for SET_FEATURE or CLEAR_FEATURE with ENDPOINT_HALT
  *
  * ENDPOINT_HALT_CALLBACK() is called when a @a SET_FEATURE or @a
- * CLEAR_FEATURE is received from the host changing the endpoint halt value. 
+ * CLEAR_FEATURE is received from the host changing the endpoint halt value.
  * This is a notification only.  There is no way to reject this request.
  *
  * @brief endpoint   The endpoint identifier of the affected endpoint
@@ -397,6 +527,11 @@ int8_t UNKNOWN_SETUP_REQUEST_CALLBACK(const struct setup_packet *pkt);
 int16_t UNKNOWN_GET_DESCRIPTOR_CALLBACK(const struct setup_packet *pkt, const void **descriptor);
 #endif
 
+/* Doxygen end-of-group for static_callbacks */
+/** @}*/
+
+/** @cond INTERNAL */
+
 //TODO Find a better place for this stuff
 #define USB_ARRAYLEN(X) (sizeof(X)/sizeof(*X))
 #define STATIC_SIZE_CHECK_EQUAL(X,Y) typedef char USB_CONCAT(STATIC_SIZE_CHECK_LINE_,__LINE__) [(X==Y)?1:-1]
@@ -411,8 +546,8 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 
-extern const struct device_descriptor USB_DEVICE_DESCRIPTOR;
-extern const struct configuration_descriptor *USB_CONFIG_DESCRIPTOR_MAP[];
+
+/** @endcond */
 
 /** @brief Initialize the USB library and hardware
  *
@@ -473,7 +608,7 @@ void usb_send_in_buffer(uint8_t endpoint, size_t len);
  * in the process of sending the data).
  *
  * @param endpoint   The endpoint requested
- * @return
+ * @returns
  *    Return true if the endpoint is busy, or false if it is not.
  */
 bool usb_in_endpoint_busy(uint8_t endpoint);
@@ -486,7 +621,7 @@ bool usb_in_endpoint_busy(uint8_t endpoint);
  * @see ENDPOINT_HALT_CALLBACK.
  *
  * @param endpoint   The endpoint requested
- * @return
+ * @returns
  *   Return true if the endpointed is halted, or false if it is not.
  */
 bool usb_in_endpoint_halted(uint8_t endpoint);
@@ -499,7 +634,7 @@ bool usb_in_endpoint_halted(uint8_t endpoint);
  * usb_arm_out_endpoint() to enable reception of the next transaction.
  *
  * @param endpoint   The endpoint requested
- * @return
+ * @returns
  *   Return true if the endpoint has received data, false if it has not.
  */
 bool usb_out_endpoint_has_data(uint8_t endpoint);
@@ -548,7 +683,7 @@ uint8_t usb_get_out_buffer(uint8_t endpoint, const uchar **buffer);
 /** @brief Endpoint 0 data stage callback definition
  *
  * This is the callback function type expected to be passed to @p
- * usb_start_receive_ep0_data_stage() and @p usb_send_data_stage(). 
+ * usb_start_receive_ep0_data_stage() and @p usb_send_data_stage().
  * Callback functions will be called by the stack when the event for which
  * they are registered occurs.
  *
@@ -577,7 +712,7 @@ typedef void (*usb_ep0_data_stage_callback)(bool transfer_ok, void *context);
  * @param callback   A callback function to call when the transfer completes.
  *                   This parameter is mandatory. Once the callback is
  *                   called, the transfer is over, and the buffer can be
- *                   considered to be owned by the application again. 
+ *                   considered to be owned by the application again.
  * @param context    A pointer to be passed to the callback.  The USB stack
  *                   does not dereference this pointer
  */
@@ -585,7 +720,7 @@ void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
 	usb_ep0_data_stage_callback callback, void *context);
 
 /** @brief Start the data stage of an IN control transfer
- * 
+ *
  * Start the data stage of a control transfer for a transfer which has an IN
  * data stage.  Call this from @p UNKNOWN_SETUP_REQUEST_CALLBACK for IN
  * control transfers which are being handled by the application.  Once the
@@ -613,6 +748,9 @@ void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
 void usb_send_data_stage(char *buffer, size_t len,
 	usb_ep0_data_stage_callback callback, void *context);
 
+
+/* Doxygen end-of-group for public_api */
+/** @}*/
 
 #ifdef __XC16__
 #pragma pack(pop)
