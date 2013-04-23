@@ -190,17 +190,6 @@ struct buffer_descriptor {
 };
 #endif
 
-// Layout of the USTAT. This is different from the one in the
-// Microchip header file because the ENDP here is a 4-bit field
-// as opposed to 4 individual bits as in the Microchip header.
-struct ustat_bits {
-	uchar : 1;
-	uchar PPBI : 1;
-	uchar DIR : 1;
-	uchar ENDP : 4;
-	uchar : 1;
-};
-
 /** @endcond  */
 
 
