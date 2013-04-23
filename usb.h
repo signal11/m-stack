@@ -17,7 +17,6 @@
  */
 
 /** @cond INTERNAL */
-typedef unsigned char uchar;
 typedef unsigned short ushort;
 /** @endcond */
 
@@ -139,27 +138,27 @@ struct buffer_descriptor {
 	union {
 		struct {
 			// For OUT (received) packets.
-			uchar BC8 : 1;
-			uchar BC9 : 1;
-			uchar PID : 4; /* See enum PID */
-			uchar reserved: 1;
-			uchar UOWN : 1;
+			uint8_t BC8 : 1;
+			uint8_t BC9 : 1;
+			uint8_t PID : 4; /* See enum PID */
+			uint8_t reserved: 1;
+			uint8_t UOWN : 1;
 		};
 		struct {
 			// For IN (transmitted) packets.
-			uchar /*BC8*/ : 1;
-			uchar /*BC9*/ : 1;
-			uchar BSTALL : 1;
-			uchar DTSEN : 1;
-			uchar INCDIS : 1;
-			uchar KEN : 1;
-			uchar DTS : 1;
-			uchar /*UOWN*/ : 1;
+			uint8_t /*BC8*/ : 1;
+			uint8_t /*BC9*/ : 1;
+			uint8_t BSTALL : 1;
+			uint8_t DTSEN : 1;
+			uint8_t INCDIS : 1;
+			uint8_t KEN : 1;
+			uint8_t DTS : 1;
+			uint8_t /*UOWN*/ : 1;
 		};
-		uchar BDnSTAT;
+		uint8_t BDnSTAT;
 	} STAT;
-	uchar BDnCNT;
-	BDNADR_TYPE BDnADR; // uchar BDnADRL; uchar BDnADRH;
+	uint8_t BDnCNT;
+	BDNADR_TYPE BDnADR; // uint8_t BDnADRL; uint8_t BDnADRH;
 };
 #elif defined __XC16__
 /* Represents BDnSTAT in the datasheet */
@@ -186,7 +185,7 @@ struct buffer_descriptor {
 			uint8_t BDnSTAT;
 		};
 	}STAT;
-	BDNADR_TYPE BDnADR; // uchar BDnADRL; uchar BDnADRH;
+	BDNADR_TYPE BDnADR; // uint8_t BDnADRL; uint8_t BDnADRH;
 };
 #endif
 
@@ -206,13 +205,13 @@ struct buffer_descriptor {
 struct setup_packet {
 	union {
 		struct {
-			uchar destination : 5; /**< 0=device, 1=interface, 2=endpoint, 3=other_element*/
-			uchar type : 2; /**< 0=usb_standard_req, 1=usb_class, 2=vendor_specific*/
-			uchar direction : 1; /**< 0=out, 1=in */
+			uint8_t destination : 5; /**< 0=device, 1=interface, 2=endpoint, 3=other_element*/
+			uint8_t type : 2; /**< 0=usb_standard_req, 1=usb_class, 2=vendor_specific*/
+			uint8_t direction : 1; /**< 0=out, 1=in */
 		};
-		uchar bmRequestType;
+		uint8_t bmRequestType;
 	} REQUEST;
-	uchar bRequest;  /**< see enum ControlRequest */
+	uint8_t bRequest;  /**< see enum ControlRequest */
 	ushort wValue;
 	ushort wIndex;
 	ushort wLength;
@@ -220,54 +219,54 @@ struct setup_packet {
 
 /** Device Descriptor */
 struct device_descriptor {
-	uchar bLength;
-	uchar bDescriptorType; // DEVICE
+	uint8_t bLength;
+	uint8_t bDescriptorType; // DEVICE
 	ushort bcdUSB; // 0x0200 USB 2.0
-	uchar bDeviceClass;
-	uchar bDeviceSubclass;
-	uchar bDeviceProtocol;
-	uchar bMaxPacketSize0; // Max packet size for ep 0
+	uint8_t bDeviceClass;
+	uint8_t bDeviceSubclass;
+	uint8_t bDeviceProtocol;
+	uint8_t bMaxPacketSize0; // Max packet size for ep 0
 	ushort idVendor;
 	ushort idProduct;
 	ushort bcdDevice;
-	uchar  iManufacturer; // index of string descriptor
-	uchar  iProduct;      // index of string descriptor
-	uchar  iSerialNumber; // index of string descriptor
-	uchar  bNumConfigurations;
+	uint8_t  iManufacturer; // index of string descriptor
+	uint8_t  iProduct;      // index of string descriptor
+	uint8_t  iSerialNumber; // index of string descriptor
+	uint8_t  bNumConfigurations;
 };
 
 /** Configuration Descriptor */
 struct configuration_descriptor {
-	uchar bLength;
-	uchar bDescriptorType; // 0x02 CONFIGURATION
+	uint8_t bLength;
+	uint8_t bDescriptorType; // 0x02 CONFIGURATION
 	ushort wTotalLength;
-	uchar bNumInterfaces;
-	uchar bConfigurationValue;
-	uchar iConfiguration; // index of string descriptor
-	uchar bmAttributes;
-	uchar bMaxPower; // one-half the max power required.
+	uint8_t bNumInterfaces;
+	uint8_t bConfigurationValue;
+	uint8_t iConfiguration; // index of string descriptor
+	uint8_t bmAttributes;
+	uint8_t bMaxPower; // one-half the max power required.
 };
 
 /** Interface Descriptor */
 struct interface_descriptor {
-	uchar bLength;
-	uchar bDescriptorType;
-	uchar bInterfaceNumber;
-	uchar bAlternateSetting;
-	uchar bNumEndpoints;
-	uchar bInterfaceClass;
-	uchar bInterfaceSubclass;
-	uchar bInterfaceProtocol;
-	uchar iInterface;
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bInterfaceNumber;
+	uint8_t bAlternateSetting;
+	uint8_t bNumEndpoints;
+	uint8_t bInterfaceClass;
+	uint8_t bInterfaceSubclass;
+	uint8_t bInterfaceProtocol;
+	uint8_t iInterface;
 };
 
 struct hid_descriptor {
-	uchar bLength;
-	uchar bDescriptorType;
+	uint8_t bLength;
+	uint8_t bDescriptorType;
 	ushort bcdHID;
-	uchar bCountryCode;
-	uchar bNumDescriptors;
-	uchar bDescriptorType2;
+	uint8_t bCountryCode;
+	uint8_t bNumDescriptors;
+	uint8_t bDescriptorType2;
 	ushort wDescriptorLength;
 	//bDescriptorType
 	//wDescriptorLength
@@ -276,18 +275,18 @@ struct hid_descriptor {
 /** Endpoint Descriptor */
 struct endpoint_descriptor {
 	// ...
-	uchar bLength;
-	uchar bDescriptorType; // ENDPOINT
-	uchar bEndpointAddress;
-	uchar bmAttributes;
+	uint8_t bLength;
+	uint8_t bDescriptorType; // ENDPOINT
+	uint8_t bEndpointAddress;
+	uint8_t bmAttributes;
 	ushort wMaxPacketSize;
-	uchar bInterval;
+	uint8_t bInterval;
 };
 
 /** String Descriptor */
 struct string_descriptor {
-	uchar bLength;
-	uchar bDescriptorType; // STRING;
+	uint8_t bLength;
+	uint8_t bDescriptorType; // STRING;
 	ushort chars[];
 };
 
@@ -574,7 +573,7 @@ void usb_service(void);
  * @returns
  *   Return a pointer to the endpoint's buffer.
  */
-uchar *usb_get_in_buffer(uint8_t endpoint);
+unsigned char *usb_get_in_buffer(uint8_t endpoint);
 
 /** @brief Send an endpoint's IN buffer to the host
  *
@@ -667,7 +666,7 @@ bool usb_out_endpoint_halted(uint8_t endpoint);
  * @returns
  *   Return the number of bytes received.
  */
-uint8_t usb_get_out_buffer(uint8_t endpoint, const uchar **buffer);
+uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buffer);
 
 /** @brief Endpoint 0 data stage callback definition
  *

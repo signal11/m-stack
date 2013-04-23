@@ -53,13 +53,13 @@ int main(void)
 #endif
 	usb_init();
 	
-	uchar *buf = usb_get_in_buffer(1);
+	unsigned char *buf = usb_get_in_buffer(1);
 	memset(buf, 0xa0, EP_1_IN_LEN);
 
 	while (1) {
 		if (usb_out_endpoint_has_data(1)) {
 			uint8_t len;
-			const uchar *data;
+			const unsigned char *data;
 			/* Data received from host */
 
 			/* Wait for EP 1 IN to become free then send. This of

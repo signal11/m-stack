@@ -34,8 +34,8 @@ Signal 11 Software
 
 
 struct serial_struct{
-	uchar bLength;
-	uchar bDescriptorType;
+	uint8_t bLength;
+	uint8_t bDescriptorType;
 	ushort chars[16];
 };
 
@@ -75,8 +75,8 @@ bds[NUM_ENDPOINT_NUMBERS+1] XC8_BD_ADDR_TAG;
 
 static struct {
 #define EP_BUF(n) \
-	uchar ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
-	uchar ep_##n##_in_buf[EP_##n##_IN_LEN];
+	unsigned char ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
+	unsigned char ep_##n##_in_buf[EP_##n##_IN_LEN];
 
 #if NUM_ENDPOINT_NUMBERS >= 0
 	EP_BUF(0)
@@ -131,8 +131,8 @@ static struct {
 } ep_buffers XC8_BUFFER_ADDR_TAG;
 
 struct ep_buf {
-	uchar * const out;
-	uchar * const in;
+	unsigned char * const out;
+	unsigned char * const in;
 	const uint8_t out_len;
 	const uint8_t in_len;
 
@@ -201,10 +201,10 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 #undef EP_BUFS
 
 /* Global data */
-static uchar addr_pending; // boolean
-static uchar addr;
+static bool addr_pending; // boolean
+static uint8_t addr;
 static char g_configuration;
-static uchar control_need_zlp; // boolean
+static bool control_need_zlp; // boolean
 
 /* Data associated with multi-packet control transfers */
 static usb_ep0_data_stage_callback ep0_data_stage_callback;
@@ -234,7 +234,7 @@ static void reset_ep0_data_stage()
    by interrput bit URSTIF. */
 void usb_init(void)
 {
-	uchar i;
+	uint8_t i;
 
 	/* Initialize the USB. 18.4 of PIC24FJ64GB004 datasheet */
 	SET_PING_PONG_MODE(0);   /* 0 = disable ping-pong buffer */
@@ -431,7 +431,7 @@ static inline void handle_ep0_setup()
 
 	if (setup->bRequest == GET_DESCRIPTOR) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
-		uchar descriptor_index = setup->wValue & 0x00ff;
+		uint8_t descriptor_index = setup->wValue & 0x00ff;
 		uint8_t bytes_to_send;
 
 		if (descriptor == DEVICE) {
@@ -549,7 +549,7 @@ static inline void handle_ep0_setup()
 		/* Set the configuration. wValue is the configuration.
 		 * A value of 0 means to un-set the configuration and
 		 * go back to the ADDRESS state. */
-		uchar req = setup->wValue & 0x00ff;
+		uint8_t req = setup->wValue & 0x00ff;
 #ifdef SET_CONFIGURATION_CALLBACK
 		SET_CONFIGURATION_CALLBACK(req);
 #endif
@@ -924,7 +924,7 @@ void usb_service(void)
 	}
 }
 
-uchar *usb_get_in_buffer(uint8_t endpoint)
+unsigned char *usb_get_in_buffer(uint8_t endpoint)
 {
 	return ep_buf[endpoint].in;
 }
@@ -932,7 +932,7 @@ uchar *usb_get_in_buffer(uint8_t endpoint)
 void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
 	if ((g_configuration > 0 || endpoint == 0) && !usb_in_endpoint_halted(endpoint)) {
-		uchar pid;
+		uint8_t pid;
 		pid = !bds[endpoint].ep_in.STAT.DTS;
 		bds[endpoint].ep_in.STAT.BDnSTAT = 0;
 
@@ -956,7 +956,7 @@ bool usb_in_endpoint_halted(uint8_t endpoint)
 	return ep_buf[endpoint].flags & EP_IN_HALT_FLAG;
 }
 
-uint8_t usb_get_out_buffer(uint8_t endpoint, const uchar **buf)
+uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buf)
 {
 	*buf = ep_buf[endpoint].out;
 	return bds[endpoint].ep_out.BDnCNT;
