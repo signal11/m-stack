@@ -77,7 +77,7 @@ const ROMPTR struct device_descriptor this_device_descriptor =
  * down exactly why, so it's good to get the compiler to do as much of it
  * for you as it can.
  */
-const ROMPTR struct configuration_packet this_configuration_packet =
+static const ROMPTR struct configuration_packet this_configuration_packet =
 {
 	{
 	// Members from struct configuration_descriptor
@@ -137,25 +137,25 @@ const ROMPTR struct configuration_packet this_configuration_packet =
 
 /* String index 0, only has one character in it, which is to be set to the
    language ID of the language which the other strings are in. */
-const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t lang; } str00 = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t lang; } str00 = {
 	sizeof(str00),
 	STRING,
 	0x0409 // US English
 };
 
-const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[23]; } vendor_string = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[23]; } vendor_string = {
 	sizeof(vendor_string),
 	STRING,
 	{'S','i','g','n','a','l',' ','1','1',' ','S','o','f','t','w','a','r','e',' ','L','L','C','.'}
 };
 
-const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } product_string = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } product_string = {
 	sizeof(product_string),
 	STRING,
 	{'S','i','g','n','a','l','S','h','a','f','t'}
 };
 
-const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } interface_string = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } interface_string = {
 	sizeof(interface_string),
 	STRING,
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
