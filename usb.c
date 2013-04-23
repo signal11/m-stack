@@ -455,6 +455,7 @@ static inline void handle_ep0_setup()
 			}
 		}
 		else if (descriptor == STRING) {
+#ifdef USB_STRING_DESCRIPTOR_FUNC
 			const void *desc;
 			int16_t len;
 
@@ -472,6 +473,10 @@ static inline void handle_ep0_setup()
 				bds[0].ep_in.STAT.BDnSTAT =
 					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN;
 			}
+#else
+			/* Strings are not supported on this device. */
+			stall_ep0();
+#endif
 		}
 #if 0
 		else if (descriptor == HID) {

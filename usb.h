@@ -315,8 +315,8 @@ struct string_descriptor {
 /** String Descriptor Function
  *
  * The USB stack will call this function to retrieve string descriptors from
- * your application.  This function required to be implemented, and will
- * often be located in the application's @p usb_descriptors.c.
+ * the application. This allows the flexibility for the application to read
+ * some strings (like serial numbers) from non-const locations (like EEPROM).
  *
  * @param string_number   The string number requested
  * @param ptr             A pointer to a pointer which should be set to the
