@@ -16,10 +16,6 @@
  *  @{
  */
 
-/** @cond INTERNAL */
-typedef unsigned short ushort;
-/** @endcond */
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -212,23 +208,23 @@ struct setup_packet {
 		uint8_t bmRequestType;
 	} REQUEST;
 	uint8_t bRequest;  /**< see enum ControlRequest */
-	ushort wValue;
-	ushort wIndex;
-	ushort wLength;
+	uint16_t wValue;
+	uint16_t wIndex;
+	uint16_t wLength;
 };
 
 /** Device Descriptor */
 struct device_descriptor {
 	uint8_t bLength;
 	uint8_t bDescriptorType; // DEVICE
-	ushort bcdUSB; // 0x0200 USB 2.0
+	uint16_t bcdUSB; // 0x0200 USB 2.0
 	uint8_t bDeviceClass;
 	uint8_t bDeviceSubclass;
 	uint8_t bDeviceProtocol;
 	uint8_t bMaxPacketSize0; // Max packet size for ep 0
-	ushort idVendor;
-	ushort idProduct;
-	ushort bcdDevice;
+	uint16_t idVendor;
+	uint16_t idProduct;
+	uint16_t bcdDevice;
 	uint8_t  iManufacturer; // index of string descriptor
 	uint8_t  iProduct;      // index of string descriptor
 	uint8_t  iSerialNumber; // index of string descriptor
@@ -239,7 +235,7 @@ struct device_descriptor {
 struct configuration_descriptor {
 	uint8_t bLength;
 	uint8_t bDescriptorType; // 0x02 CONFIGURATION
-	ushort wTotalLength;
+	uint16_t wTotalLength;
 	uint8_t bNumInterfaces;
 	uint8_t bConfigurationValue;
 	uint8_t iConfiguration; // index of string descriptor
@@ -263,11 +259,11 @@ struct interface_descriptor {
 struct hid_descriptor {
 	uint8_t bLength;
 	uint8_t bDescriptorType;
-	ushort bcdHID;
+	uint16_t bcdHID;
 	uint8_t bCountryCode;
 	uint8_t bNumDescriptors;
 	uint8_t bDescriptorType2;
-	ushort wDescriptorLength;
+	uint16_t wDescriptorLength;
 	//bDescriptorType
 	//wDescriptorLength
 };
@@ -279,7 +275,7 @@ struct endpoint_descriptor {
 	uint8_t bDescriptorType; // ENDPOINT
 	uint8_t bEndpointAddress;
 	uint8_t bmAttributes;
-	ushort wMaxPacketSize;
+	uint16_t wMaxPacketSize;
 	uint8_t bInterval;
 };
 
@@ -287,7 +283,7 @@ struct endpoint_descriptor {
 struct string_descriptor {
 	uint8_t bLength;
 	uint8_t bDescriptorType; // STRING;
-	ushort chars[];
+	uint16_t chars[];
 };
 
 /* Doxygen end-of-group for ch9_packets */

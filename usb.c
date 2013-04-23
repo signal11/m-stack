@@ -36,7 +36,7 @@ Signal 11 Software
 struct serial_struct{
 	uint8_t bLength;
 	uint8_t bDescriptorType;
-	ushort chars[16];
+	uint16_t chars[16];
 };
 
 struct buffer_descriptor_pair {
