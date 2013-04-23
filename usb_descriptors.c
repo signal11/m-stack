@@ -101,7 +101,7 @@ static const ROMPTR struct configuration_packet this_configuration_packet =
 	0xff, // bInterfaceClass 3=HID, 0xFF=VendorDefined
 	0x00, // bInterfaceSubclass (0=NoBootInterface for HID)
 	0x00, // bInterfaceProtocol
-	0x01, // iInterface (index of string describing interface)
+	0x02, // iInterface (index of string describing interface)
 	},
 
 	{
@@ -149,10 +149,10 @@ static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t ch
 	{'S','i','g','n','a','l',' ','1','1',' ','S','o','f','t','w','a','r','e',' ','L','L','C','.'}
 };
 
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } product_string = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[21]; } product_string = {
 	sizeof(product_string),
 	STRING,
-	{'S','i','g','n','a','l','S','h','a','f','t'}
+	{'U','S','B',' ','S','t','a','c','k',' ','T','e','s','t',' ','D','e','v','i','c','e'}
 };
 
 static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } interface_string = {
