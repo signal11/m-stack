@@ -8,11 +8,32 @@
 #define ROMPTR
 #endif
 
-/* Sent in response to a GET_DESCRIPTOR[REPORT] request, this packet
-   contains a configuration, interface, class, and endpoint
-   data. The packets contained in here will be specific to the
-   device. */
-
+/* Configuration Packet
+ *
+ * This packet contains a configuration descriptor, one or more interface
+ * descriptors, class descriptors(optional), and endpoint descriptors for a
+ * single configuration of the device.  This struct is specific to the
+ * device, so the application will need to add any interfaces, classes and
+ * endpoints it intends to use.  It is sent to the host in response to a
+ * GET_DESCRIPTOR[CONFIGURATION] request.
+ *
+ * While Most devices will only have one configuration, a device can have as
+ * many configurations as it needs.  To have more than one, simply make as
+ * many of these structs as are required, one for each configuration.
+ *
+ * An instance of each configuration packet must be put in the
+ * usb_application_config_descs[] array below (which is #defined in
+ * usb_config.h) so that the USB stack can find it.
+ *
+ * See Chapter 9 of the USB specification from usb.org for details.
+ *
+ * It's worth noting that adding endpoints here does not automatically
+ * enable them in the USB stack.  To use an endpoint, it must be declared
+ * here and also in usb_config.h.
+ *
+ * The configuration packet below is for the demo application.  Yours will
+ * of course vary.
+ */
 struct configuration_packet {
 	struct configuration_descriptor  config;
 	struct interface_descriptor      interface;
@@ -21,6 +42,13 @@ struct configuration_packet {
 };
 
 
+/* Device Descriptor
+ *
+ * Each device has a single device descriptor describing the device.  The
+ * format is described in Chapter 9 of the USB specification from usb.org.
+ * USB_DEVICE_DESCRIPTOR needs to be defined to the name of this object in
+ * usb_config.h.  For more information, see USB_DEVICE_DESCRIPTOR in usb.h.
+ */
 const ROMPTR struct device_descriptor this_device_descriptor =
 {
 	sizeof(struct device_descriptor), // bLength
@@ -40,6 +68,15 @@ const ROMPTR struct device_descriptor this_device_descriptor =
 	NUMBER_OF_CONFIGURATIONS // NumConfigurations
 };
 
+/* Configuration Packet Instance
+ *
+ * This is an instance of the configuration_packet struct containing all the
+ * data describing a single configuration of this device.  It is wise to use
+ * as much C here as possible, such as sizeof() operators, and #defines from
+ * usb_config.h.  When stuff is wrong here, it can be difficult to track
+ * down exactly why, so it's good to get the compiler to do as much of it
+ * for you as it can.
+ */
 const ROMPTR struct configuration_packet this_configuration_packet =
 {
 	{
@@ -88,6 +125,16 @@ const ROMPTR struct configuration_packet this_configuration_packet =
 	},
 };
 
+/* String Descriptors
+ *
+ * String descriptors are optional. If strings are used, string #0 is
+ * required, and must contain the language ID of the other strings.  See
+ * Chapter 9 of the USB specification from usb.org for more info.
+ *
+ * Strings are UTF-16 Unicode, and are not NULL-terminated, hence the
+ * unusual syntax.
+ */
+
 /* String index 0, only has one character in it, which is to be set to the
    language ID of the language which the other strings are in. */
 const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t lang; } str00 = {
@@ -114,6 +161,16 @@ const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
 };
 
+/* Get String function
+ *
+ * This function is called by the USB stack to get a pointer to a string
+ * descriptor.  If using strings, USB_STRING_DESCRIPTOR_FUNC must be defined
+ * to the name of this function in usb_config.h.  See
+ * USB_STRING_DESCRIPTOR_FUNC in usb.h for information about this function.
+ * This is a function, and not simply a list or map, because it is useful,
+ * and advisable, to have a serial number string which may be read from
+ * EEPROM or somewhere that's not part of static program memory.
+ */
 int16_t usb_application_get_string(uint8_t string_number, const void **ptr)
 {
 	if (string_number == 0) {
@@ -137,10 +194,20 @@ int16_t usb_application_get_string(uint8_t string_number, const void **ptr)
 	return -1;
 }
 
-/* Configuration Descriptor List: The order here is not important */
+/* Configuration Descriptor List
+ *
+ * This is the list of pointters to the device's configuration descriptors.
+ * The USB stack will read this array looking for descriptors which are
+ * requsted from the host.  USB_CONFIG_DESCRIPTOR_MAP must be defined to the
+ * name of this array in usb_config.h.  See USB_CONFIG_DESCRIPTOR_MAP in
+ * usb.h for information about this array.  The order of the descriptors is
+ * not important, as the USB stack reads bConfigurationValue for each
+ * descriptor to know its index.  Make sure NUMBER_OF_CONFIGURATIONS in
+ * usb_config.h matches the number of descriptors in this array.
+ */
 const struct configuration_descriptor *usb_application_config_descs[] =
 {
-	(struct configuration_descriptor*) &this_configuration_packet, /* Configuration #1 */
+	(struct configuration_descriptor*) &this_configuration_packet,
 };
 STATIC_SIZE_CHECK_EQUAL(USB_ARRAYLEN(USB_CONFIG_DESCRIPTOR_MAP), NUMBER_OF_CONFIGURATIONS);
 STATIC_SIZE_CHECK_EQUAL(sizeof(USB_DEVICE_DESCRIPTOR), 18);
