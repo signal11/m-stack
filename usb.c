@@ -32,13 +32,6 @@ Signal 11 Software
 #define EP_0_OUT_LEN EP_0_LEN
 #define EP_0_IN_LEN  EP_0_LEN
 
-
-struct serial_struct{
-	uint8_t bLength;
-	uint8_t bDescriptorType;
-	uint16_t chars[16];
-};
-
 struct buffer_descriptor_pair {
 	struct buffer_descriptor ep_out;
 	struct buffer_descriptor ep_in;
