@@ -24,7 +24,7 @@ Signal 11 Software
 #include "usb_hal.h"
 #include "usb_config.h"
 
-#define MIN(x,y) ((x<y)?x:y)
+#define MIN(x,y) (((x)<(y))?(x):(y))
 
 /* Even though they're the same, It's convenient below (for the buffer
  * macros) to have separate #defines for IN and OUT EP 0 lengths which
