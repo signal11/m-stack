@@ -34,7 +34,7 @@
  * The configuration packet below is for the demo application.  Yours will
  * of course vary.
  */
-struct configuration_packet {
+struct configuration_1_packet {
 	struct configuration_descriptor  config;
 	struct interface_descriptor      interface;
 	struct endpoint_descriptor       ep;
@@ -77,13 +77,13 @@ const ROMPTR struct device_descriptor this_device_descriptor =
  * down exactly why, so it's good to get the compiler to do as much of it
  * for you as it can.
  */
-static const ROMPTR struct configuration_packet this_configuration_packet =
+static const ROMPTR struct configuration_1_packet configuration_1 =
 {
 	{
 	// Members from struct configuration_descriptor
 	sizeof(struct configuration_descriptor),
 	CONFIGURATION,
-	sizeof(struct configuration_packet), //wTotalLength (length of the whole packet)
+	sizeof(configuration_1), //wTotalLength (length of the whole packet)
 	1, // bNumInterfaces
 	1, // bConfigurationValue
 	2, // iConfiguration (index of string descriptor)
@@ -207,7 +207,7 @@ int16_t usb_application_get_string(uint8_t string_number, const void **ptr)
  */
 const struct configuration_descriptor *usb_application_config_descs[] =
 {
-	(struct configuration_descriptor*) &this_configuration_packet,
+	(struct configuration_descriptor*) &configuration_1,
 };
 STATIC_SIZE_CHECK_EQUAL(USB_ARRAYLEN(USB_CONFIG_DESCRIPTOR_MAP), NUMBER_OF_CONFIGURATIONS);
 STATIC_SIZE_CHECK_EQUAL(sizeof(USB_DEVICE_DESCRIPTOR), 18);
