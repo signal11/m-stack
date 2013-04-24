@@ -404,9 +404,10 @@ static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_as
 	return bytes_to_send;
 }
 
-static inline void handle_standard_control_request()
+static inline int8_t handle_standard_control_request()
 {
 	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+	int8_t res = 0;
 
 	if (setup->bRequest == GET_DESCRIPTOR) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
@@ -699,41 +700,23 @@ static inline void handle_standard_control_request()
 			stall_ep0();
 	}
 	else {
+		res = -1;
 
-#ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
-		int8_t res;
-		res = UNKNOWN_SETUP_REQUEST_CALLBACK(setup);
-		if (res < 0)
-			stall_ep0();
-		else {
-			/* If the application has handled this request, it
-			 * will have already set up whatever needs to be set
-			 * up for the data stage. */
-		}
-#else
-		/* Unsupported Request. Stall the Endpoint. */
-		stall_ep0();
-#endif
 		SERIAL("unsupported request (req, dest, type, dir) ");
 		SERIAL_VAL(setup->bRequest);
 		SERIAL_VAL(setup->REQUEST.destination);
 		SERIAL_VAL(setup->REQUEST.type);
 		SERIAL_VAL(setup->REQUEST.direction);
-
 	}
 
-	/* SETUP packet sets PKTDIS which disables
-	 * future SETUP packet reception. Turn it off
-	 * afer we've processed the current SETUP
-	 * packet to avoid a race condition. */
-	SFR_USB_PKT_DIS = 0;
-
+	return res;
 }
 
 static inline void handle_ep0_setup()
 {
 	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
 	ep0_data_stage_direc = setup->REQUEST.direction;
+	int8_t res;
 
 	if (ep0_data_stage_buf_remaining) {
 		/* A SETUP transaction has been received while waiting
@@ -746,7 +729,38 @@ static inline void handle_ep0_setup()
 		reset_ep0_data_stage();
 	}
 
-	handle_standard_control_request();
+	if (setup->REQUEST.type == REQUEST_TYPE_STANDARD) {
+		res = handle_standard_control_request();
+		if (res < 0)
+			goto handle_unknown;
+	}
+	else
+		goto handle_unknown;
+
+	goto out;
+
+handle_unknown:
+
+#ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
+	res = UNKNOWN_SETUP_REQUEST_CALLBACK(setup);
+	if (res < 0)
+		stall_ep0();
+	else {
+		/* If the application has handled this request, it
+		 * will have already set up whatever needs to be set
+		 * up for the data stage. */
+	}
+#else
+	/* Unsupported Request. Stall the Endpoint. */
+	stall_ep0();
+#endif
+
+out:
+	/* SETUP packet sets PKTDIS which disables
+	 * future SETUP packet reception. Turn it off
+	 * afer we've processed the current SETUP
+	 * packet to avoid a race condition. */
+	SFR_USB_PKT_DIS = 0;
 }
 
 static inline void handle_ep0_out()
