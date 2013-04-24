@@ -61,6 +61,17 @@ enum PID {
 	PID_RESERVED = 0x00,
 };
 
+/** Request type
+ *
+ * These are present in the SETUP packet's bmRequestType field as Type.
+ */
+enum RequestType {
+	REQUEST_TYPE_STANDARD = 0,
+	REQUEST_TYPE_CLASS    = 1,
+	REQUEST_TYPE_VENDOR   = 2,
+	REQUEST_TYPE_RESERVED = 3,
+};
+
 /** Control Request
  *
  * These are requests sent in the SETUP packet's bRequest field.
@@ -202,7 +213,7 @@ struct setup_packet {
 	union {
 		struct {
 			uint8_t destination : 5; /**< 0=device, 1=interface, 2=endpoint, 3=other_element*/
-			uint8_t type : 2; /**< 0=usb_standard_req, 1=usb_class, 2=vendor_specific*/
+			uint8_t type : 2; /**< @see enum RequestType */
 			uint8_t direction : 1; /**< 0=out, 1=in */
 		};
 		uint8_t bmRequestType;
