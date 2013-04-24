@@ -404,23 +404,9 @@ static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_as
 	return bytes_to_send;
 }
 
-static inline void handle_ep0_setup()
+static inline void handle_standard_control_request()
 {
-	// SETUP packet.
-
 	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
-	ep0_data_stage_direc = setup->REQUEST.direction;
-
-	if (ep0_data_stage_buf_remaining) {
-		/* A SETUP transaction has been received while waiting
-		 * for a DATA stage to complete; something is broken.
-		 * If this was an application-controlled transfer (and
-		 * there's a callback), notify the application of this. */
-		if (ep0_data_stage_callback)
-			ep0_data_stage_callback(0/*fail*/, ep0_data_stage_context);
-
-		reset_ep0_data_stage();
-	}
 
 	if (setup->bRequest == GET_DESCRIPTOR) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
@@ -742,6 +728,25 @@ static inline void handle_ep0_setup()
 	 * packet to avoid a race condition. */
 	SFR_USB_PKT_DIS = 0;
 
+}
+
+static inline void handle_ep0_setup()
+{
+	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+	ep0_data_stage_direc = setup->REQUEST.direction;
+
+	if (ep0_data_stage_buf_remaining) {
+		/* A SETUP transaction has been received while waiting
+		 * for a DATA stage to complete; something is broken.
+		 * If this was an application-controlled transfer (and
+		 * there's a callback), notify the application of this. */
+		if (ep0_data_stage_callback)
+			ep0_data_stage_callback(0/*fail*/, ep0_data_stage_context);
+
+		reset_ep0_data_stage();
+	}
+
+	handle_standard_control_request();
 }
 
 static inline void handle_ep0_out()
