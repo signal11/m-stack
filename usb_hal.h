@@ -71,12 +71,12 @@ Signal 11 Software
 #ifdef __C18
 	#define FAR far
 	#define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z);
-	#define XC8_BD_ADDR_TAG
+	#define BD_ATTR_TAG
 	#define XC8_BUFFER_ADDR_TAG
 #elif defined __XC8
 	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
 	#define FAR
-	#define XC8_BD_ADDR_TAG @##BD_ADDR
+	#define BD_ATTR_TAG @##BD_ADDR
 	#ifdef BUFFER_ADDR
 		#define XC8_BUFFER_ADDR_TAG @##BUFFER_ADDR
 	#else
@@ -142,7 +142,7 @@ Signal 11 Software
 
 #define BD_ADDR
 #define BUFFER_ADDR
-#define XC8_BD_ADDR_TAG
+#define BD_ATTR_TAG __attribute__((aligned(512)))
 #define XC8_BUFFER_ADDR_TAG
 
 /* Compiler stuff. Probably should be somewhere else. */

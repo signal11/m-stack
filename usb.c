@@ -43,14 +43,8 @@ struct buffer_descriptor_pair {
    address 0x0400 in the following order, ep0_out, ep0_in,ep1_out, ep1_in,
    etc. These must be initialized prior to use. */
 #pragma udata buffer_descriptors=BD_ADDR
-#elif __XC16__
-static struct buffer_descriptor_pair __attribute__((aligned(512)))
-#elif __XC8
-static struct buffer_descriptor_pair
-#else
-#error compiler not supported
 #endif
-bds[NUM_ENDPOINT_NUMBERS+1] XC8_BD_ADDR_TAG;
+static struct buffer_descriptor_pair bds[NUM_ENDPOINT_NUMBERS+1] BD_ATTR_TAG;
 
 #ifdef __C18
 /* The actual buffers to and from which the data is transferred from the SIE
