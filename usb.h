@@ -29,13 +29,13 @@
 #error "Compiler not supported"
 #endif
 
-/** @defgroup ch9_packets USB Chapter 9 Packets
+/** @defgroup ch9_items USB Chapter 9 Enumerations and Descriptors
  *  @brief Packet structs from Chapter 9 of the USB spec which deals with
  *  device enumeration.
  *
  *  For more information about these structures, see Chapter 9 of the USB
  *  specification, available from http://www.usb.org .
- *  @addtogroup ch9_packets
+ *  @addtogroup ch9_items
  *  @{
  */
 
@@ -114,10 +114,10 @@ enum EndpointAttributes {
 	/* More bits here for ISO endpoints only. */
 };
 
-/* Doxygen end-of-group for ch9_packets */
+/* Doxygen end-of-group for ch9_items */
 /** @}*/
 
-/**  @addtogroup ch9_packets
+/**  @addtogroup ch9_items
  *  @{
  */
 
@@ -215,7 +215,7 @@ struct string_descriptor {
 	uint16_t chars[];
 };
 
-/* Doxygen end-of-group for ch9_packets */
+/* Doxygen end-of-group for ch9_items */
 /** @}*/
 
 
