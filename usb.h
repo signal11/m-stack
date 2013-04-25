@@ -102,9 +102,6 @@ enum DescriptorTypes {
 	OTG = 0x9,
 	DEBUG = 0xA,
 	INTERFACE_ASSOCIATION = 0xB,
-
-	HID = 0x21,
-	REPORT = 0x22, // The HID REPORT descriptor
 };
 
 /** Endpoint Attributes */

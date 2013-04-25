@@ -448,37 +448,6 @@ static inline int8_t handle_standard_control_request()
 			stall_ep0();
 #endif
 		}
-#if 0
-		else if (descriptor == HID) {
-
-			SERIAL("Request of HID descriptor.");
-
-			// Return HID Report Descriptor
-			bds[0].ep_in.STAT.UOWN = 0;
-			memcpy_from_rom(ep_buf[0].in, &(this_configuration_packet.hid), sizeof(struct hid_descriptor));
-			bds[0].ep_in.STAT.BDnSTAT = 0;
-			bds[0].ep_in.STAT.DTSEN = 1;
-			bds[0].ep_in.STAT.DTS = 1;
-			bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(struct hid_descriptor));
-			bds[0].ep_in.STAT.UOWN = 1;
-
-		}
-		else if (descriptor == REPORT) {
-
-			SERIAL("Request of HID report descriptor.");
-
-			// Return HID Report Descriptor
-			bds[0].ep_in.STAT.UOWN = 0;
-			memcpy_from_rom(ep_buf[0].in, &hid_report_descriptor, sizeof(hid_report_descriptor));
-			bds[0].ep_in.STAT.BDnSTAT = 0;
-			bds[0].ep_in.STAT.DTSEN = 1;
-			bds[0].ep_in.STAT.DTS = 1;
-			bds[0].ep_in.BDnCNT = MIN(setup->wLength, sizeof(hid_report_descriptor));
-			bds[0].ep_in.STAT.UOWN = 1;
-
-			SERIAL_VAL(setup->wLength);
-		}
-#endif
 		else {
 #ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
 			int16_t len;
