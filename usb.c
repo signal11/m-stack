@@ -397,7 +397,7 @@ static inline int8_t handle_standard_control_request()
 		uint8_t descriptor_index = setup->wValue & 0x00ff;
 		uint8_t bytes_to_send;
 
-		if (descriptor == DEVICE) {
+		if (descriptor == DESC_DEVICE) {
 			SERIAL("Get Descriptor for DEVICE");
 
 			// Return Device Descriptor
@@ -407,7 +407,7 @@ static inline int8_t handle_standard_control_request()
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 				bytes_to_send);
 		}
-		else if (descriptor == CONFIGURATION) {
+		else if (descriptor == DESC_CONFIGURATION) {
 			const struct configuration_descriptor *desc;
 			if (descriptor_index >= NUMBER_OF_CONFIGURATIONS)
 				stall_ep0();
@@ -424,7 +424,7 @@ static inline int8_t handle_standard_control_request()
 					bytes_to_send);
 			}
 		}
-		else if (descriptor == STRING) {
+		else if (descriptor == DESC_STRING) {
 #ifdef USB_STRING_DESCRIPTOR_FUNC
 			const void *desc;
 			int16_t len;

@@ -52,7 +52,7 @@ struct configuration_1_packet {
 const ROMPTR struct device_descriptor this_device_descriptor =
 {
 	sizeof(struct device_descriptor), // bLength
-	DEVICE, // bDescriptorType
+	DESC_DEVICE, // bDescriptorType
 	0x0200, // 0x0200 = USB 2.0, 0x0110 = USB 1.1
 	0x00, // Device class
 	0x00, // Device Subclass
@@ -82,7 +82,7 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
 	{
 	// Members from struct configuration_descriptor
 	sizeof(struct configuration_descriptor),
-	CONFIGURATION,
+	DESC_CONFIGURATION,
 	sizeof(configuration_1), //wTotalLength (length of the whole packet)
 	1, // bNumInterfaces
 	1, // bConfigurationValue
@@ -94,7 +94,7 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
 	{
 	// Members from struct interface_descriptor
 	sizeof(struct interface_descriptor), // bLength;
-	INTERFACE,
+	DESC_INTERFACE,
 	0x0, // InterfaceNumber
 	0x0, // AlternateSetting
 	0x2, // bNumEndpoints (num besides endpoint 0)
@@ -107,7 +107,7 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
 	{
 	// Members of the Endpoint Descriptor (EP1 IN)
 	sizeof(struct endpoint_descriptor),
-	ENDPOINT,
+	DESC_ENDPOINT,
 	0x01 | 0x80, // endpoint #1 0x80=IN
 	EP_BULK, // bmAttributes
 	64, // wMaxPacketSize
@@ -117,7 +117,7 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
 	{
 	// Members of the Endpoint Descriptor (EP1 OUT)
 	sizeof(struct endpoint_descriptor),
-	ENDPOINT,
+	DESC_ENDPOINT,
 	0x01 /*| 0x00*/, // endpoint #1 0x00=IN
 	EP_BULK, // bmAttributes
 	64, // wMaxPacketSize
@@ -139,25 +139,25 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
    language ID of the language which the other strings are in. */
 static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t lang; } str00 = {
 	sizeof(str00),
-	STRING,
+	DESC_STRING,
 	0x0409 // US English
 };
 
 static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[23]; } vendor_string = {
 	sizeof(vendor_string),
-	STRING,
+	DESC_STRING,
 	{'S','i','g','n','a','l',' ','1','1',' ','S','o','f','t','w','a','r','e',' ','L','L','C','.'}
 };
 
 static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[21]; } product_string = {
 	sizeof(product_string),
-	STRING,
+	DESC_STRING,
 	{'U','S','B',' ','S','t','a','c','k',' ','T','e','s','t',' ','D','e','v','i','c','e'}
 };
 
 static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[11]; } interface_string = {
 	sizeof(interface_string),
-	STRING,
+	DESC_STRING,
 	{'I','n','t','e','r','f','a','c','e',' ','1'}
 };
 
