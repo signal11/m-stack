@@ -374,8 +374,24 @@ static void send_zero_length_packet_ep0()
 	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
 }
 
-
-static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_asked_for)
+/* Start Control Return
+ *
+ * Start the data stage of an IN control transfer. This is primarily used
+ * for sending descriptors and other chapter 9 data back to the host, but it
+ * is also called from usb_send_data_stage() for handling control transfers
+ * handled by the application.
+ *
+ * This function sets up the global state variables necessary to do a
+ * multi-transaction IN data stage and sends the first transaction.
+ *
+ * Params:
+ *   ptr             - a pointer to the data to send
+ *   len             - the size of the data which can be sent (ie: the size
+ *                     of the entire descriptor)
+ *   bytes_asked_for - the number of bytes asked for by the host in
+ *                     the SETUP phase
+ */
+static void start_control_return(const void *ptr, size_t len, size_t bytes_asked_for)
 {
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
@@ -384,7 +400,11 @@ static uint8_t start_control_return(const void *ptr, size_t len, size_t bytes_as
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
 	ep0_data_stage_direc = 1;
 
-	return bytes_to_send;
+	/* Send back the first transaction */
+	bds[0].ep_in.STAT.BDnSTAT = 0;
+	SET_BDN(bds[0].ep_in,
+		BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
+		bytes_to_send);
 }
 
 static inline int8_t handle_standard_control_request()
@@ -395,17 +415,12 @@ static inline int8_t handle_standard_control_request()
 	if (setup->bRequest == GET_DESCRIPTOR) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
 		uint8_t descriptor_index = setup->wValue & 0x00ff;
-		uint8_t bytes_to_send;
 
 		if (descriptor == DESC_DEVICE) {
 			SERIAL("Get Descriptor for DEVICE");
 
 			// Return Device Descriptor
-			bds[0].ep_in.STAT.BDnSTAT = 0;
-			bytes_to_send =  start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
-			SET_BDN(bds[0].ep_in,
-				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-				bytes_to_send);
+			start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
 		}
 		else if (descriptor == DESC_CONFIGURATION) {
 			const struct configuration_descriptor *desc;
@@ -417,11 +432,7 @@ static inline int8_t handle_standard_control_request()
 				// Return Configuration Descriptor. Make sure to only return
 				// the number of bytes asked for by the host.
 				//CHECK check length
-				bds[0].ep_in.STAT.BDnSTAT = 0;
-				bytes_to_send = start_control_return(desc, desc->wTotalLength, setup->wLength);
-				SET_BDN(bds[0].ep_in,
-					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-					bytes_to_send);
+				start_control_return(desc, desc->wTotalLength, setup->wLength);
 			}
 		}
 		else if (descriptor == DESC_STRING) {
@@ -434,15 +445,8 @@ static inline int8_t handle_standard_control_request()
 				stall_ep0();
 				SERIAL("Unsupported string descriptor requested");
 			}
-			else {
-				bytes_to_send = start_control_return(desc, len, setup->wLength);
-
-				// Return Descriptor
-				bds[0].ep_in.STAT.BDnSTAT = 0;
-				SET_BDN(bds[0].ep_in,
-					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-					bytes_to_send);
-			}
+			else
+				start_control_return(desc, len, setup->wLength);
 #else
 			/* Strings are not supported on this device. */
 			stall_ep0();
@@ -457,15 +461,8 @@ static inline int8_t handle_standard_control_request()
 				stall_ep0();
 				SERIAL("Unsupported descriptor requested");
 			}
-			else {
-				bytes_to_send = start_control_return(desc, len, setup->wLength);
-
-				// Return Descriptor
-				bds[0].ep_in.STAT.BDnSTAT = 0;
-				SET_BDN(bds[0].ep_in,
-					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-					bytes_to_send);
-			}
+			else
+				start_control_return(desc, len, setup->wLength);
 #else
 			// Unknown Descriptor. Stall the endpoint.
 			stall_ep0();
@@ -966,13 +963,9 @@ void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
 void usb_send_data_stage(char *buffer, size_t len,
 	usb_ep0_data_stage_callback callback, void *context)
 {
-	uint8_t bytes_to_send = start_control_return(buffer, len, len);
-
 	/* Start sending the first block. Subsequent blocks will be sent
 	   when IN tokens are received on endpoint zero. */
-	bds[0].ep_in.STAT.BDnSTAT = 0;
-	SET_BDN(bds[0].ep_in,
-		BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, bytes_to_send);
+	start_control_return(buffer, len, len);
 
 	ep0_data_stage_callback = callback;
 	ep0_data_stage_context = context;
