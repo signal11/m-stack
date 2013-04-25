@@ -124,6 +124,9 @@ enum EndpointAttributes {
 
 /** @cond INTERNAL */
 
+
+#ifdef _PIC18
+
 /* Buffer Descriptor BDnSTAT flags. On Some MCUs, apparently, when handing
  * a buffer descriptor to the SIE, there's a race condition that can happen
  * if you don't set the BDnSTAT byte as a single operation. This was observed
@@ -133,8 +136,9 @@ enum EndpointAttributes {
 #define BDNSTAT_DTS    0x40
 #define BDNSTAT_DTSEN  0x08
 #define BDNSTAT_BSTALL 0x04
+#define BDNCNT_MASK    0x03ff /* 10 bits of BDnCNT in BDnSTAT_CNT */
 
-#ifdef _PIC18
+
 // This represents the Buffer Descriptor as laid out in the
 // PIC18F4550 Datasheet. It contains data about an endpoint
 // buffer, either in or out. Buffer descriptors must be laid
@@ -144,7 +148,7 @@ enum EndpointAttributes {
 struct buffer_descriptor {
 	union {
 		struct {
-			// For OUT (received) packets.
+			/* When receiving from the SIE. (USB Mode) */
 			uint8_t BC8 : 1;
 			uint8_t BC9 : 1;
 			uint8_t PID : 4; /* See enum PID */
@@ -152,7 +156,7 @@ struct buffer_descriptor {
 			uint8_t UOWN : 1;
 		};
 		struct {
-			// For IN (transmitted) packets.
+			/* When giving to the SIE (CPU Mode) */
 			uint8_t /*BC8*/ : 1;
 			uint8_t /*BC9*/ : 1;
 			uint8_t BSTALL : 1;
@@ -165,21 +169,39 @@ struct buffer_descriptor {
 		uint8_t BDnSTAT;
 	} STAT;
 	uint8_t BDnCNT;
-	BDNADR_TYPE BDnADR; // uint8_t BDnADRL; uint8_t BDnADRH;
+	BDNADR_TYPE BDnADR; /* BDnADRL and BDnADRH; */
 };
+
+#ifdef LARGE_EP
+#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
+           REG.STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
+#define BDN_LENGTH(REG) ( (REG.STAT.BDnSTAT & 0x03) << 8 | REG.BDnCNT )
+#else
+#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
+                                      REG.STAT.BDnSTAT = (FLAGS); } while(0)
+#define BDN_LENGTH(REG) (REG.BDnCNT)
+#endif
+
 #elif defined __XC16__
+
+#define BDNSTAT_UOWN   0x8000
+#define BDNSTAT_DTS    0x4000
+#define BDNSTAT_DTSEN  0x0800
+#define BDNSTAT_BSTALL 0x0400
+
+
 /* Represents BDnSTAT in the datasheet */
 struct buffer_descriptor {
 	union {
 		struct {
-			// For OUT (received) packets. (USB Mode)
+			/* When receiving from the SIE. (USB Mode) */
 			uint16_t BC : 10;
 			uint16_t PID : 4; /* See enum PID */
 			uint16_t DTS: 1;
 			uint16_t UOWN : 1;
 		};
 		struct {
-			// For IN (transmitted) packets. (CPU Mode)
+			/* When giving to the SIE (CPU Mode) */
 			uint16_t /*BC*/ : 10;
 			uint16_t BSTALL : 1;
 			uint16_t DTSEN : 1;
@@ -188,12 +210,23 @@ struct buffer_descriptor {
 			uint16_t /*UOWN*/ : 1;
 		};
 		struct {
-			uint8_t BDnCNT_byte; //BDnCNT is a macro on PIC24
-			uint8_t BDnSTAT;
+			uint8_t BDnSTAT_lsb;
+			uint8_t BDnSTAT; /* High byte, where the flags are */
 		};
+		uint16_t BDnSTAT_CNT; /* BDnSTAT and BDnCNT as a 16-bit */
 	}STAT;
-	BDNADR_TYPE BDnADR; // uint8_t BDnADRL; uint8_t BDnADRH;
+	BDNADR_TYPE BDnADR;
 };
+
+#define SET_BDN(REG, FLAGS, CNT) \
+                     do { REG.STAT.BDnSTAT_CNT = (FLAGS) | (CNT); } while(0)
+
+#ifdef LARGE_EP
+	#define BDN_LENGTH(REG) (REG.STAT.BC)
+#else
+	#define BDN_LENGTH(REG) (REG.STAT.BDnSTAT_lsb)
+#endif
+
 #endif
 
 /** @endcond  */
