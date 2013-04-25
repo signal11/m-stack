@@ -32,6 +32,8 @@ Signal 11 Software
 #define EP_0_OUT_LEN EP_0_LEN
 #define EP_0_IN_LEN  EP_0_LEN
 
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
+
 struct buffer_descriptor_pair {
 	struct buffer_descriptor ep_out;
 	struct buffer_descriptor ep_in;

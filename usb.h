@@ -121,130 +121,6 @@ enum EndpointAttributes {
 /* Doxygen end-of-group for ch9_packets */
 /** @}*/
 
-
-/** @cond INTERNAL */
-
-
-#ifdef _PIC18
-
-/* Buffer Descriptor BDnSTAT flags. On Some MCUs, apparently, when handing
- * a buffer descriptor to the SIE, there's a race condition that can happen
- * if you don't set the BDnSTAT byte as a single operation. This was observed
- * on the PIC18F46J50 when sending 8-byte IN-transactions while doing control
- * transfers. */
-#define BDNSTAT_UOWN   0x80
-#define BDNSTAT_DTS    0x40
-#define BDNSTAT_DTSEN  0x08
-#define BDNSTAT_BSTALL 0x04
-#define BDNCNT_MASK    0x03ff /* 10 bits of BDnCNT in BDnSTAT_CNT */
-
-
-/* Buffer Descriptor
- *
- * This represents the Buffer Descriptor as laid out in the PIC18F4550
- * Datasheet.  A buffer descriptor contains data about either an in or out
- * endpoint buffer.  Bufffer descriptors are almost the same on all 8-bit
- * parts, best I've so far been able to tell.  The fields that aren't in the
- * newer datasheets like KEN and INCDIS aren't used, so it doesn't hurt to
- * have them here on those parts.
- *
- * While the layout is very similar on 16-bit parts, a different struct is
- * required on 16-bit for several reasons, including endianness (the 8-bit
- * BC/BDnSTAT bits are effectively big-endian), and the ability to optimize
- * for each platform (eg: writing BDnSTAT/BDnCNT as a 16-bit word on 16-bit
- * platforms).
- */
-struct buffer_descriptor {
-	union {
-		struct {
-			/* When receiving from the SIE. (USB Mode) */
-			uint8_t BC8 : 1;
-			uint8_t BC9 : 1;
-			uint8_t PID : 4; /* See enum PID */
-			uint8_t reserved: 1;
-			uint8_t UOWN : 1;
-		};
-		struct {
-			/* When giving to the SIE (CPU Mode) */
-			uint8_t /*BC8*/ : 1;
-			uint8_t /*BC9*/ : 1;
-			uint8_t BSTALL : 1;
-			uint8_t DTSEN : 1;
-			uint8_t INCDIS : 1;
-			uint8_t KEN : 1;
-			uint8_t DTS : 1;
-			uint8_t /*UOWN*/ : 1;
-		};
-		uint8_t BDnSTAT;
-	} STAT;
-	uint8_t BDnCNT;
-	BDNADR_TYPE BDnADR; /* BDnADRL and BDnADRH; */
-};
-
-#ifdef LARGE_EP
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-           REG.STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
-#define BDN_LENGTH(REG) ( (REG.STAT.BDnSTAT & 0x03) << 8 | REG.BDnCNT )
-#else
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-                                      REG.STAT.BDnSTAT = (FLAGS); } while(0)
-#define BDN_LENGTH(REG) (REG.BDnCNT)
-#endif
-
-#elif defined __XC16__
-
-#define BDNSTAT_UOWN   0x8000
-#define BDNSTAT_DTS    0x4000
-#define BDNSTAT_DTSEN  0x0800
-#define BDNSTAT_BSTALL 0x0400
-
-
-/* Buffer Descriptor
- *
- * This struct represents BDnSTAT in the datasheet. See the comment in the
- * 8-bit section above for more information on buffer descriptors.
- */
-struct buffer_descriptor {
-	union {
-		struct {
-			/* When receiving from the SIE. (USB Mode) */
-			uint16_t BC : 10;
-			uint16_t PID : 4; /* See enum PID */
-			uint16_t DTS: 1;
-			uint16_t UOWN : 1;
-		};
-		struct {
-			/* When giving to the SIE (CPU Mode) */
-			uint16_t /*BC*/ : 10;
-			uint16_t BSTALL : 1;
-			uint16_t DTSEN : 1;
-			uint16_t reserved : 2;
-			uint16_t DTS : 1;
-			uint16_t /*UOWN*/ : 1;
-		};
-		struct {
-			uint8_t BDnSTAT_lsb;
-			uint8_t BDnSTAT; /* High byte, where the flags are */
-		};
-		uint16_t BDnSTAT_CNT; /* BDnSTAT and BDnCNT as a 16-bit */
-	}STAT;
-	BDNADR_TYPE BDnADR;
-};
-
-#define SET_BDN(REG, FLAGS, CNT) \
-                     do { REG.STAT.BDnSTAT_CNT = (FLAGS) | (CNT); } while(0)
-
-#ifdef LARGE_EP
-	#define BDN_LENGTH(REG) (REG.STAT.BC)
-#else
-	#define BDN_LENGTH(REG) (REG.STAT.BDnSTAT_lsb)
-#endif
-
-#endif
-
-/** @endcond  */
-
-
 /**  @addtogroup ch9_packets
  *  @{
  */
@@ -585,7 +461,6 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
-STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 
 
 /** @endcond */
