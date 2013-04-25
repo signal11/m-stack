@@ -428,10 +428,6 @@ static inline int8_t handle_standard_control_request()
 				stall_ep0();
 			else {
 				desc = USB_CONFIG_DESCRIPTOR_MAP[descriptor_index];
-
-				// Return Configuration Descriptor. Make sure to only return
-				// the number of bytes asked for by the host.
-				//CHECK check length
 				start_control_return(desc, desc->wTotalLength, setup->wLength);
 			}
 		}
