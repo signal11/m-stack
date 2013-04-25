@@ -60,6 +60,17 @@ enum PID {
 	PID_RESERVED = 0x00,
 };
 
+/** Destination type
+ *
+ * This is present in the SETUP packet's bmRequestType field as Direction.
+ */
+enum DestinationType {
+	DEST_DEVICE = 0,
+	DEST_INTERFACE = 1,
+	DEST_ENDPOINT = 2,
+	DEST_OTHER_ELEMENT = 3,
+};
+
 /** Request type
  *
  * These are present in the SETUP packet's bmRequestType field as Type.
@@ -75,7 +86,7 @@ enum RequestType {
  *
  * These are requests sent in the SETUP packet's bRequest field.
  */
-enum ControlRequest {
+enum StandardControlRequest {
 	GET_STATUS = 0x0,
 	CLEAR_FEATURE = 0x1,
 	SET_FEATURE = 0x3,
@@ -122,13 +133,13 @@ enum EndpointAttributes {
 struct setup_packet {
 	union {
 		struct {
-			uint8_t destination : 5; /**< 0=device, 1=interface, 2=endpoint, 3=other_element*/
-			uint8_t type : 2; /**< @see enum RequestType */
-			uint8_t direction : 1; /**< 0=out, 1=in */
+			uint8_t destination : 5; /**< @see enum DestinationType */
+			uint8_t type : 2;        /**< @see enum RequestType */
+			uint8_t direction : 1;   /**< 0=out, 1=in */
 		};
 		uint8_t bmRequestType;
 	} REQUEST;
-	uint8_t bRequest;  /**< see enum ControlRequest */
+	uint8_t bRequest;  /**< Dependent on @p type. @see enum StandardControlRequest */
 	uint16_t wValue;
 	uint16_t wIndex;
 	uint16_t wLength;
@@ -137,37 +148,37 @@ struct setup_packet {
 /** Device Descriptor */
 struct device_descriptor {
 	uint8_t bLength;
-	uint8_t bDescriptorType; // DEVICE
-	uint16_t bcdUSB; // 0x0200 USB 2.0
+	uint8_t bDescriptorType; /**< set to DESC_DEVICE */
+	uint16_t bcdUSB; /**< Set to 0x0200 for USB 2.0 */
 	uint8_t bDeviceClass;
 	uint8_t bDeviceSubclass;
 	uint8_t bDeviceProtocol;
-	uint8_t bMaxPacketSize0; // Max packet size for ep 0
+	uint8_t bMaxPacketSize0; /**< Max packet size for ep 0. Must be 8, 16, 32, or 64. */
 	uint16_t idVendor;
 	uint16_t idProduct;
 	uint16_t bcdDevice;
-	uint8_t  iManufacturer; // index of string descriptor
-	uint8_t  iProduct;      // index of string descriptor
-	uint8_t  iSerialNumber; // index of string descriptor
+	uint8_t  iManufacturer; /**< index of manufacturer string descriptor */
+	uint8_t  iProduct;      /**< index of product string descriptor */
+	uint8_t  iSerialNumber; /**< index of serial number string descriptor */
 	uint8_t  bNumConfigurations;
 };
 
 /** Configuration Descriptor */
 struct configuration_descriptor {
 	uint8_t bLength;
-	uint8_t bDescriptorType; // 0x02 CONFIGURATION
+	uint8_t bDescriptorType; /**< Set to DESC_CONFIGURATION */
 	uint16_t wTotalLength;
 	uint8_t bNumInterfaces;
 	uint8_t bConfigurationValue;
-	uint8_t iConfiguration; // index of string descriptor
+	uint8_t iConfiguration; /**< index of string descriptor */
 	uint8_t bmAttributes;
-	uint8_t bMaxPower; // one-half the max power required.
+	uint8_t bMaxPower; /**< one-half the max power required by this device. */
 };
 
 /** Interface Descriptor */
 struct interface_descriptor {
 	uint8_t bLength;
-	uint8_t bDescriptorType;
+	uint8_t bDescriptorType; /**< Set to DESC_INTERFACE */
 	uint8_t bInterfaceNumber;
 	uint8_t bAlternateSetting;
 	uint8_t bNumEndpoints;
@@ -193,7 +204,7 @@ struct hid_descriptor {
 struct endpoint_descriptor {
 	// ...
 	uint8_t bLength;
-	uint8_t bDescriptorType; // ENDPOINT
+	uint8_t bDescriptorType; /**< Set to DESC_ENDPOINT */
 	uint8_t bEndpointAddress;
 	uint8_t bmAttributes;
 	uint16_t wMaxPacketSize;
@@ -203,7 +214,7 @@ struct endpoint_descriptor {
 /** String Descriptor */
 struct string_descriptor {
 	uint8_t bLength;
-	uint8_t bDescriptorType; // STRING;
+	uint8_t bDescriptorType; /**< Set to DESC_STRING */
 	uint16_t chars[];
 };
 
