@@ -62,14 +62,16 @@ int main(void)
 			const unsigned char *data;
 			/* Data received from host */
 
-			/* Wait for EP 1 IN to become free then send. This of
-			 * course only works using interrupts. */
-			while (usb_in_endpoint_busy(1))
-				;
+			if (!usb_in_endpoint_halted(1)) {
+				/* Wait for EP 1 IN to become free then send. This of
+				 * course only works using interrupts. */
+				while (usb_in_endpoint_busy(1))
+					;
 
-			len = usb_get_out_buffer(1, &data);
-			memcpy(usb_get_in_buffer(1), data, EP_1_IN_LEN);
-			usb_send_in_buffer(1, len);
+				len = usb_get_out_buffer(1, &data);
+				memcpy(usb_get_in_buffer(1), data, EP_1_IN_LEN);
+				usb_send_in_buffer(1, len);
+			}
 			usb_arm_out_endpoint(1);
 		}
 
