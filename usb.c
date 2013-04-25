@@ -20,9 +20,9 @@ Signal 11 Software
 
 #include <string.h>
 
+#include "usb_config.h"
 #include "usb.h"
 #include "usb_hal.h"
-#include "usb_config.h"
 
 #define MIN(x,y) (((x)<(y))?(x):(y))
 
