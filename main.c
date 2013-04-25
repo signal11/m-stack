@@ -93,7 +93,7 @@ uint16_t app_get_device_status_callback()
 	return 0x0000;
 }
 
-void app_endpoint_halt_callback(uint8_t endpoint, uint8_t halted)
+void app_endpoint_halt_callback(uint8_t endpoint, bool halted)
 {
 
 }

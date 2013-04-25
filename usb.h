@@ -343,7 +343,7 @@ uint16_t GET_DEVICE_STATUS_CALLBACK();
  *                   (direction and number, e.g.: 0x81 means EP 1 IN).
  * @brief halted     1=endpoint_halted (set), 0=endpoint_not_halted (clear)
  */
-void ENDPOINT_HALT_CALLBACK(uint8_t endpoint, uint8_t halted);
+void ENDPOINT_HALT_CALLBACK(uint8_t endpoint, bool halted);
 #endif
 
 #ifdef SET_INTERFACE_CALLBACK
