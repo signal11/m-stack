@@ -139,12 +139,21 @@ enum EndpointAttributes {
 #define BDNCNT_MASK    0x03ff /* 10 bits of BDnCNT in BDnSTAT_CNT */
 
 
-// This represents the Buffer Descriptor as laid out in the
-// PIC18F4550 Datasheet. It contains data about an endpoint
-// buffer, either in or out. Buffer descriptors must be laid
-// out at mem address 0x0400 on the PIC18F4550. Details on
-// the fields can be found in the Buffer Descriptor section
-// in the datasheet.
+/* Buffer Descriptor
+ *
+ * This represents the Buffer Descriptor as laid out in the PIC18F4550
+ * Datasheet.  A buffer descriptor contains data about either an in or out
+ * endpoint buffer.  Bufffer descriptors are almost the same on all 8-bit
+ * parts, best I've so far been able to tell.  The fields that aren't in the
+ * newer datasheets like KEN and INCDIS aren't used, so it doesn't hurt to
+ * have them here on those parts.
+ *
+ * While the layout is very similar on 16-bit parts, a different struct is
+ * required on 16-bit for several reasons, including endianness (the 8-bit
+ * BC/BDnSTAT bits are effectively big-endian), and the ability to optimize
+ * for each platform (eg: writing BDnSTAT/BDnCNT as a 16-bit word on 16-bit
+ * platforms).
+ */
 struct buffer_descriptor {
 	union {
 		struct {
@@ -190,7 +199,11 @@ struct buffer_descriptor {
 #define BDNSTAT_BSTALL 0x0400
 
 
-/* Represents BDnSTAT in the datasheet */
+/* Buffer Descriptor
+ *
+ * This struct represents BDnSTAT in the datasheet. See the comment in the
+ * 8-bit section above for more information on buffer descriptors.
+ */
 struct buffer_descriptor {
 	union {
 		struct {
