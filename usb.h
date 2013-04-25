@@ -114,14 +114,6 @@ enum EndpointAttributes {
 	/* More bits here for ISO endpoints only. */
 };
 
-/* Doxygen end-of-group for ch9_items */
-/** @}*/
-
-/**  @addtogroup ch9_items
- *  @{
- */
-
-
 /** The SETUP packet, as defined by the USB specification.
  *
  * The contents of the packet sent from the host during the SETUP stage of
