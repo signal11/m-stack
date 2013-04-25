@@ -197,6 +197,9 @@ struct buffer_descriptor {
 
 #define BDnCNT                   STAT.BDnCNT_byte /* buffer descriptor */
 
+#define SFR_OTGEN                U1OTGCONbits.OTGEN
+#define SFR_DPPULUP              U1OTGCONbits.DPPULUP
+
 #define CLEAR_ALL_USB_IF()       do { SFR_USB_INTERRUPT_FLAGS = 0xff; U1EIR = 0xff; } while(0)
 #define CLEAR_USB_RESET_IF()     SFR_USB_INTERRUPT_FLAGS = 0x1
 #define CLEAR_USB_STALL_IF()     SFR_USB_INTERRUPT_FLAGS = 0x80

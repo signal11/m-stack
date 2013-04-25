@@ -231,7 +231,10 @@ void usb_init(void)
 	SFR_USB_EXTENDED_INTERRUPT_EN = 0x0;
 	
 	SFR_USB_EN = 1; /* enable USB module */
-	//U1OTGCONbits.OTGEN = 1; // TODO Portable
+
+#ifdef USE_OTG
+	SFR_OTGEN = 1; // TODO Portable
+#endif
 
 	
 #ifdef NEEDS_PULL
@@ -328,9 +331,8 @@ void usb_init(void)
 	SFR_USB_POWER = 1;
 	#endif
 
-#ifdef __XC16__
-	U1OTGCONbits.DPPULUP = 1;
-#warning Find out if this is needed
+#ifdef USE_OTG
+	SFR_DPPULUP = 1;
 #endif
 
 	reset_ep0_data_stage();
