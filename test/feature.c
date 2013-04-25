@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	}
 
 	if (res < 0) {
-		perror("libusb_control_transfer (set feature");
+		fprintf(stderr, "libusb_control_transfer (set feature): %s\n", libusb_error_name(res));
 		return 1;
 	}
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 		1000/*timeout millis*/);
 
 	if (res < 0) {
-		perror("libusb_control_transfer (get status (endpoint))");
+		fprintf(stderr, "libusb_control_transfer (get status (endpoint)): %s\n", libusb_error_name(res));
 		return 1;
 	}
 	printf("EP Status %02hx\n", *(uint16_t*)buf);
