@@ -642,6 +642,8 @@ static inline int8_t handle_standard_control_request()
 				uint8_t ep_dir = setup->wIndex & 0x80;
 				if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 					if (setup->bRequest == SET_FEATURE) {
+						/* Set Endpoint Halt Feature.
+						   Stall the affected endpoint. */
 						if (ep_dir) {
 							ep_buf[ep_num].flags |= EP_IN_HALT_FLAG;
 							stall_ep_in(ep_num);
@@ -652,7 +654,8 @@ static inline int8_t handle_standard_control_request()
 						}
 					}
 					else {
-						/* Clear Feature */
+						/* Clear Endpoint Halt Feature.
+						   Clear the STALL on the affected endpoint. */
 						if (ep_dir) {
 							ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
 							SET_BDN(bds[ep_num].ep_in, BDNSTAT_DTS, ep_buf[ep_num].in_len);
