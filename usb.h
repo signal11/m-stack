@@ -21,7 +21,6 @@
 #include <stdlib.h>
 
 #include "usb_config.h"
-#include "usb_hal.h"
 
 #ifdef __XC16__
 #pragma pack(push, 1)
