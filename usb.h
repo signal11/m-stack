@@ -412,6 +412,16 @@ int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
  *    passed to usb_start_receive_ep0_data_stage() is not valid until the
  *    callback is called.
  *
+ * It is worth noting that only one control transfer can be active at any
+ * given time.  Once UNKNOWN_SETUP_REQUEST_CALLBACK() has been called, it
+ * will not be called again until the next transfer, meaning that if the
+ * application-provided UNKNOWN_SETUP_REQUEST_CALLBACK() function performs
+ * one of options 1-3 above, the callback function passed to @p
+ * usb_send_data_stage() or @p usb_start_receive_ep0_data_stage() will be
+ * called before UNKNOWN_SETUP_REQUEST_CALLBACK() can be called again.
+ * Thus, it is safe to use the same buffer for all control transfers if
+ * desired.
+ *
  * @param pkt   The SETUP packet
  * @returns
  *   Return 0 if the SETUP can be handled or -1 if it cannot. Returning -1
