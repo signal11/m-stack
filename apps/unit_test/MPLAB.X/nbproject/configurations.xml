@@ -13,13 +13,13 @@
                    displayName="Source Files"
                    projectFiles="true">
       <logicalFolder name="f1" displayName="USB" projectFiles="true">
-        <itemPath>../usb.c</itemPath>
-        <itemPath>../usb.h</itemPath>
-        <itemPath>../usb_hal.h</itemPath>
-        <itemPath>../usb_config.h</itemPath>
+        <itemPath>../../../usb/src/usb.c</itemPath>
+        <itemPath>../../../usb/include/usb.h</itemPath>
+        <itemPath>../../../usb/src/usb_hal.h</itemPath>
       </logicalFolder>
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
+      <itemPath>../usb_config.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -70,6 +70,7 @@
         </C30Global>
       </item>
       <C30>
+        <property key="extra-include-directories" value="..;../../../usb/include"/>
       </C30>
       <C30-AS>
       </C30-AS>
@@ -175,6 +176,7 @@
         </XC8-config-global>
       </item>
       <HI-TECH-COMP>
+        <property key="extra-include-directories" value="..;../../../usb/include"/>
       </HI-TECH-COMP>
       <HI-TECH-LINK>
       </HI-TECH-LINK>
