@@ -487,6 +487,29 @@ void usb_init(void);
  */
 void usb_service(void);
 
+/** @brief Get the device configuration
+ *
+ * Get the device configuration as set by the host. If the device is not
+ * in the CONFIGURED state, 0 will be returned.
+ *
+ * @see usb_is_configured()
+ * @returns
+ *   Return the device configuration or 0 if the device is not configured.
+ */
+uint8_t usb_get_configuration(void);
+
+/** @brief Determine whether the device is in the Configured state
+ *
+ * Return whether the device is in the configured state. During enumeration,
+ * the device will start at the DEFAULT state, transition through ADDRESS,
+ * and eventually reach CONFIGURED.  The host can also command the device
+ * out of the configured state (and back into ADDRESS).  The application
+ * shouldn't use any of the endpoints unless in the CONFIGURED state.
+ *
+ * @see usb_get_configuration()
+ */
+#define usb_is_configured() (usb_get_configuration() != 0)
+
 /** @brief Get a pointer to an endpoint's input buffer
  *
  * This function returns a pointer to an endpoint's input buffer. Call this

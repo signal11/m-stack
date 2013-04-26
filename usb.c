@@ -192,7 +192,7 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 /* Global data */
 static bool addr_pending; // boolean
 static uint8_t addr;
-static char g_configuration;
+static uint8_t g_configuration;
 static bool control_need_zlp; // boolean
 
 /* Data associated with multi-packet control transfers */
@@ -885,6 +885,11 @@ void usb_service(void)
 	if (SFR_USB_IF) {
 		SFR_USB_IF = 0;
 	}
+}
+
+uint8_t usb_get_configuration(void)
+{
+	return g_configuration;
 }
 
 unsigned char *usb_get_in_buffer(uint8_t endpoint)

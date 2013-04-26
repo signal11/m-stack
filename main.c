@@ -57,7 +57,7 @@ int main(void)
 	memset(buf, 0xa0, EP_1_IN_LEN);
 
 	while (1) {
-		if (usb_out_endpoint_has_data(1)) {
+		if (usb_is_configured() && usb_out_endpoint_has_data(1)) {
 			uint8_t len;
 			const unsigned char *data;
 			/* Data received from host */
