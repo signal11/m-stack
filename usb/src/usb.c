@@ -814,6 +814,9 @@ void usb_service(void)
 {
 	if (SFR_USB_RESET_IF) {
 		// A Reset was detected on the wire. Re-init the SIE.
+#ifdef USB_RESET_CALLBACK
+		USB_RESET_CALLBACK();
+#endif
 		usb_init();
 		CLEAR_USB_RESET_IF();
 		SERIAL("USB Reset");

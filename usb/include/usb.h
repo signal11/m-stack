@@ -464,6 +464,16 @@ int16_t UNKNOWN_GET_DESCRIPTOR_CALLBACK(const struct setup_packet *pkt, const vo
 void START_OF_FRAME_CALLBACK(void);
 #endif
 
+#ifdef USB_RESET_CALLBACK
+/** @brief USB Reset Callback
+ *
+ * USB_RESET_CALLBACK() is called when a reset event is detected on the bus.
+ * Two bus resets are part of the normal enumeration sequence.  This
+ * function is called before the USB stack does any re-initialization.
+ */
+void USB_RESET_CALLBACK(void);
+#endif
+
 /* Doxygen end-of-group for static_callbacks */
 /** @}*/
 

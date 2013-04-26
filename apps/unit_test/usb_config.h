@@ -49,6 +49,7 @@
 #define UNKNOWN_SETUP_REQUEST_CALLBACK app_unknown_setup_request_callback
 #define UNKNOWN_GET_DESCRIPTOR_CALLBACK app_unknown_get_descriptor_callback
 #define START_OF_FRAME_CALLBACK    app_start_of_frame_callback
+#define USB_RESET_CALLBACK         app_usb_reset_callback
 
 
 #endif /* USB_CONFIG_H__ */

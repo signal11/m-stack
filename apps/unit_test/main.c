@@ -173,6 +173,11 @@ void app_start_of_frame_callback(void)
 
 }
 
+void app_usb_reset_callback(void)
+{
+
+}
+
 #ifdef __XC8
 void interrupt high_priority isr()
 {
