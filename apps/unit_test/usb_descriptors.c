@@ -1,6 +1,7 @@
 
 #include "usb_config.h"
 #include "usb.h"
+#include "usb_ch9.h"
 
 #ifdef __C18
 #define ROMPTR rom

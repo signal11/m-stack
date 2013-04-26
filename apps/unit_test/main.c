@@ -11,6 +11,7 @@ Signal 11 Software
 #include <xc.h>
 #include <string.h>
 #include "usb_config.h"
+#include "usb_ch9.h"
 
 #ifdef __PIC24FJ64GB002__
 _CONFIG1(WDTPS_PS16 & FWPSA_PR32 & WINDIS_OFF & FWDTEN_OFF & ICS_PGx1 & GWRP_OFF & GCP_OFF & JTAGEN_OFF)

@@ -16,6 +16,7 @@
         <itemPath>../../../usb/src/usb.c</itemPath>
         <itemPath>../../../usb/include/usb.h</itemPath>
         <itemPath>../../../usb/src/usb_hal.h</itemPath>
+        <itemPath>../../../usb/include/usb_ch9.h</itemPath>
       </logicalFolder>
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
