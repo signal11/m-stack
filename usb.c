@@ -827,7 +827,9 @@ void usb_service(void)
 		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
 
 		if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 0/*OUT*/) {
-			// Packet for us on Endpoint 0.
+			/* An OUT or SETUP transaction has completed on
+			 * Endpoint 0.  Handle the data that was received.
+			 */
 			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
 				handle_ep0_setup();
 			}
@@ -847,11 +849,16 @@ void usb_service(void)
 			reset_bd0_out();
 		}
 		else if (SFR_USB_STATUS_EP == 0 && SFR_USB_STATUS_DIR == 1/*1=IN*/) {
+			/* An IN transaction has completed. The endpoint
+			 * needs to be re-loaded with the next transaction's
+			 * data if there is any.
+			 */
 			handle_ep0_in();
 		}
 		else if (SFR_USB_STATUS_EP > 0 && SFR_USB_STATUS_EP <= NUM_ENDPOINT_NUMBERS) {
 			if (SFR_USB_STATUS_DIR == 1 /*1=IN*/) {
-				SERIAL("IN Data packet request on 1.");
+				/* An IN transaction has completed. */
+				SERIAL("IN transaction completed on non-EP0.");
 				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_IN_HALT_FLAG)
 					stall_ep_in(SFR_USB_STATUS_EP);
 				else {
@@ -859,8 +866,8 @@ void usb_service(void)
 				}
 			}
 			else {
-				// OUT
-				SERIAL("OUT Data packet on 1.");
+				/* An OUT transaction has completed. */
+				SERIAL("OUT transaction received on non-EP0");
 				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_OUT_HALT_FLAG)
 					stall_ep_out(SFR_USB_STATUS_EP);
 				else {
@@ -869,8 +876,9 @@ void usb_service(void)
 			}
 		}
 		else {
-			// For another endpoint
-			SERIAL("Request for another endpoint?");
+			/* Transaction completed on an endpoint not used.
+			 * This should never happen. */
+			SERIAL("Transaction completed for unknown endpoint");
 		}
 
 		CLEAR_USB_TOKEN_IF();
