@@ -344,7 +344,7 @@ void usb_init(void)
 	//UIRbits.URSTIF = 0; /* Clear USB Reset on Start */
 }
 
-void reset_bd0_out(void)
+static void reset_bd0_out(void)
 {
 	// Clean up the Buffer Descriptors.
 	// Set the length and hand it back to the SIE.
@@ -352,19 +352,19 @@ void reset_bd0_out(void)
 	SET_BDN(bds[0].ep_out, BDNSTAT_UOWN, ep_buf[0].out_len);
 }
 
-void stall_ep0(void)
+static void stall_ep0(void)
 {
 	// Stall Endpoint 0. It's important that DTSEN and DTS are zero.
 	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[0].in_len);
 }
 
-void stall_ep_in(uint8_t ep)
+static void stall_ep_in(uint8_t ep)
 {
 	// Stall Endpoint. It's important that DTSEN and DTS are zero.
 	SET_BDN(bds[ep].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
 }
 
-void stall_ep_out(uint8_t ep)
+static void stall_ep_out(uint8_t ep)
 {
 	// Stall Endpoint. It's important that DTSEN and DTS are zero.
 	SET_BDN(bds[ep].ep_out, BDNSTAT_UOWN|BDNSTAT_BSTALL , ep_buf[ep].out_len);
