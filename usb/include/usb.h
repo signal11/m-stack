@@ -453,6 +453,17 @@ int8_t UNKNOWN_SETUP_REQUEST_CALLBACK(const struct setup_packet *pkt);
 int16_t UNKNOWN_GET_DESCRIPTOR_CALLBACK(const struct setup_packet *pkt, const void **descriptor);
 #endif
 
+#ifdef START_OF_FRAME_CALLBACK
+/** @brief Callback for USB Start of Frame event
+ *
+ * START_OF_FRAME_CALLBACK() is called when a USB Start-of-Frame packet is
+ * received from the host.  For full-speed devices, this happens every 1
+ * millisecond.  For high-speed devices, this happens every 125
+ * microseconds.  Low-speed devices do not receive a Start-of-Frame packet.
+ */
+void START_OF_FRAME_CALLBACK(void);
+#endif
+
 /* Doxygen end-of-group for static_callbacks */
 /** @}*/
 

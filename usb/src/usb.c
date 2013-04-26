@@ -256,7 +256,9 @@ void usb_init(void)
 	SFR_TRANSFER_IE = 1; /* USB Transfer Interrupt Enable */
 	SFR_STALL_IE = 1;    /* USB Stall Interrupt Enable */
 	SFR_RESET_IE = 1;    /* USB Reset Interrupt Enable */
+#ifdef START_OF_FRAME_CALLBACK
 	SFR_SOF_IE = 1;      /* USB Start-Of-Frame Interrupt Enable */
+#endif
 #endif
 
 #ifdef USB_NEEDS_SET_BD_ADDR_REG
@@ -886,6 +888,9 @@ void usb_service(void)
 	
 	// Check for Start-of-Frame interrupt.
 	if (SFR_USB_SOF_IF) {
+#ifdef START_OF_FRAME_CALLBACK
+		START_OF_FRAME_CALLBACK();
+#endif
 		CLEAR_USB_SOF_IF();
 	}
 

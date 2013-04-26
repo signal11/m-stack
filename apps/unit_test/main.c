@@ -168,6 +168,10 @@ int16_t app_unknown_get_descriptor_callback(const struct setup_packet *pkt, cons
 	return -1;
 }
 
+void app_start_of_frame_callback(void)
+{
+
+}
 
 #ifdef __XC8
 void interrupt high_priority isr()
