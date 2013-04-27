@@ -1,3 +1,16 @@
+/*
+ * USB Descriptors file
+ *
+ * This file may be used by anyone for any purpose and may be used as a
+ * starting point making your own application using the Signal 11 USB Device
+ * Stack.
+ *
+ * It is worth noting that the Signal 11 USB Device Stack itself is not
+ * under the same license as this file.
+ *
+ * Alan Ott
+ * Signal 11 Software
+ */
 
 #include "usb_config.h"
 #include "usb.h"
