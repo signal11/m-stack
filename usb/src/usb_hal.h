@@ -65,7 +65,7 @@
 #define SFR_USB_STATUS_DIR       USTATbits.DIR
 #define SFR_USB_STATUS_PPBI      USTATbits.PPBI
 
-#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0 //TODO TEST!
+#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0 /*TODO TEST!*/
 #define CLEAR_USB_RESET_IF()     SFR_USB_RESET_IF = 0
 #define CLEAR_USB_STALL_IF()     SFR_USB_STALL_IF = 0
 #define CLEAR_USB_TOKEN_IF()     SFR_USB_TOKEN_IF = 0
@@ -136,7 +136,7 @@ struct buffer_descriptor {
 
 #ifdef _18F46J50
 #define BD_ADDR 0x400
-//#define BUFFER_ADDR
+//#undef BUFFER_ADDR
 #else
 #error "CPU not supported yet"
 #endif

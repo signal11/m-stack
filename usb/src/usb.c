@@ -208,10 +208,10 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 #undef EP_BUFS
 
 /* Global data */
-static bool addr_pending; // boolean
+static bool addr_pending;
 static uint8_t addr;
 static uint8_t g_configuration;
-static bool control_need_zlp; // boolean
+static bool control_need_zlp;
 
 /* Data associated with multi-packet control transfers */
 static usb_ep0_data_stage_callback ep0_data_stage_callback;
@@ -251,7 +251,7 @@ void usb_init(void)
 	SFR_USB_EN = 1; /* enable USB module */
 
 #ifdef USE_OTG
-	SFR_OTGEN = 1; // TODO Portable
+	SFR_OTGEN = 1;
 #endif
 
 	
@@ -316,7 +316,7 @@ void usb_init(void)
 		ep->SFR_EP_MGMT_STALL = 0; /* Stall */
 	}
 
-	// Reset the Address.
+	/* Reset the Address. */
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
 	g_configuration = 0;
@@ -325,24 +325,24 @@ void usb_init(void)
 
 	memset(bds, 0x0, sizeof(bds));
 
-	// Setup endpoint 0 Output buffer descriptor.
-	// Input and output are from the HOST perspective.
+	/* Setup endpoint 0 Output buffer descriptor.
+	   Input and output are from the HOST perspective. */
 	bds[0].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[0].out;
 	SET_BDN(bds[0].ep_out, BDNSTAT_UOWN, ep_buf[0].out_len);
 
-	// Setup endpoint 0 Input buffer descriptor.
-	// Input and output are from the HOST perspective.
+	/* Setup endpoint 0 Input buffer descriptor.
+	   Input and output are from the HOST perspective. */
 	bds[0].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[0].in;
 	SET_BDN(bds[0].ep_in, 0, ep_buf[0].in_len);
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
-		// Setup endpoint 1 Output buffer descriptor.
-		// Input and output are from the HOST perspective.
+		/* Setup endpoint 1 Output buffer descriptor.
+		   Input and output are from the HOST perspective. */
 		bds[i].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[i].out;
 		SET_BDN(bds[i].ep_out, BDNSTAT_UOWN, ep_buf[i].out_len);
 
-		// Setup endpoint 1 Input buffer descriptor.
-		// Input and output are from the HOST perspective.
+		/* Setup endpoint 1 Input buffer descriptor.
+		   Input and output are from the HOST perspective. */
 		bds[i].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[i].in;
 		SET_BDN(bds[i].ep_in, BDNSTAT_DTS, ep_buf[i].in_len);
 	}
@@ -366,27 +366,27 @@ void usb_init(void)
 
 static void reset_bd0_out(void)
 {
-	// Clean up the Buffer Descriptors.
-	// Set the length and hand it back to the SIE.
-	// The Address stays the same.
+	/* Clean up the Buffer Descriptors.
+	 * Set the length and hand it back to the SIE.
+	 * The Address stays the same. */
 	SET_BDN(bds[0].ep_out, BDNSTAT_UOWN, ep_buf[0].out_len);
 }
 
 static void stall_ep0(void)
 {
-	// Stall Endpoint 0. It's important that DTSEN and DTS are zero.
+	/* Stall Endpoint 0. It's important that DTSEN and DTS are zero. */
 	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[0].in_len);
 }
 
 static void stall_ep_in(uint8_t ep)
 {
-	// Stall Endpoint. It's important that DTSEN and DTS are zero.
+	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
 	SET_BDN(bds[ep].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
 }
 
 static void stall_ep_out(uint8_t ep)
 {
-	// Stall Endpoint. It's important that DTSEN and DTS are zero.
+	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
 	SET_BDN(bds[ep].ep_out, BDNSTAT_UOWN|BDNSTAT_BSTALL , ep_buf[ep].out_len);
 }
 
@@ -441,7 +441,7 @@ static inline int8_t handle_standard_control_request()
 		if (descriptor == DESC_DEVICE) {
 			SERIAL("Get Descriptor for DEVICE");
 
-			// Return Device Descriptor
+			/* Return Device Descriptor */
 			start_control_return(&USB_DEVICE_DESCRIPTOR, USB_DEVICE_DESCRIPTOR.bLength, setup->wLength);
 		}
 		else if (descriptor == DESC_CONFIGURATION) {
@@ -482,7 +482,7 @@ static inline int8_t handle_standard_control_request()
 			else
 				start_control_return(desc, len, setup->wLength);
 #else
-			// Unknown Descriptor. Stall the endpoint.
+			/* Unknown Descriptor. Stall the endpoint. */
 			stall_ep0();
 			SERIAL("Unknown Descriptor");
 			SERIAL_VAL(descriptor);
@@ -490,8 +490,8 @@ static inline int8_t handle_standard_control_request()
 		}
 	}
 	else if (setup->bRequest == SET_ADDRESS) {
-		// Mark the ADDR as pending. The address gets set only
-		// after the transaction is complete.
+		/* Mark the ADDR as pending. The address gets set only
+		   after the transaction is complete. */
 		addr_pending = 1;
 		addr = setup->wValue;
 
@@ -512,7 +512,7 @@ static inline int8_t handle_standard_control_request()
 		SERIAL_VAL(req);
 	}
 	else if (setup->bRequest == GET_CONFIGURATION) {
-		// Return the current Configuration.
+		/* Return the current Configuration. */
 
 		SERIAL("Get Configuration. Returning:");
 		SERIAL_VAL(g_configuration);
@@ -529,8 +529,8 @@ static inline int8_t handle_standard_control_request()
 		SERIAL_VAL(setup->wIndex);
 
 		if (setup->REQUEST.destination == 0 /*0=device*/) {
-			// Status for the DEVICE requested
-			// Return as a single byte in the return packet.
+			/* Status for the DEVICE requested
+			   Return as a single byte in the return packet. */
 			bds[0].ep_in.STAT.BDnSTAT = 0;
 #ifdef GET_DEVICE_STATUS_CALLBACK
 			*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
@@ -542,7 +542,7 @@ static inline int8_t handle_standard_control_request()
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 2);
 		}
 		else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
-			// Status of endpoint
+			/* Status of endpoint */
 			uint8_t ep_num = setup->wIndex & 0x0f;
 			if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 				uint8_t flags = ep_buf[ep_num].flags;
@@ -556,7 +556,7 @@ static inline int8_t handle_standard_control_request()
 					2);
 			}
 			else {
-				// Endpoint doesn't exist. STALL.
+				/* Endpoint doesn't exist. STALL. */
 				stall_ep0();
 			}
 		}
@@ -597,8 +597,8 @@ static inline int8_t handle_standard_control_request()
 		if (res < 0)
 			stall_ep0();
 		else {
-			// Return the current alternate setting
-			// as a single byte in the return packet.
+			/* Return the current alternate setting
+			   as a single byte in the return packet. */
 			bds[0].ep_in.STAT.BDnSTAT = 0;
 			ep_buf[0].in[0] = res;
 			SET_BDN(bds[0].ep_in,
@@ -619,7 +619,7 @@ static inline int8_t handle_standard_control_request()
 		uint8_t stall = 1;
 		if (setup->REQUEST.destination == 0/*0=device*/) {
 			SERIAL("Set/Clear feature for device");
-			// TODO Remote Wakeup flag
+			/* TODO Remote Wakeup flag */
 		}
 
 		if (setup->REQUEST.destination == 2/*2=endpoint*/) {
@@ -742,8 +742,8 @@ static inline void handle_ep0_out()
 			ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
 		reset_ep0_data_stage();
 
-		// Clean up the Buffer Descriptors.
-		// Set the length and hand it back to the SIE.
+		/* Clean up the Buffer Descriptors.
+		   Set the length and hand it back to the SIE. */
 		bds[0].ep_out.STAT.BDnSTAT = 0;
 		SET_BDN(bds[0].ep_out,
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
@@ -831,7 +831,7 @@ static inline void handle_ep0_in()
 void usb_service(void)
 {
 	if (SFR_USB_RESET_IF) {
-		// A Reset was detected on the wire. Re-init the SIE.
+		/* A Reset was detected on the wire. Re-init the SIE. */
 #ifdef USB_RESET_CALLBACK
 		USB_RESET_CALLBACK();
 #endif
@@ -864,7 +864,7 @@ void usb_service(void)
 				handle_ep0_out();
 			}
 			else {
-				// Unsupported PID. Stall the Endpoint.
+				/* Unsupported PID. Stall the Endpoint. */
 				SERIAL("Unsupported PID. Stall.");
 				stall_ep0();
 			}
@@ -907,7 +907,7 @@ void usb_service(void)
 		CLEAR_USB_TOKEN_IF();
 	}
 	
-	// Check for Start-of-Frame interrupt.
+	/* Check for Start-of-Frame interrupt. */
 	if (SFR_USB_SOF_IF) {
 #ifdef START_OF_FRAME_CALLBACK
 		START_OF_FRAME_CALLBACK();
@@ -915,7 +915,7 @@ void usb_service(void)
 		CLEAR_USB_SOF_IF();
 	}
 
-	// Check for USB Interrupt.
+	/* Check for USB Interrupt. */
 	if (SFR_USB_IF) {
 		SFR_USB_IF = 0;
 	}
