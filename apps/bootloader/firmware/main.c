@@ -310,6 +310,16 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 
 			read_address = setup->wValue | ((uint32_t) setup->wIndex) << 16;
 			read_address /= 2;
+
+			/* Range-check address */
+			if (read_address + setup->wLength > FLASH_TOP)
+				return -1;
+
+			/* Check for overflow (unlikely on known MCUs) */
+			if (read_address + setup->wLength < read_address)
+				return -1;
+
+			/* Check length */
 			if (setup->wLength > sizeof(prog_buf))
 				return -1;
 
