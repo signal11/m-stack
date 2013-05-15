@@ -261,6 +261,21 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 			write_length = setup->wLength;
 			write_length /= 2;  /* Convert to word length. */
 
+			/* Make sure it is within writable range (ie: don't
+			 * overwrite the bootloader or config words). */
+			if (write_address < USER_REGION_BASE)
+				return -1;
+			if (write_address + write_length > USER_REGION_TOP)
+				return -1;
+
+			/* Check for overflow (unlikely on known MCUs) */
+			if (write_address + write_length < write_address)
+				return -1;
+
+			/* Check length */
+			if (setup->wLength > sizeof(prog_buf))
+				return -1;
+
 			memset(prog_buf, 0xff, sizeof(prog_buf));
 			usb_start_receive_ep0_data_stage((char*)prog_buf, setup->wLength, &write_data_cb, NULL);
 		}
