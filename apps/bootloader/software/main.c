@@ -65,7 +65,7 @@ static int clear_flash(libusb_device_handle *handle)
 
 	if (res < 0) {
 		fprintf(stderr, "Error clearing flash : %s\n", libusb_error_name(res));
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -85,7 +85,7 @@ static int send_data(libusb_device_handle *handle, size_t address, const unsigne
 
 	if (res < 0) {
 		fprintf(stderr, "Error Sending Data : %s\n", libusb_error_name(res));
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -107,7 +107,7 @@ static int get_chip_info(libusb_device_handle *handle, struct chip_info *info)
 
 	if (res < 0) {
 		fprintf(stderr, "Error request chip info: %s\n", libusb_error_name(res));
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -127,7 +127,7 @@ static int request_data(libusb_device_handle *handle, size_t address, unsigned c
 
 	if (res < 0) {
 		fprintf(stderr, "Error requesting data: %s\n", libusb_error_name(res));
-		return -1;
+		return res;
 	}
 
 	return 0;
@@ -147,7 +147,7 @@ static int send_reset(libusb_device_handle *handle)
 
 	if (res < 0) {
 		fprintf(stderr, "Error Sending Reset: %s\n", libusb_error_name(res));
-		return -1;
+		return res;
 	}
 
 	return 0;
