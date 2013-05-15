@@ -87,6 +87,13 @@ const extern __prog__ uint8_t _CONFIG_WORDS_TOP;
 
 #define BUFFER_LENGTH (INSTRUCTIONS_PER_ROW * WORDS_PER_INSTRUCTION)
 
+/* Protocol commands */
+#define CLEAR_FLASH 100
+#define SEND_DATA 101
+#define GET_CHIP_INFO 102
+#define REQUEST_DATA 103
+#define SEND_RESET 105
+
 struct chip_info {
 	uint32_t user_region_base;
 	uint32_t user_region_top;
@@ -243,7 +250,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 	    setup->REQUEST.type == REQUEST_TYPE_VENDOR &&
 	    setup->REQUEST.direction == 0/*OUT*/) {
 
-		if (setup->bRequest == 100) {
+		if (setup->bRequest == CLEAR_FLASH) {
 			/* Clear flash Request */
 			clear_flash();
 			
@@ -251,7 +258,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 			 * STATUS stage packet. */
 			usb_send_data_stage(NULL, 0, empty_cb, NULL);
 		}
-		else if (setup->bRequest == 101) {
+		else if (setup->bRequest == SEND_DATA) {
 			/* Write Data Request */
 			if (setup->wLength > sizeof(prog_buf))
 				return -1;
@@ -279,7 +286,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 			memset(prog_buf, 0xff, sizeof(prog_buf));
 			usb_start_receive_ep0_data_stage((char*)prog_buf, setup->wLength, &write_data_cb, NULL);
 		}
-		else if (setup->bRequest == 105) {
+		else if (setup->bRequest == SEND_RESET) {
 			/* Reset to Application Request*/
 
 			asm("reset");
@@ -291,7 +298,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 	    setup->REQUEST.type == REQUEST_TYPE_VENDOR &&
 	    setup->REQUEST.direction == 1/*IN*/) {
 
-		if (setup->bRequest == 102) {
+		if (setup->bRequest == GET_CHIP_INFO) {
 			/* Request Device Info Struct */
 			chip_info.user_region_base = USER_REGION_BASE * 2;
 			chip_info.user_region_top = USER_REGION_TOP * 2;
@@ -304,7 +311,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 			usb_send_data_stage((char*)&chip_info, sizeof(struct chip_info), empty_cb/*TODO*/, NULL);
 		}
 
-		if (setup->bRequest == 103) {
+		if (setup->bRequest == REQUEST_DATA) {
 			/* Request program data */
 			uint32_t read_address;
 
