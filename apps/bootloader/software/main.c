@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 	int i;
 	struct chip_info chip_info;
 	int bytes_per_row;
+	int ret = 0;
 
 	if (argc < 2) {
 		fprintf(stderr, "%s [hex_file]\n", argv[0]);
@@ -202,7 +203,7 @@ int main(int argc, char **argv)
 	
 	/* Init Libusb */
 	if (libusb_init(NULL))
-		return -1;
+		return 1;
 
 	handle = libusb_open_device_with_vid_pid(NULL, 0xa0a0, 0x0002);
 	if (!handle) {
@@ -212,7 +213,8 @@ int main(int argc, char **argv)
 
 	res = libusb_claim_interface(handle, 0);
 	if (res < 0) {
-		return 1;
+		ret = 1;
+		goto failure;
 	}
 
 	for (i = 0; i < sizeof(buf); i++) {
@@ -222,9 +224,10 @@ int main(int argc, char **argv)
 	res = get_chip_info(handle, &chip_info);
 	if (res < 0) {
 		fprintf(stderr, "Can't get chip info\n");
-		return 1;
+		ret = 1;
+		goto failure;
 	}
-	
+
 	bytes_per_row = chip_info.bytes_per_instruction *
 	                chip_info.instructions_per_row;
 	
@@ -272,8 +275,9 @@ int main(int argc, char **argv)
 			printf("Padding block at %lx down to %lx\n", region->address, address);
 			res = send_data(handle, address, buf, total_bytes_to_send);
 			if (res < 0) {
-				fprintf(stderr, "Sending data block: %s\n", libusb_error_name(res));
-				break;
+				fprintf(stderr, "Sending data block %lx failed: %s\n", region->address, libusb_error_name(res));
+				ret = 1;
+				goto failure;
 			}
 
 			ptr += data_bytes_to_send;
@@ -288,8 +292,9 @@ int main(int argc, char **argv)
 
 			res = send_data(handle, address, ptr, len_to_send);
 			if (res < 0) {
-				fprintf(stderr, "Sending data block: %s\n", libusb_error_name(res));
-				break;
+				fprintf(stderr, "Sending data block %lx failed: %s\n", address, libusb_error_name(res));
+				ret = 1;
+				goto failure;
 			}
 
 			ptr += len_to_send;
@@ -321,8 +326,9 @@ end_region:
 
 			res = request_data(handle, address, buf, len_to_request);
 			if (res < 0) {
-				fprintf(stderr, "Reading data block: %s\n", libusb_error_name(res));
-				return 1;
+				fprintf(stderr, "Reading data block %lx failed: %s\n", address, libusb_error_name(res));
+				ret = 1;
+				goto failure;
 			}
 			
 			if (memcmp(ptr, buf, len_to_request) != 0) {
@@ -334,7 +340,8 @@ end_region:
 				printf("\nExpected:\n");
 				print_data(buf, len_to_request);
 				
-				return 1;
+				ret = 1;
+				goto failure;
 			}
 
 			ptr += len_to_request;
@@ -348,5 +355,10 @@ end_region_verify:
 	/* Reset */
 	send_reset(handle);
 
-	return 0;
+
+failure:
+	libusb_close(handle);
+	hex_free(hd);
+
+	return ret;
 };
