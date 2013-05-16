@@ -54,7 +54,12 @@ _CONFIG4(DSWDTPS_DSWDTPS3 & DSWDTOSC_SOSC & RTCOSC_SOSC & DSBOREN_OFF & DSWDTEN_
  * but the GNU LD manual cites it as the recommended way to do it.  See
  * section 3.5.5 "Source Code Reference."
  *
- * The macros below are for convenience.
+ * It's also worth noting that on Extended Data Space (EDS) PIC24F parts,
+ * the linker will but a 0x01 in the high byte of each of these addresses. 
+ * Unfortunately, it's impossible with GCC to take the address of a
+ * varialbe, apply a mask (in our cause we'd want to use 0x00ffffff), and
+ * use that value as an initializer for a constant.  Becaause of this, the
+ * assignment of the uint32_t "constants" below has to be done in main().
  */
 const extern __prog__ uint8_t _IVT_MAP_BASE;
 const extern __prog__ uint8_t _APP_BASE;
@@ -63,13 +68,17 @@ const extern __prog__ uint8_t _FLASH_BLOCK_SIZE;
 const extern __prog__ uint8_t _FLASH_TOP;
 const extern __prog__ uint8_t _CONFIG_WORDS_BASE;
 const extern __prog__ uint8_t _CONFIG_WORDS_TOP;
-#define IVT_MAP_BASE ((uint32_t) &_IVT_MAP_BASE)
-#define APP_BASE ((uint32_t) &_APP_BASE)
-#define APP_LENGTH ((uint32_t) &_APP_LENGTH)
-#define FLASH_BLOCK_SIZE ((uint32_t) &_FLASH_BLOCK_SIZE)
-#define FLASH_TOP ((uint32_t) &_FLASH_TOP)
-#define CONFIG_WORDS_BASE ((uint32_t) &_CONFIG_WORDS_BASE)
-#define CONFIG_WORDS_TOP ((uint32_t) &_CONFIG_WORDS_TOP)
+
+#define LINKER_VAR(X) (((uint32_t) &_##X) & 0x00ffffff)
+/* "Constants" for linker script values. These are assigned in main() using the
+ * LINKER_VAR() macro. See the above comment for rationale. */
+static uint32_t IVT_MAP_BASE;
+static uint32_t APP_BASE;
+static uint32_t APP_LENGTH;
+static uint32_t FLASH_BLOCK_SIZE;
+static uint32_t FLASH_TOP;
+static uint32_t CONFIG_WORDS_BASE;
+static uint32_t CONFIG_WORDS_TOP;
 
 /* Flash block(s) where the bootloader resides.*/
 #define USER_REGION_BASE  IVT_MAP_BASE
@@ -190,6 +199,15 @@ static void read_prog_data(uint32_t prog_addr, uint32_t len/*words*/)
 
 int main(void)
 {
+	IVT_MAP_BASE = LINKER_VAR(IVT_MAP_BASE);
+	APP_BASE = LINKER_VAR(APP_BASE);
+	APP_LENGTH = LINKER_VAR(APP_LENGTH);
+	FLASH_BLOCK_SIZE = LINKER_VAR(FLASH_BLOCK_SIZE);
+	FLASH_TOP = LINKER_VAR(FLASH_TOP);
+	CONFIG_WORDS_BASE = LINKER_VAR(CONFIG_WORDS_BASE);
+	CONFIG_WORDS_TOP = LINKER_VAR(CONFIG_WORDS_TOP);
+
+
 #ifdef __PIC24FJ64GB002__
 	unsigned int pll_startup_counter = 600;
 	CLKDIVbits.PLLEN = 1;
@@ -210,7 +228,7 @@ int main(void)
 		/* Jump to application */
 		__asm__("goto %0"
 		        : /* no outputs */
-			: "r" IVT_MAP_BASE
+			: "r" (IVT_MAP_BASE)
 			: /* no clobber*/);
 	}
 	RCONbits.POR = 0;
