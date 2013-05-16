@@ -10,355 +10,236 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <locale.h>
-#include <errno.h>
-
-/* Unix */
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <wchar.h>
-
-/* GNU / LibUSB */
-#include "libusb.h"
 
 #include "hex.h"
+#include "bootloader.h"
 
-/* Protocol commands */
-#define CLEAR_FLASH 100
-#define SEND_DATA 101
-#define GET_CHIP_INFO 102
-#define REQUEST_DATA 103
-#define SEND_RESET 105
+#ifdef _MSC_VER
+    #if _MSC_VER < 1600
+        typedef unsigned char bool;
+    #else
+        #include <stdbool.h>
+    #endif
+#else
+	#include <stdbool.h>
+#endif
 
-#define MIN(X,Y) ((X)<(Y)? (X): (Y))
 
-/* Shared with the firmware */
-struct chip_info {
-	uint32_t user_region_base;
-	uint32_t user_region_top;
-	uint32_t config_words_base;
-	uint32_t config_words_top;
+/* Change these for your application */
+#define DEFAULT_VID 0xa0a0
+#define DEFAULT_PID 0x0002
 
-	uint8_t bytes_per_instruction;
-	uint8_t instructions_per_row;
-	uint8_t pad0;
-	uint8_t pad1;
-};
-
-static int clear_flash(libusb_device_handle *handle)
+static void print_usage(const char *prog_name)
 {
-	int res;
+	printf("Usage: %s [OPTION]... FILE\n", prog_name);
+	printf("Flash firmware file.\n\n");
+	printf("OPTIONS can be one of:\n");
+	printf("  -d  --dev=VID:PID     USB VID/PID of the device to program\n");
+	printf("  -v, --verify          verify program write\n");
+	printf("  -r, --reset           reset device when done\n");
+	printf("  -h, --help            print help message and exit\n\n");
+	printf("Use a single hyphen (-) to read firmware hex file from stdin.\n");
+}
+
+static bool parse_vid_pid(const char *str, uint16_t *vid, uint16_t *pid)
+{
+	const char *colon;
+	char *endptr;
+	int val;
+
+	/* check the format */
+	if (!*str)
+		return false;
+	colon = strchr(str, ':');
+	if (!colon)
+		return false;
+	if (!colon[1])
+		return false;
+	if (colon == str)
+		return false;
+
+	/* VID */
+	val = strtol(str, &endptr, 16);
+	if (*endptr != ':')
+		return false;
+	if (val > 0xffff)
+		return false;
+	*vid = val;
+
+	/* PID */
+	val = strtol(colon+1, &endptr, 16);
+	if (*endptr != '\0')
+		return false;
+	if (val > 0xffff)
+		return false;
+	*pid = val;
 	
-	res = libusb_control_transfer(handle,
-		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_VENDOR|LIBUSB_RECIPIENT_OTHER,
-		CLEAR_FLASH /* bRequest */,
-		0, /* wValue */
-		0, /* wIndex */
-		NULL, 0/*wLength*/,
-		10000/*timeout millis*/);
-
-	if (res < 0) {
-		fprintf(stderr, "Error clearing flash : %s\n", libusb_error_name(res));
-		return res;
-	}
-
-	return 0;
+	return true;
 }
-
-static int send_data(libusb_device_handle *handle, size_t address, const unsigned char *buf, size_t len)
-{
-	int res;
-	
-	res = libusb_control_transfer(handle,
-		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_VENDOR|LIBUSB_RECIPIENT_OTHER,
-		SEND_DATA /* bRequest */,
-		address & 0xffff, /* wValue: Low Address */
-		(address & 0xffff0000) >> 16, /* wIndex: High Address */
-		(unsigned char*) buf, len/*wLength*/,
-		1000/*timeout millis*/);
-
-	if (res < 0) {
-		fprintf(stderr, "Error Sending Data : %s\n", libusb_error_name(res));
-		return res;
-	}
-
-	return 0;
-}
-
-static int get_chip_info(libusb_device_handle *handle, struct chip_info *info)
-{
-	int res;
-
-	res = libusb_control_transfer(handle,
-		LIBUSB_ENDPOINT_IN|LIBUSB_REQUEST_TYPE_VENDOR|LIBUSB_RECIPIENT_OTHER,
-		GET_CHIP_INFO /* bRequest */,
-		0, /* wValue */
-		0, /* wIndex */
-		(unsigned char*)info, sizeof(*info)/*wLength*/,
-		1000/*timeout millis*/);
-
-	/* TODO: Take care of byte swapping issues in chip_info. */
-
-	if (res < 0) {
-		fprintf(stderr, "Error request chip info: %s\n", libusb_error_name(res));
-		return res;
-	}
-
-	return 0;
-}
-
-static int request_data(libusb_device_handle *handle, size_t address, unsigned char *buf, size_t len)
-{
-	int res;
-	
-	res = libusb_control_transfer(handle,
-		LIBUSB_ENDPOINT_IN|LIBUSB_REQUEST_TYPE_VENDOR|LIBUSB_RECIPIENT_OTHER,
-		REQUEST_DATA /* bRequest */,
-		address & 0xffff, /* wValue: Low Address */
-		(address & 0xffff0000) >> 16, /* wIndex: High Address */
-		buf, len/*wLength*/,
-		1000/*timeout millis*/);
-
-	if (res < 0) {
-		fprintf(stderr, "Error requesting data: %s\n", libusb_error_name(res));
-		return res;
-	}
-
-	return 0;
-}
-
-static int send_reset(libusb_device_handle *handle)
-{
-	int res;
-	
-	res = libusb_control_transfer(handle,
-		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_VENDOR|LIBUSB_RECIPIENT_OTHER,
-		SEND_RESET /* bRequest */,
-		0, /* wValue */
-		0, /* wIndex */
-		NULL, 0/*wLength*/,
-		1000/*timeout millis*/);
-
-	if (res < 0) {
-		fprintf(stderr, "Error Sending Reset: %s\n", libusb_error_name(res));
-		return res;
-	}
-
-	return 0;
-}
-
-
-static void print_data(const unsigned char *data, size_t len)
-{
-	int i;
-	
-	for (i = 0; i < len; i++) {
-		printf("%02hhx ", data[i]);
-		if ((i+1) % 8 == 0)
-			printf("  ");
-		if ((i+1) % 16 == 0)
-			printf("\n");
-	}
-	printf("\n");
-}
-
 
 int main(int argc, char **argv)
 {
-	struct hex_data *hd;
-	struct hex_data_region *region;
+	bool do_verify = false;
+	bool do_reset = false;
+	char **itr;
+	const char *opt;
+	const char *filename = NULL;
+	uint16_t vid = 0, pid = 0;
+	bool vidpid_valid;
+	struct bootloader *bl;
 	int res;
-	libusb_device_handle *handle;
-	unsigned char buf[1024];
-	int i;
-	struct chip_info chip_info;
-	int bytes_per_row;
-	int ret = 0;
 
 	if (argc < 2) {
-		fprintf(stderr, "%s [hex_file]\n", argv[0]);
+		print_usage(argv[0]);
 		return 1;
 	}
-
-	/* Load the Hex file */
 	
-	res = hex_load(argv[1], &hd);
-	
-	if (res < 0) {
-		printf("Unable to load hex file: %d\n", res);
-		return 1;
-	}
-
-	region = hd->regions;
-	while (region) {
-		printf("Data Region at %08lx for %4lx\n", region->address, region->len);
-		region = region->next;
-	}
-	
-	/* Init Libusb */
-	if (libusb_init(NULL))
-		return 1;
-
-	handle = libusb_open_device_with_vid_pid(NULL, 0xa0a0, 0x0002);
-	if (!handle) {
-		perror("libusb_open failed: ");
-		return 1;
-	}
-
-	res = libusb_claim_interface(handle, 0);
-	if (res < 0) {
-		ret = 1;
-		goto failure;
-	}
-
-	for (i = 0; i < sizeof(buf); i++) {
-		buf[i] = i;
-	}
-
-	res = get_chip_info(handle, &chip_info);
-	if (res < 0) {
-		fprintf(stderr, "Can't get chip info\n");
-		ret = 1;
-		goto failure;
-	}
-
-	bytes_per_row = chip_info.bytes_per_instruction *
-	                chip_info.instructions_per_row;
-	
-	printf("bytes per inst: %d\n inst per row %d\n",
-	       chip_info.bytes_per_instruction,
-	       chip_info.instructions_per_row);
-
-	printf("Clearing flash\n");
-	clear_flash(handle);
-	printf("Done\n");
-
-	/* Send each memory region to the device */
-	region = hd->regions;
-	while (region) {
-		const unsigned char *ptr = region->data;
-		const unsigned char *endptr = region->data + region->len;
-		size_t address = region->address;
-		
-		if (address >= chip_info.config_words_base &&
-		    address < chip_info.config_words_top) {
-			printf("Skipping Config words at %lx\n", address);
-			goto end_region;
-		}
-			
-
-		/* If the data isn't aligned to a row, add some extra padding
-		 * bytes (0xff) to the beginning of the first packet so that
-		 * all the packets align. */
-		if (address & (bytes_per_row-1)) {
-			unsigned char *buf;
-			size_t data_bytes_to_send;
-			size_t total_bytes_to_send;
-			size_t bytes_to_add;
-			
-			bytes_to_add = address & (bytes_per_row-1);
-			address -= bytes_to_add;
-			total_bytes_to_send = MIN(region->len + bytes_to_add,
-			                          bytes_per_row);
-			data_bytes_to_send = MIN(region->len,
-			                         bytes_per_row - bytes_to_add);
-			buf = malloc(total_bytes_to_send);
-			memset(buf, 0xff, total_bytes_to_send);
-			memcpy(buf+bytes_to_add, region->data, data_bytes_to_send);
-
-			printf("Padding block at %lx down to %lx\n", region->address, address);
-			res = send_data(handle, address, buf, total_bytes_to_send);
-			if (res < 0) {
-				fprintf(stderr, "Sending data block %lx failed: %s\n", region->address, libusb_error_name(res));
-				ret = 1;
-				goto failure;
+	/* Parse the command line. */
+	itr = argv+1;
+	opt = *itr;
+	while (opt) {
+		if (opt[0] == '-') {
+			/* Option parameter */
+			if (opt[1] == '-') {
+				/* Long option, two dashes. */
+				if (!strcmp(opt, "--help")) {
+					print_usage(argv[0]);
+					return 1;
+				}
+				else if (!strcmp(opt, "--reset"))
+					do_reset = true;
+				else if (!strcmp(opt, "--verify"))
+					do_verify = true;
+				else if (!strncmp(opt, "--dev", 5)) {
+					if (opt[5] != '=') {
+						fprintf(stderr, "--dev requires vid/pid pair\n\n");
+						return 1;
+					}
+					vidpid_valid = parse_vid_pid(opt+6, &vid, &pid);
+					if (!vidpid_valid) {
+						fprintf(stderr, "Invalid VID/PID pair\n\n");
+						return 1;
+					}
+				}
+				else {
+					fprintf(stderr, "Invalid Parameter %s\n\n", opt);
+					return 1;
+				}
 			}
-
-			ptr += data_bytes_to_send;
-			address += total_bytes_to_send;
-
-			free(buf);
-		}
-
-		
-		while (ptr < endptr) {
-			size_t len_to_send = MIN(bytes_per_row, endptr-ptr);
-
-			res = send_data(handle, address, ptr, len_to_send);
-			if (res < 0) {
-				fprintf(stderr, "Sending data block %lx failed: %s\n", address, libusb_error_name(res));
-				ret = 1;
-				goto failure;
+			else {
+				const char *c = opt + 1;
+				if (!*c) {
+					/* This is a parameter of a single
+					   hyphen, which means read from
+					   stdin. */
+					filename = opt;
+				}
+				while (*c) {
+					/* Short option, only one dash */
+					switch (*c) {
+					case 'v':
+						do_verify = true;
+						break;
+					case 'r':
+						do_reset = true;
+						break;
+					case 'd':
+						itr++;
+						opt = *itr;
+						if (!opt) {
+							fprintf(stderr, "Must specify vid:pid after -d\n\n");
+							return 1;
+						}
+						vidpid_valid = parse_vid_pid(opt, &vid, &pid);
+						if (!vidpid_valid) {
+							fprintf(stderr, "Invalid VID/PID pair\n\n");
+							return 1;
+						}
+						break;
+					default:
+						fprintf(stderr, "Invalid parameter '%c'\n\n", *c);
+						return 1;
+					}
+					c++;
+				}
 			}
-
-			ptr += len_to_send;
-			address += len_to_send;
 		}
-
-end_region:
-		region = region->next;
+		else {
+			/* Doesn't start with a dash. Must be the filename */
+			if (filename) {
+				fprintf(stderr, "Multiple filenames listed. This is not supported\n\n");
+				return 1;
+			}
+			
+			filename = opt;
+		}
+		itr++;
+		opt = *itr;
 	}
 
-	printf("Beginning Verify\n");
+	vid = vidpid_valid? vid: DEFAULT_VID;
+	pid = vidpid_valid? pid: DEFAULT_PID;
+	
+	if (!filename) {
+	        fprintf(stderr, "No Filename specified. Specify a filename of use \"-\" to read from stdin.\n");
+	        return 1;
+	}
+
+	/* Command line parsing is done. Do the programming of the device. */
+
+	/* Open the device */
+	res = bootloader_init(&bl, filename, vid, pid);
+	if (res == BOOTLOADER_CANT_OPEN_FILE) {
+		fprintf(stderr, "Unable to open file %s\n", filename);
+		return 1;
+	}
+	else if (res == BOOTLOADER_CANT_OPEN_DEVICE) {
+		fprintf(stderr, "\nUnable to open device %04hx:%04hx "
+			"for programming.\n"
+			"Make sure that the device is connected "
+			"and that you have proper permissions\nto "
+			"open it.\n", vid, pid);
+		return 1;
+	}
+	else if (res == BOOTLOADER_CANT_QUERY_DEVICE) {
+		fprintf(stderr, "Unable to query device parameters\n");
+		return 1;
+	}
+	else if (res == BOOTLOADER_MULTIPLE_CONNECTED) {
+		fprintf(stderr, "Multiple devices are connected. Remove all but one.\n");
+	}
+	else if (res < 0) {
+		fprintf(stderr, "Unspecified error initializing bootloader %d\n", res);
+		return 1;
+	}
+	
+	/* Program */
+	res = bootloader_program(bl);
+	if (res < 0) {
+		fprintf(stderr, "Programming of device failed\n");
+		return 1;
+	}
 
 	/* Verify */
-	region = hd->regions;
-	while (region) {
-		const unsigned char *ptr = region->data;
-		const unsigned char *endptr = region->data + region->len;
-		size_t address = region->address;
-		unsigned char buf[128];
-
-		if (address >= chip_info.config_words_base &&
-		    address < chip_info.config_words_top) {
-			printf("Skipping Config words at %lx\n", address);
-			goto end_region_verify;
+	if (do_verify) {
+		res = bootloader_verify(bl);
+		if (res < 0) {
+			fprintf(stderr, "Verification of programmed memory failed\n");
+			return 1;
 		}
-		
-		while (ptr < endptr) {
-			size_t len_to_request = MIN(sizeof(buf), endptr-ptr);
-
-			res = request_data(handle, address, buf, len_to_request);
-			if (res < 0) {
-				fprintf(stderr, "Reading data block %lx failed: %s\n", address, libusb_error_name(res));
-				ret = 1;
-				goto failure;
-			}
-			
-			if (memcmp(ptr, buf, len_to_request) != 0) {
-				fprintf(stderr, "Verify Failed on block starting at %lx\n", address);
-
-				printf("Read from device: \n");
-				print_data(ptr, len_to_request);
-				
-				printf("\nExpected:\n");
-				print_data(buf, len_to_request);
-				
-				ret = 1;
-				goto failure;
-			}
-
-			ptr += len_to_request;
-			address += len_to_request;
-		}
-
-end_region_verify:
-		region = region->next;
 	}
-	
+
 	/* Reset */
-	send_reset(handle);
+	if (do_reset) {
+		res = bootloader_reset(bl);
+		if (res < 0) {
+			fprintf(stderr, "Device Reset failed\n");
+			return 1;
+		}
+	}
 
+	/* Close */
+	bootloader_free(bl);
 
-failure:
-	libusb_close(handle);
-	hex_free(hd);
-
-	return ret;
-};
+	return 0;
+}

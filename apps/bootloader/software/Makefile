@@ -2,7 +2,7 @@
 # This Makefile makes heavy use of GNU Make's implicit rules. On non-GNU
 # platforms, make sure to use gmake to build this project
 #
-SO_OBJS= hex.o
+SO_OBJS= hex.o bootloader.o
 MAIN_OBJ= main.o
 CFLAGS= -g -Wall #-fPIC -fvisibility=hidden
 CXXFLAGS= $(CFLAGS)
