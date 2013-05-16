@@ -93,7 +93,7 @@ create_update_region(struct hex_data *hd, size_t address, uint8_t len) {
 			   This is an error. */
 			return false;
 		}
-		else if (address < r->address + r->len) {
+		else if (address >= r->address && address < r->address + r->len) {
 			/* Address range overlaps the middle or possibly the
 			   the end of this region. This is an error */
 			return false;
