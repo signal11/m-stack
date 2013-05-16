@@ -181,6 +181,13 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			line[len-1] = '\0';
 			len--;
 		}
+
+		/* Eliminate the trailing CR (if there is one) */
+		len = strlen(line);
+		if (line[len-1] == '\r') {
+			line[len-1] = '\0';
+			len--;
+		}
 		
 		/* Make sure the record is long enough */
 		if (len < 11) {
