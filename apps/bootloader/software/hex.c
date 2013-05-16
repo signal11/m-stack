@@ -286,11 +286,11 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			break;
 		case REC_EXTENDED_SEGMENT_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 4;
-			printf("Setting Extended addr: %x\n", extended_addr);
+			printf("Setting Extended addr: %lx\n", extended_addr);
 			break;
 		case REC_EXTENDED_LINEAR_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 16;
-			printf("Setting Extended addr2: %x\n", extended_addr);
+			printf("Setting Extended addr2: %lx\n", extended_addr);
 			break;
 		default:
 			fprintf(stderr, "Unsupported Record type: 0x%02hhx\n", record_type);
