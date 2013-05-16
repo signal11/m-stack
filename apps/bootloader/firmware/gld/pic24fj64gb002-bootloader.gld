@@ -12,6 +12,9 @@
 
 OUTPUT_ARCH("24FJ64GB002")
 
+CRT0_STARTUP(crt0_standard.o)
+CRT1_STARTUP(crt1_standard.o)
+
 /* MCU Properties and Map */
 #define CHIP_PROGRAM_START 0x200
 #define CHIP_FLASH_TOP_ADDR 0xac00
@@ -39,9 +42,6 @@ OUTPUT_ARCH("24FJ64GB002")
 __NO_HANDLES = 1;
 
 
-CRT0_STARTUP(crt0_standard.o)
-CRT1_STARTUP(crt1_standard.o)
-
 #ifdef BOOTLOADER
 	#define BOOTLOADER_PROGRAM program
 	#define APP_PROGRAM app_program
@@ -54,7 +54,7 @@ CRT1_STARTUP(crt1_standard.o)
 
 #define IVT_MAP_BASE ((CHIP_PROGRAM_START) + (BOOTLOADER_SIZE))
 #define APP_BASE ((IVT_MAP_BASE) + (IVT_MAP_SIZE))
-#define APP_LENGTH ((CHIP_FLASH_TOP_ADDR) - (APP_BASE))
+#define APP_LENGTH ((CHIP_FLASH_TOP_ADDR) - (FLASH_BLOCK_SIZE) - (APP_BASE))
 #define DATA_LENGTH ((DATA_TOP) - (DATA_BASE))
 
 #if IVT_MAP_BASE % FLASH_BLOCK_SIZE != 0
