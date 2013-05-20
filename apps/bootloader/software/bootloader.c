@@ -194,7 +194,7 @@ static int send_reset(libusb_device_handle *handle)
 		return res;
 	}
 
-	return 0;
+	return res;
 }
 
 
