@@ -257,6 +257,11 @@ static void empty_cb(bool transfer_ok, void *context)
 	/* Nothing to do here. */
 }
 
+static void reset_cb(bool transfer_ok, void *context)
+{
+	asm("reset");
+}
+
 static void write_data_cb(bool transfer_ok, void *context)
 {
 	/* For OUT control transfers, data from the data stage of the request
@@ -314,8 +319,9 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 		else if (setup->bRequest == SEND_RESET) {
 			/* Reset to Application Request*/
 
-			asm("reset");
-			/* No need to set up a data stage or anything here. */
+			/* There will be NO data stage. This sends back the
+			 * STATUS stage packet. */
+			usb_send_data_stage(NULL, 0, reset_cb, NULL);
 		}
 	}
 
