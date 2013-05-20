@@ -68,6 +68,14 @@
       <item path="../../bootloader/firmware/gld/pic24fj256da206-bootloader.gld"
             ex="true"
             overriding="false">
+        <C30>
+        </C30>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../../bootloader/firmware/gld/pic24fj64gb002-bootloader.gld"
             ex="true"
@@ -171,6 +179,14 @@
       <item path="../../bootloader/firmware/gld/pic24fj256da206-bootloader.gld"
             ex="true"
             overriding="false">
+        <C30>
+        </C30>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../usb_descriptors.c" ex="false" overriding="false">
         <C30>
@@ -262,6 +278,14 @@
       <item path="../../bootloader/firmware/gld/pic24fj256da206-bootloader.gld"
             ex="true"
             overriding="false">
+        <C30>
+        </C30>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../../bootloader/firmware/gld/pic24fj64gb002-bootloader.gld"
             ex="true"
@@ -365,6 +389,14 @@
       <item path="../../bootloader/firmware/gld/pic24fj64gb002-bootloader.gld"
             ex="true"
             overriding="false">
+        <C30>
+        </C30>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../usb_descriptors.c" ex="false" overriding="false">
         <C30>
@@ -456,6 +488,12 @@
       <item path="../../bootloader/firmware/gld/pic24fj256da206-bootloader.gld"
             ex="true"
             overriding="false">
+        <HI-TECH-COMP>
+        </HI-TECH-COMP>
+        <HI-TECH-LINK>
+        </HI-TECH-LINK>
+        <XC8-config-global>
+        </XC8-config-global>
       </item>
       <item path="../../bootloader/firmware/gld/pic24fj64gb002-bootloader.gld"
             ex="true"
