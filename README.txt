@@ -1,5 +1,5 @@
 
-           Signal 11 USB Stack for PIC 18F and 24F Microcontrollers
+         M-Stack: Free USB Stack for PIC 18F and 24F Microcontrollers
         ==============================================================
 
 About
@@ -12,9 +12,9 @@ protocol.  Enumeration and transfers are left to the firmware or software to
 implement.  The Microchip PIC line of microcontrollers work exactly this
 way.
 
-The Signal 11 USB Stack is a functional, well-documented, open source
-implementation of a USB stack for Microchip PIC platforms.  It performs the
-following operations:
+M-Stack is a functional, well-documented, open source implementation of a
+USB stack for Microchip PIC platforms.  It performs the following
+operations:
  * USB device hardware initialization
  * USB interrupt handling
  * Management of the serial interface engine SIE
@@ -52,9 +52,9 @@ license says it using exactly this term.  These restrictions are a major
 limitation from a free software perspective, and so far have limited the
 adoption of Microchip PIC microcontrollers for open hardware projects, where
 it is desired that end users be able to build and modify the source code.
-Microchip's license also limits the types of software which can be linked in
-along side it, since some open source software cannot be linked with
-proprietary software.
+Microchip's license indirectly also limits the types of software which can
+be linked in along side it, since some open source software cannot be linked
+with proprietary software.
 
 For these reasons, it is desirable to have a USB stack for PIC MCUs which is
 available under an open source license.  Instead of complaining about it on
@@ -73,15 +73,13 @@ been tested anywhere outside my own office and my own programs.
 License
 --------
 For right this minute, the software is licensed under the LGPL. That will
-likely change in the future, to add exceptions which make it more
-appropriate for firmware.  For right now though, this shouldn't be going
-into anything production, and straight LGPL licensing should help to ensure
-that for now.
+likely change in the near future, to add a linking exception for unmodified
+copies of the M-Stack.
 
 In the near future, this product will be licensed under both open source and
 commercial licenses, with commercial licenses being available for purchase
 for companies and projects which cannot comply with the terms of any of the
-open source licenses.
+open source license.
 
 Contribution
 -------------
@@ -91,10 +89,10 @@ copyright is permissible.
 
 Support
 --------
-Free support for this product will be somewhat limited. A mailing list will
+Free support for this product is be somewhat limited. A mailing list will
 be setup soon.
 
-Paid support will be available through Signal 11 Software.
+Paid support is available through Signal 11 Software.
 
 Consulting Services
 --------------------
@@ -102,7 +100,7 @@ USB is hard. There's no getting around it. There's a good chance if you're
 reading this that USB is not the main focus of your project.  USB is a means
 to an end, and your specialization is likely more related to the end than to
 the means.  Given that, doesn't it makes sense to hire someone to help you
-with the USB aspect of your project.  Many find that hiring specialized
+with the USB aspect of your project?  Many find that hiring specialized
 consultants for specialized jobs can drastically reduce the total cost of a
 project.  Signal 11 can help you.  This software testifies to the expertise
 Signal 11 Software has with respect to USB and software development.  See
@@ -111,22 +109,35 @@ the website at http://www.signal11.us for more information.
 Getting Started
 ================
 
+Downloading the Software
+-------------------------
+M-Stack's source code is currently hosted on Github at:
+	https://github.com/signal11/m-stack
+
+To get the latest version, run:
+	git clone https://github.com/signal11/m-stack.git
+
+Documentation
+--------------
+M-Stack has Doxygen-generated documentation at:
+      http://www.signal11.us/oss/m-stack/m-stack/html/group__public__api.html
+
 Supported hardware
 -------------------
-The Signal 11 USB stack has currently been tested on PIC18 and PIC24
-devices.  Microchip has obviously made a conscious effort to make the
-register-level interfaces to their USB peripherals as similar as possible
-across MCUs and even across MCU lines.  While many devices should be able to
-be easily supported with this software, there are often times small
-differences which need to be worked out, the biggest of which being buffer
-descriptor and data buffer locations with respect to the DMA capabilities of
-the microcontroller being used.
+M-Stack has currently been tested on PIC18 and PIC24 devices.  Microchip has
+obviously made a conscious effort to make the register-level interfaces to
+their USB peripherals as similar as possible across MCUs and even across MCU
+lines.  While many devices should be able to be easily supported with this
+software, there are often times small differences which need to be worked
+out, the biggest of which being buffer descriptor and data buffer locations
+with respect to the DMA capabilities of the microcontroller being used.
 
 The following MCU's and configurations have been tested:
  * PIC24FJ64GB002
+ * PIC24FJ256DA206
  * PIC18F46J50 - PIC18F Starter Kit
 
-If your hardware is not supported, and it's in the PIC18F/24F/24H family, I
+If your hardware is not supported, and it's in the PIC18F/24F family, I
 can probably easily make you a port without very much trouble.  The easiest
 way is for you to send me a development board.  If your hardware is in
 another MCU family which is not currently supported, I can also make you a
@@ -191,6 +202,7 @@ Source Tree Structure
  +- apps/                  <- Firmware USB device applications,
      |                        examples, and tests
      +- unit_test/         <- Unit test firmware
+     +- bootloader/        <- USB bootloader firmware and software
  +- host_test/             <- Software applications to run from a PC Host
 
 USB Stack Source Files
@@ -221,9 +233,9 @@ apps/unit_test/usb_descriptors.c - The application's descriptors. The
 
 Making Your Own Project
 ------------------------
-The easiest way to create a project using the Signal 11 USB Stack is to
-simply copy one of the examples and modify it accordingly. Sometimes it's
-better though to do things the hard way in order to understand better.
+The easiest way to create a project using M-Stack is to simply copy one of
+the examples and modify it accordingly.  Sometimes it's better though to do
+things the hard way in order to understand better.
 
 To create a new project, perform the following steps:
 1. Create a new project with MPLAB X.
@@ -294,3 +306,4 @@ http://www.signal11.us
 +1 407-222-6975
 
 2013-04-26
+2013-05-20

@@ -3,9 +3,8 @@ PIC24 Bootloader
 =================
 
 This is the PIC24 USB bootloader. It contains firmware and software to
-implement a USB bootloader using the Signal 11 USB Device Stack.  It differs
-from the Microchip bootloaders in several key ways in both licensing and
-implementation.
+implement a USB bootloader using M-Stack.  It differs from the Microchip
+bootloaders in several key ways in both licensing and implementation.
 
 License
 --------

@@ -5,9 +5,8 @@
  * (2-clause), which can be found in LICENSE-bsd.txt in the parent
  * directory.
  *
- * It is worth noting that the Signal 11 USB Device Stack itself is not
- * under the same license as this file.  See the top-level README.txt for
- * more information.
+ * It is worth noting that M-Stack itself is not under the same license as
+ * this file.  See the top-level README.txt for more information.
  *
  * Alan Ott
  * Signal 11 Software

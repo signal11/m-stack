@@ -1,19 +1,19 @@
 /*
- *  Signal 11 USB Device Stack Implementation
+ *  M-Stack USB Device Stack Implementation
  *  Copyright (C) 2013 Alan Ott <alan@signal11.us>
  *  Copyright (C) 2013 Signal 11 Software
  *
  *  Initial version for PIC18, 2008-02-24
  *  PIC24 port, 2013-04-08
  *
- *  The Signal 11 USB Device Stack is free software: you can redistribute it
- *  and/or modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation, version 3
+ *  M-Stack is free software: you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the
+ *  Free Software Foundation, version 3
  *
- *  The Signal 11 USB Device Stack is distributed in the hope that it will
- *  be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
- *  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  M-Stack is distributed in the hope that it will be useful, but WITHOUT
+ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this software.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,5 +1,5 @@
 /*********************************
-Libusb test for USB Stack
+Libusb test for M-Stack
 
 Alan Ott
 Signal 11 Software

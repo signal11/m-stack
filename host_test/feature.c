@@ -1,5 +1,5 @@
 /******************************************************************************
-Libusb set/clear feature test for USB Stack
+Libusb set/clear feature test for M-Stack
 
 This program will set/clear the endpoint halt feature for an endpoint. Run
 with no arguments to set the endpoint halt feature, and run with a single
