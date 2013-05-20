@@ -1,4 +1,18 @@
-/******************************************************************************
+/*
+ * Libusb set/clear feature test for M-Stack
+ *
+ * This file may be used by anyone for any purpose and may be used as a
+ * starting point making your own application using M-Stack.
+ *
+ * It is worth noting that M-Stack itself is not under the same license as
+ * this file.  See the top-level README.txt for more information.
+ *
+ * Alan Ott
+ * Signal 11 Software
+ * 2013-04-13
+ */
+
+/*
 Libusb set/clear feature test for M-Stack
 
 This program will set/clear the endpoint halt feature for an endpoint. Run
@@ -15,11 +29,7 @@ What I do:
  ./test          # verify no data is received (verify STALL packets on EP 1 IN)
  ./feature clear # clear the endpoint halt on EP 1 IN
  ./test          # see that data is received from EP 1 IN
-
-Alan Ott
-Signal 11 Software
-2013-04-13
-******************************************************************************/
+*/
 
 /* C */
 #include <stdio.h>

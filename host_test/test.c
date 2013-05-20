@@ -1,10 +1,17 @@
-/*********************************
-Libusb test for M-Stack
+/*
+ * Libusb Bulk Endpoint Test for M-Stack
+ *
+ * This file may be used by anyone for any purpose and may be used as a
+ * starting point making your own application using M-Stack.
+ *
+ * It is worth noting that M-Stack itself is not under the same license as
+ * this file.  See the top-level README.txt for more information.
+ *
+ * Alan Ott
+ * Signal 11 Software
+ * 2013-04-09
 
-Alan Ott
-Signal 11 Software
-2013-04-09
-*********************************/
+ */
 
 /* C */
 #include <stdio.h>

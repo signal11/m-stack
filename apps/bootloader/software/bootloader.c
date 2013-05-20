@@ -1,10 +1,17 @@
-/*********************************
- PIC24 Bootloader 
- 
- Alan Ott
- Signal 11 Software
- 2013-04-29
-*********************************/
+/*
+ * M-Stack PIC24 Bootloader
+ *
+ * This file may be used under the terms of the Simplified BSD License
+ * (2-clause), which can be found in LICENSE-bsd.txt in the parent
+ * directory.
+ *
+ * It is worth noting that M-Stack itself is not under the same license as
+ * this file.  See the top-level README.txt for more information.
+ *
+ * Alan Ott
+ * Signal 11 Software
+ * 2013-04-29
+ */
 
 #include <stdio.h>
 #include <string.h>

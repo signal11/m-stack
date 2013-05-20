@@ -1,4 +1,15 @@
-# Makefile for Bootloader.
+# M-Stack Bootloader Makefile
+#
+# This file may be used under the terms of the Simplified BSD License
+# (2-clause), which can be found in LICENSE-bsd.txt in the parent
+# directory.
+#
+# It is worth noting that M-Stack itself is not under the same license as
+# this file.  See the top-level README.txt for more information.
+#
+# Alan Ott
+# Signal 11 Software
+
 # This Makefile makes heavy use of GNU Make's implicit rules. On non-GNU
 # platforms, make sure to use gmake to build this project
 #

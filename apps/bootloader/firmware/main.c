@@ -1,5 +1,5 @@
 /*
- * USB Bootloader
+ * M-Stack USB Bootloader
  *
  * This file may be used under the terms of the Simplified BSD License
  * (2-clause), which can be found in LICENSE-bsd.txt in the parent
