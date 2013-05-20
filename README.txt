@@ -28,6 +28,11 @@ project, know that there is no substitute for actually knowing the details
 of how USB works.  The USB specification should be consulted frequently when
 creating a USB device.
 
+Home
+-----
+The master web page for this project can be found at:
+	http://www.signal11.us/oss/m-stack/
+
 
 Motivation
 ===========
