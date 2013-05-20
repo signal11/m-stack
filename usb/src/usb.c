@@ -420,7 +420,6 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
 	ep0_data_stage_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
-	ep0_data_stage_direc = 1;
 
 	/* Send back the first transaction */
 	bds[0].ep_in.STAT.BDnSTAT = 0;
