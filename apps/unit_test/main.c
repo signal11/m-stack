@@ -63,6 +63,9 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config LPBOR = ON
 #pragma config LVP = OFF
 
+#else
+	#error "Config flags for your device not defined"
+
 #endif
 
 int main(void)
