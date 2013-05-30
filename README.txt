@@ -276,7 +276,6 @@ Future Plans
 =============
 
 The following features are on the horizon:
-	* PIC16F port
 	* PIC32 port
 	* Support for more PIC18/24F parts
 	* Ping-pong buffering
