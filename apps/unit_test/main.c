@@ -155,7 +155,7 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 	}
 	else {
 		/* Direction is 1 (IN) */
-		int i;
+		size_t i;
 
 		for (i = 0; i < sizeof(buf); i++) {
 			buf[i] = sizeof(buf)-i;
