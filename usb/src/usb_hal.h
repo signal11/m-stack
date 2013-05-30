@@ -406,6 +406,8 @@ struct buffer_descriptor {
 #define FAR
 #define memcpy_from_rom(x,y,z) memcpy(x,y,z);
 
+#else
+	#error "Your architecture is not supported"
 #endif
 
 
