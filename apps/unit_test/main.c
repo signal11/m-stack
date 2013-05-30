@@ -43,6 +43,26 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config IOL1WAY = OFF
 #pragma config WPDIS = OFF /* This pragma seems backwards */
 
+#elif _16F1459
+#pragma config FOSC = INTOSC
+#pragma config WDTE = OFF
+#pragma config PWRTE = OFF
+#pragma config MCLRE = ON
+#pragma config CP = OFF
+#pragma config BOREN = ON
+#pragma config CLKOUTEN = OFF
+#pragma config IESO = OFF
+#pragma config FCMEN = OFF
+#pragma config WRT = OFF
+#pragma config CPUDIV = NOCLKDIV
+#pragma config USBLSCLK = 48MHz
+#pragma config PLLMULT = 3x
+#pragma config PLLEN = ENABLED
+#pragma config STVREN = ON
+#pragma config BORV = LO
+#pragma config LPBOR = ON
+#pragma config LVP = OFF
+
 #endif
 
 int main(void)
@@ -56,9 +76,16 @@ int main(void)
 	OSCTUNEbits.PLLEN = 1;
 	while (pll_startup--)
 		;
+#elif _16F1459
+	OSCCONbits.IRCF = 0b1111; /* 0b1111 = 16MHz HFINTOSC postscalar */
+
+	/* Enable Active clock-tuning from the USB */
+	ACTCONbits.ACTSRC = 1; /* 1=USB */
+	ACTCONbits.ACTEN = 1;
+
 #endif
 
-#if defined(USB_USE_INTERRUPTS) && defined (_PIC18)
+#if defined(USB_USE_INTERRUPTS) && (defined (_PIC18) || defined(_PIC14E))
 	INTCONbits.PEIE = 1;
 	INTCONbits.GIE = 1;
 #endif
@@ -189,6 +216,13 @@ void app_usb_reset_callback(void)
 
 }
 
+#ifdef _PIC14E
+void interrupt isr()
+{
+	usb_service();
+}
+#elif _PIC18
+
 #ifdef __XC8
 void interrupt high_priority isr()
 {
@@ -196,4 +230,6 @@ void interrupt high_priority isr()
 }
 #elif _PICC18
 #error need to make ISR
+#endif
+
 #endif
