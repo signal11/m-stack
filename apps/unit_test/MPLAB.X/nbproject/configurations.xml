@@ -463,7 +463,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>SKDEPIC18FJPlatformTool</platformTool>
         <languageToolchain>XC8</languageToolchain>
-        <languageToolchainVersion>1.10</languageToolchainVersion>
+        <languageToolchainVersion>1.12</languageToolchainVersion>
         <platform>2</platform>
       </toolsSet>
       <compileType>
