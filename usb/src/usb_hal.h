@@ -21,9 +21,141 @@
 #ifndef USB_HAL_H__
 #define UAB_HAL_H__
 
-#ifdef _PIC18
+#ifdef _PIC14E
 #define NEEDS_PULL /* Whether to pull up D+/D- with SFR_PULL_EN. */
 #define HAS_LOW_SPEED
+
+#define BDNADR_TYPE              uint16_t
+
+#define SFR_FULL_SPEED_EN        UCFGbits.FSEN
+#define SFR_PULL_EN              UCFGbits.UPUEN
+#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = n & 2; } while (0)
+
+#define SFR_USB_INTERRUPT_FLAGS  UIR
+#define SFR_USB_RESET_IF         UIRbits.URSTIF
+#define SFR_USB_STALL_IF         UIRbits.STALLIF
+#define SFR_USB_TOKEN_IF         UIRbits.TRNIF
+#define SFR_USB_SOF_IF           UIRbits.SOFIF
+#define SFR_USB_IF               PIR2bits.USBIF
+
+#define SFR_USB_INTERRUPT_EN     UIE
+#define SFR_TRANSFER_IE          UIEbits.TRNIE
+#define SFR_STALL_IE             UIEbits.STALLIE
+#define SFR_RESET_IE             UIEbits.URSTIE
+#define SFR_SOF_IE               UIEbits.SOFIE
+#define SFR_USB_IE               PIE2bits.USBIE
+
+#define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
+
+#define SFR_EP_MGMT_TYPE         UEP1bits_t /* TODO test */
+#define SFR_EP_MGMT(n)           UEP##n##bits
+#define SFR_EP_MGMT_HANDSHAKE    EPHSHK
+#define SFR_EP_MGMT_STALL        EPSTALL
+#define SFR_EP_MGMT_OUT_EN       EPOUTEN
+#define SFR_EP_MGMT_IN_EN        EPINEN
+#define SFR_EP_MGMT_CON_DIS      EPCONDIS /* disable control transfers */
+
+#define SFR_USB_ADDR             UADDR
+#define SFR_USB_EN               UCONbits.USBEN
+#define SFR_USB_PKT_DIS          UCONbits.PKTDIS
+
+#define SFR_USB_STATUS           USTAT
+#define SFR_USB_STATUS_EP        USTATbits.ENDP
+#define SFR_USB_STATUS_DIR       USTATbits.DIR
+#define SFR_USB_STATUS_PPBI      USTATbits.PPBI
+
+#define CLEAR_ALL_USB_IF()       SFR_USB_INTERRUPT_FLAGS = 0 /*TODO TEST!*/
+#define CLEAR_USB_RESET_IF()     SFR_USB_RESET_IF = 0
+#define CLEAR_USB_STALL_IF()     SFR_USB_STALL_IF = 0
+#define CLEAR_USB_TOKEN_IF()     SFR_USB_TOKEN_IF = 0
+#define CLEAR_USB_SOF_IF()       SFR_USB_SOF_IF = 0
+
+/* Buffer Descriptor BDnSTAT flags. On Some MCUs, apparently, when handing
+ * a buffer descriptor to the SIE, there's a race condition that can happen
+ * if you don't set the BDnSTAT byte as a single operation. This was observed
+ * on the PIC18F46J50 when sending 8-byte IN-transactions while doing control
+ * transfers. */
+#define BDNSTAT_UOWN   0x80
+#define BDNSTAT_DTS    0x40
+#define BDNSTAT_DTSEN  0x08
+#define BDNSTAT_BSTALL 0x04
+#define BDNCNT_MASK    0x03ff /* 10 bits of BDnCNT in BDnSTAT_CNT */
+
+/* Buffer Descriptor
+ *
+ * This represents the Buffer Descriptor as laid out in the PIC18F4550
+ * Datasheet.  A buffer descriptor contains data about either an in or out
+ * endpoint buffer.  Bufffer descriptors are almost the same on all 8-bit
+ * parts, best I've so far been able to tell.  The fields that aren't in the
+ * newer datasheets like KEN and INCDIS aren't used, so it doesn't hurt to
+ * have them here on those parts.
+ *
+ * While the layout is very similar on 16-bit parts, a different struct is
+ * required on 16-bit for several reasons, including endianness (the 8-bit
+ * BC/BDnSTAT bits are effectively big-endian), and the ability to optimize
+ * for each platform (eg: writing BDnSTAT/BDnCNT as a 16-bit word on 16-bit
+ * platforms).
+ */
+struct buffer_descriptor {
+	union {
+		struct {
+			/* When receiving from the SIE. (USB Mode) */
+			uint8_t BC8 : 1;
+			uint8_t BC9 : 1;
+			uint8_t PID : 4; /* See enum PID */
+			uint8_t reserved: 1;
+			uint8_t UOWN : 1;
+		};
+		struct {
+			/* When giving to the SIE (CPU Mode) */
+			uint8_t /*BC8*/ : 1;
+			uint8_t /*BC9*/ : 1;
+			uint8_t BSTALL : 1;
+			uint8_t DTSEN : 1;
+			uint8_t INCDIS : 1;
+			uint8_t KEN : 1;
+			uint8_t DTS : 1;
+			uint8_t /*UOWN*/ : 1;
+		};
+		uint8_t BDnSTAT;
+	} STAT;
+	uint8_t BDnCNT;
+	BDNADR_TYPE BDnADR; /* BDnADRL and BDnADRH; */
+};
+
+#ifdef LARGE_EP
+#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
+           REG.STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
+#define BDN_LENGTH(REG) ( (REG.STAT.BDnSTAT & 0x03) << 8 | REG.BDnCNT )
+#else
+#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
+                                      REG.STAT.BDnSTAT = (FLAGS); } while(0)
+#define BDN_LENGTH(REG) (REG.BDnCNT)
+#endif
+
+#ifdef _16F1459
+#define BD_ADDR 0x2000
+#define BUFFER_ADDR 0x2080
+#else
+#error "CPU not supported yet"
+#endif
+
+#if defined __XC8
+	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
+	#define FAR
+	#define BD_ATTR_TAG @##BD_ADDR
+	#ifdef BUFFER_ADDR
+		#define XC8_BUFFER_ADDR_TAG @##BUFFER_ADDR
+	#else
+		#define XC8_BUFFER_ADDR_TAG
+	#endif
+#endif
+
+#elif _PIC18
+
+#define NEEDS_PULL /* Whether to pull up D+/D- with SFR_PULL_EN. */
+#define HAS_LOW_SPEED
+#define HAS_ON_CHIP_XCVR_DIS
 
 #define BDNADR_TYPE              uint16_t
 
@@ -162,6 +294,7 @@ struct buffer_descriptor {
 
 #define USB_NEEDS_POWER_ON
 #define USB_NEEDS_SET_BD_ADDR_REG
+#define HAS_ON_CHIP_XCVR_DIS
 
 #define BDNADR_TYPE              void *
 

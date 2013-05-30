@@ -261,7 +261,11 @@ void usb_init(void)
 #ifdef NEEDS_PULL
 	SFR_PULL_EN = 1;  /* pull-up enable */
 #endif
+
+#ifdef HAS_ON_CHIP_XCVR_DIS
 	SFR_ON_CHIP_XCVR_DIS = 0; /* on-chip transceiver Disable */
+#endif
+
 #ifdef HAS_LOW_SPEED
 	SFR_FULL_SPEED_EN = 1;   /* Full-speed enable */
 #endif
