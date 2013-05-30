@@ -1,6 +1,6 @@
 
-         M-Stack: Free USB Stack for PIC 18F and 24F Microcontrollers
-        ==============================================================
+      M-Stack: Free USB Stack for PIC 16F, 18F, and 24F Microcontrollers
+     ====================================================================
 
 About
 ======
@@ -141,8 +141,9 @@ The following MCU's and configurations have been tested:
  * PIC24FJ64GB002
  * PIC24FJ256DA206
  * PIC18F46J50 - PIC18F Starter Kit
+ * PIC16F1459
 
-If your hardware is not supported, and it's in the PIC18F/24F family, I
+If your hardware is not supported, and it's in the PIC16F/18F/24F family, I
 can probably easily make you a port without very much trouble.  The easiest
 way is for you to send me a development board.  If your hardware is in
 another MCU family which is not currently supported, I can also make you a
@@ -254,8 +255,8 @@ To create a new project, perform the following steps:
    projects into your main project directory.
 6. Modify usb_config.h to match your desired device configuration.
 7. Modify usb_descriptors.c to match your device configuration.
-8. If you're using a PIC18F platform, add an interrupt handler similar to
-   one of the examples.
+8. If you're using a PIC16F/18F platform, add an interrupt handler similar
+   to one of the examples.
 9. Reference main.c in one of the examples, and the Doxygen-generated
    documentation to add your application logic.
 10. Make sure to configure the MCU for your board (__CONFIG registers, etc.).
