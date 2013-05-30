@@ -216,14 +216,16 @@ static bool returning_short;
 
 /* Data associated with multi-packet control transfers */
 static usb_ep0_data_stage_callback ep0_data_stage_callback;
-static char   *ep0_data_stage_buffer;
+static char   *ep0_data_stage_in_buffer; /* XC8 v1.12 fails if this is const on PIC16 */
+static char   *ep0_data_stage_out_buffer;
 static size_t  ep0_data_stage_buf_remaining;
 static void   *ep0_data_stage_context;
 static uint8_t ep0_data_stage_direc; /*1=IN, 0=OUT, Same as USB spec.*/
 
 static void reset_ep0_data_stage()
 {
-	ep0_data_stage_buffer = NULL;
+	ep0_data_stage_in_buffer = NULL;
+	ep0_data_stage_out_buffer = NULL;
 	ep0_data_stage_buf_remaining = 0;
 
 	/* There's no need to reset the following because no decisions are
@@ -420,7 +422,7 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
 	returning_short = len != bytes_asked_for;
 	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
-	ep0_data_stage_buffer = ((char*)ptr) + bytes_to_send;
+	ep0_data_stage_in_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
 
 	/* Send back the first transaction */
@@ -758,10 +760,10 @@ static inline void handle_ep0_out()
 		 * received, call the application-provided callback.
 		 */
 
-		if (ep0_data_stage_buffer) {
+		if (ep0_data_stage_out_buffer) {
 			uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
-			memcpy(ep0_data_stage_buffer, ep_buf[0].out, bytes_to_copy);
-			ep0_data_stage_buffer += bytes_to_copy;
+			memcpy(ep0_data_stage_out_buffer, ep_buf[0].out, bytes_to_copy);
+			ep0_data_stage_out_buffer += bytes_to_copy;
 			ep0_data_stage_buf_remaining -= bytes_to_copy;
 
 			/* It's possible that bytes_to_copy is less than pkt_len
@@ -798,9 +800,9 @@ static inline void handle_ep0_in()
 		/* There's already a multi-transaction transfer in process. */
 		uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
 
-		memcpy_from_rom(ep_buf[0].in, ep0_data_stage_buffer, bytes_to_send);
+		memcpy_from_rom(ep_buf[0].in, ep0_data_stage_in_buffer, bytes_to_send);
 		ep0_data_stage_buf_remaining -= bytes_to_send;
-		ep0_data_stage_buffer += bytes_to_send;
+		ep0_data_stage_in_buffer += bytes_to_send;
 
 		/* If we hit the end with a full-length packet, set up
 		   to send a zero-length packet at the next IN token, but only
@@ -996,7 +998,7 @@ void usb_start_receive_ep0_data_stage(char *buffer, size_t len,
 	reset_ep0_data_stage();
 
 	ep0_data_stage_callback = callback;
-	ep0_data_stage_buffer = buffer;
+	ep0_data_stage_out_buffer = buffer;
 	ep0_data_stage_buf_remaining = len;
 	ep0_data_stage_context = context;
 }
