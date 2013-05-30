@@ -212,6 +212,7 @@ static bool addr_pending;
 static uint8_t addr;
 static uint8_t g_configuration;
 static bool control_need_zlp;
+static bool returning_short;
 
 /* Data associated with multi-packet control transfers */
 static usb_ep0_data_stage_callback ep0_data_stage_callback;
@@ -417,6 +418,7 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 {
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
+	returning_short = len != bytes_asked_for;
 	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
 	ep0_data_stage_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
@@ -801,8 +803,11 @@ static inline void handle_ep0_in()
 		ep0_data_stage_buffer += bytes_to_send;
 
 		/* If we hit the end with a full-length packet, set up
-		   to send a zero-length packet at the next IN token. */
-		if (ep0_data_stage_buf_remaining == 0 && bytes_to_send == EP_0_IN_LEN)
+		   to send a zero-length packet at the next IN token, but only
+		   if we are returning less data than was requested. */
+		if (ep0_data_stage_buf_remaining == 0 &&
+		    bytes_to_send == EP_0_IN_LEN &&
+		    returning_short)
 			control_need_zlp = 1;
 
 		usb_send_in_buffer(0, bytes_to_send);
