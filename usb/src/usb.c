@@ -886,14 +886,15 @@ void usb_service(void)
 			/* An OUT or SETUP transaction has completed on
 			 * Endpoint 0.  Handle the data that was received.
 			 */
-			if (BDS0OUT(0).STAT.PID == PID_SETUP) {
+			uint8_t pid = BDS0OUT(0).STAT.PID;
+			if (pid == PID_SETUP) {
 				handle_ep0_setup();
 			}
-			else if (BDS0OUT(0).STAT.PID == PID_IN) {
+			else if (pid == PID_IN) {
 				/* Nonsense condition:
 				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
 			}
-			else if (BDS0OUT(0).STAT.PID == PID_OUT) {
+			else if (pid == PID_OUT) {
 				handle_ep0_out();
 			}
 			else {
