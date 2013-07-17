@@ -403,6 +403,23 @@ static void send_zero_length_packet_ep0()
 	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
 }
 
+static void usb_send_in_buffer_0(size_t len)
+{
+	if (!usb_in_endpoint_halted(0)) {
+		uint8_t pid;
+		pid = !bds[0].ep_in.STAT.DTS;
+		bds[0].ep_in.STAT.BDnSTAT = 0;
+
+		if (pid)
+			SET_BDN(bds[0].ep_in,
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
+		else
+			SET_BDN(bds[0].ep_in,
+				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
+	}
+}
+
+
 /* Start Control Return
  *
  * Start the data stage of an IN control transfer. This is primarily used
@@ -816,10 +833,10 @@ static inline void handle_ep0_in()
 		    returning_short)
 			control_need_zlp = 1;
 
-		usb_send_in_buffer(0, bytes_to_send);
+		usb_send_in_buffer_0(bytes_to_send);
 	}
 	else if (control_need_zlp) {
-		usb_send_in_buffer(0, 0);
+		usb_send_in_buffer_0(0);
 		control_need_zlp = 0;
 		reset_ep0_data_stage();
 	}
