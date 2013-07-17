@@ -34,6 +34,14 @@
 
 #define NUMBER_OF_CONFIGURATIONS 1
 
+/* Ping-pong buffering mode. Valid values are:
+	PPB_NONE         - Do not ping-pong any endpoints
+	PPB_EPO_OUT_ONLY - Ping-pong only endpoint 0 OUT
+	PPB_ALL          - Ping-pong all endpoints
+	PPB_EPN_ONLY     - Ping-pong all endpoints except 0
+*/
+#define PPB_MODE PPB_EPN_ONLY
+
 /* Comment the following line to use polling USB operation. You are responsible
    then for calling usb_service() periodically from your application. */
 #define USB_USE_INTERRUPTS

@@ -29,7 +29,7 @@
 
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
-#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = n & 2; } while (0)
+#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = (n & 2)? 1: 0; } while (0)
 
 #define SFR_USB_INTERRUPT_FLAGS  UIR
 #define SFR_USB_RESET_IF         UIRbits.URSTIF
@@ -141,6 +141,11 @@ struct buffer_descriptor {
 #error "CPU not supported yet"
 #endif
 
+#define PPB_NONE         0
+#define PPB_EPO_OUT_ONLY 1
+#define PPB_ALL          2
+#define PPB_EPN_ONLY     3
+
 #if defined __XC8
 	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
 	#define FAR
@@ -163,7 +168,7 @@ struct buffer_descriptor {
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
 #define SFR_ON_CHIP_XCVR_DIS     UCFGbits.UTRDIS
-#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = n & 2; } while (0)
+#define SET_PING_PONG_MODE(n)    do { UCFGbits.PPB0 = n & 1; UCFGbits.PPB1 = (n & 2)? 1: 0; } while (0)
 
 #define SFR_USB_INTERRUPT_FLAGS  UIR
 #define SFR_USB_RESET_IF         UIRbits.URSTIF
@@ -274,6 +279,11 @@ struct buffer_descriptor {
 #else
 #error "CPU not supported yet"
 #endif
+
+#define PPB_NONE         0
+#define PPB_EPO_OUT_ONLY 1
+#define PPB_ALL          2
+#define PPB_EPN_ONLY     3
 
 /* Compiler stuff. Probably should be somewhere else. */
 #ifdef __C18
@@ -399,11 +409,15 @@ struct buffer_descriptor {
 	#define BDN_LENGTH(REG) (REG.STAT.BDnSTAT_lsb)
 #endif
 
-
 #define BD_ADDR
 #define BUFFER_ADDR
 #define BD_ATTR_TAG __attribute__((aligned(512)))
 #define XC8_BUFFER_ADDR_TAG
+
+#define PPB_NONE         0
+#define PPB_EPO_OUT_ONLY 1
+#define PPB_ALL          2
+#define PPB_EPN_ONLY     3
 
 /* Compiler stuff. Probably should be somewhere else. */
 #define FAR

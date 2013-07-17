@@ -44,6 +44,26 @@
 #define EP_0_OUT_LEN EP_0_LEN
 #define EP_0_IN_LEN  EP_0_LEN
 
+#ifndef PPB_MODE
+	#error "PPB_MODE not defined. Define it to one of the four PPB_* macros in usb_hal.h"
+#endif
+
+#if PPB_MODE == PPB_EPO_OUT_ONLY
+	#error "Ping-pong buffer PPB_EPO_OUT_ONLY mode not supported"
+#elif PPB_MODE == PPB_EPN_ONLY
+	#undef PPB_EP0
+	#define PPB_EPn
+#elif PPB_MODE == PPB_NONE
+	#undef PPB_EP0
+	#undef PPB_EPn
+#elif PPB_MODE == PPB_ALL
+	#define PPB_EP0
+	#define PPB_EPn
+	#error "Ping-pong buffer EP0_ALL mode not supported"
+#else
+	#error "Must select a valid PPB_MODE"
+#endif
+
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct endpoint_descriptor), 7);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct hid_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
@@ -52,11 +72,6 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 
-struct buffer_descriptor_pair {
-	struct buffer_descriptor ep_out;
-	struct buffer_descriptor ep_in;
-};
-
 #ifdef __C18
 /* The buffer descriptors. Per the PIC18F4550 Data sheet, when _not_ using
    ping-pong buffering, these must be laid out sequentially starting at
@@ -64,12 +79,48 @@ struct buffer_descriptor_pair {
    etc. These must be initialized prior to use. */
 #pragma udata buffer_descriptors=BD_ADDR
 #endif
-static struct buffer_descriptor_pair bds[NUM_ENDPOINT_NUMBERS+1] BD_ATTR_TAG;
 
-#define BDS0OUT(oe) bds[0].ep_out
-#define BDS0IN(oe) bds[0].ep_in
-#define BDSnOUT(EP,oe) bds[(EP)].ep_out
-#define BDSnIN(EP,oe) bds[(EP)].ep_in
+
+/* Calculate the number of Buffer Descriptor pairs, which depends on the
+   ping-pong modes active and the number of endpoints used. */
+#ifdef PPB_EP0
+	#define NUM_BD_0 4
+#else
+	#define NUM_BD_0 2
+#endif
+
+#ifdef PPB_EPn
+	#define NUM_BD (4 * (NUM_ENDPOINT_NUMBERS) + NUM_BD_0)
+#else
+	#define NUM_BD (2 * (NUM_ENDPOINT_NUMBERS) + NUM_BD_0)
+#endif
+
+/* Macros to access a specific buffer descriptor, which depends on the
+   ping-pong modes active. Since EP 0 can have a different ping-pong mode
+   than the other endpoints, EP0's buffer descriptor should be accessed through
+   BDS0OUT() and BDS0IN() only. It is not valid to call BDSnOUT(0,oe), for
+   example*/
+#if PPB_MODE == PPB_EPO_OUT_ONLY
+	#error "Ping-pong buffer PPB_EPO_OUT_ONLY mode not supported"
+#elif PPB_MODE == PPB_EPN_ONLY
+	#define BDS0OUT(oe) bds[0]
+	#define BDS0IN(oe) bds[1]
+	#define BDSnOUT(EP,oe) bds[(EP) * 4 - 2 + (oe)]
+	#define BDSnIN(EP,oe) bds[(EP) * 4 + (oe)]
+#elif PPB_MODE == PPB_NONE
+	#define BDS0OUT(oe) bds[0]
+	#define BDS0IN(oe) bds[1]
+	#define BDSnOUT(EP,oe) bds[(EP) * 2]
+	#define BDSnIN(EP,oe) bds[(EP) * 2 + 1]
+#elif PPB_MODE == PPB_ALL
+	#error "Ping-pong buffer PPB_ALL mode not supported"
+	#define PPB_EP0
+	#define PPB_EPn
+#else
+#error "Must select a valid PPB_MODE"
+#endif
+
+static struct buffer_descriptor bds[NUM_BD] BD_ATTR_TAG;
 
 #ifdef __C18
 /* The actual buffers to and from which the data is transferred from the SIE
@@ -86,13 +137,33 @@ static struct buffer_descriptor_pair bds[NUM_ENDPOINT_NUMBERS+1] BD_ATTR_TAG;
 #endif
 
 static struct {
-#define EP_BUF(n) \
-	unsigned char ep_##n##_out_buf[EP_##n##_OUT_LEN]; \
-	unsigned char ep_##n##_in_buf[EP_##n##_IN_LEN];
+/* Set up the EP_BUF() macro for EP0 */
+#ifdef PPB_EP0
+	#define EP_BUF(n) \
+		unsigned char ep_##n##_out_buf[2][EP_##n##_OUT_LEN]; \
+		unsigned char ep_##n##_in_buf[2][EP_##n##_IN_LEN];
+#else
+	#define EP_BUF(n) \
+		unsigned char ep_##n##_out_buf[1][EP_##n##_OUT_LEN]; \
+		unsigned char ep_##n##_in_buf[1][EP_##n##_IN_LEN];
+#endif
 
 #if NUM_ENDPOINT_NUMBERS >= 0
 	EP_BUF(0)
 #endif
+
+/* Re-setup the EP_BUF() macro for the rest of the endpoints */
+#undef EP_BUF
+#ifdef PPB_EPn
+	#define EP_BUF(n) \
+		unsigned char ep_##n##_out_buf[2][EP_##n##_OUT_LEN]; \
+		unsigned char ep_##n##_in_buf[2][EP_##n##_IN_LEN];
+#else
+	#define EP_BUF(n) \
+		unsigned char ep_##n##_out_buf[1][EP_##n##_OUT_LEN]; \
+		unsigned char ep_##n##_in_buf[1][EP_##n##_IN_LEN];
+#endif
+
 #if NUM_ENDPOINT_NUMBERS >= 1
 	EP_BUF(1)
 #endif
@@ -143,13 +214,22 @@ static struct {
 } ep_buffers XC8_BUFFER_ADDR_TAG;
 
 struct ep_buf {
-	unsigned char * const out;
-	unsigned char * const in;
+	unsigned char * const out; /* buffers for the even buffer descriptor */
+	unsigned char * const in;  /* ie: ppbi = 0 */
+#ifdef PPB_EPn
+	unsigned char * const out1; /* buffers for the odd buffer descriptor */
+	unsigned char * const in1;  /* ie: ppbi = 1 */
+#endif
 	const uint8_t out_len;
 	const uint8_t in_len;
 
 #define EP_OUT_HALT_FLAG 0x1
 #define EP_IN_HALT_FLAG 0x2
+#define EP_RX_DTS 0x4  /* The DTS of the _next_ packet */
+#define EP_TX_DTS 0x8
+#define EP_RX_PPBI 0x10 /* Represents the next buffer which will be need to be
+                           reset and given back to the SIE. */
+#define EP_TX_PPBI 0x20 /* Represents the _next_ buffer to write into. */
 	uint8_t flags;
 };
 
@@ -157,11 +237,32 @@ struct ep_buf {
 #pragma idata
 #endif
 
-#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf, ep_buffers.ep_##n##_in_buf, EP_##n##_OUT_LEN, EP_##n##_IN_LEN },
+#ifdef PPB_EPn
+	#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf[0], \
+	                     ep_buffers.ep_##n##_in_buf[0], \
+	                     ep_buffers.ep_##n##_out_buf[1], \
+	                     ep_buffers.ep_##n##_in_buf[1], \
+	                     EP_##n##_OUT_LEN, \
+	                     EP_##n##_IN_LEN },
+
+	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
+	                     ep_buffers.ep_0_in_buf[0], \
+	                     NULL, NULL, \
+	                     EP_0_OUT_LEN, EP_0_IN_LEN },
+#else
+	#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf[0], \
+	                     ep_buffers.ep_##n##_in_buf[0], \
+	                     EP_##n##_OUT_LEN, \
+	                     EP_##n##_IN_LEN },
+
+	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
+	                     ep_buffers.ep_0_in_buf[0], \
+	                     EP_0_OUT_LEN, EP_0_IN_LEN },
+#endif
 
 static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 #if NUM_ENDPOINT_NUMBERS >= 0
-	EP_BUFS(0)
+	EP_BUFS0()
 #endif
 #if NUM_ENDPOINT_NUMBERS >= 1
 	EP_BUFS(1)
@@ -211,6 +312,7 @@ static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 
 };
 #undef EP_BUFS
+#undef EP_BUFS0
 
 /* Global data */
 static bool addr_pending;
@@ -252,7 +354,7 @@ void usb_init(void)
 	uint8_t i;
 
 	/* Initialize the USB. 18.4 of PIC24FJ64GB004 datasheet */
-	SET_PING_PONG_MODE(0);   /* 0 = disable ping-pong buffer */
+	SET_PING_PONG_MODE(PPB_MODE);
 	SFR_USB_INTERRUPT_EN = 0x0;
 	SFR_USB_EXTENDED_INTERRUPT_EN = 0x0;
 	
@@ -332,8 +434,13 @@ void usb_init(void)
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
 	g_configuration = 0;
-	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++)
+	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++) {
+#ifdef PPB_EPn
 		ep_buf[i].flags = 0;
+#else
+		ep_buf[i].flags = EP_RX_DTS;
+#endif
+	}
 
 	memset(bds, 0x0, sizeof(bds));
 
@@ -341,22 +448,37 @@ void usb_init(void)
 	   Input and output are from the HOST perspective. */
 	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep_buf[0].out;
 	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, ep_buf[0].out_len);
+#ifdef PPB_EP0
+	#error Add PPB ep zero support
+#endif
 
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
 	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep_buf[0].in;
 	SET_BDN(BDS0IN(0), 0, ep_buf[0].in_len);
+#ifdef PPB_EP0
+	#error Add PPB ep zero support
+#endif
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		/* Setup endpoint 1 Output buffer descriptor.
 		   Input and output are from the HOST perspective. */
 		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].out;
-		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN, ep_buf[i].out_len);
-
+		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[i].out_len);
+#ifdef PPB_EPn
+		/* Initialize EVEN buffers when in ping-pong mode. */
+		BDSnOUT(i,1).BDnADR = (BDNADR_TYPE) ep_buf[i].out1;
+		SET_BDN(BDSnOUT(i,1), BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS, ep_buf[i].out_len);
+#endif
 		/* Setup endpoint 1 Input buffer descriptor.
 		   Input and output are from the HOST perspective. */
 		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].in;
-		SET_BDN(BDSnIN(i,0), BDNSTAT_DTS, ep_buf[i].in_len);
+		SET_BDN(BDSnIN(i,0), 0, ep_buf[i].in_len);
+#ifdef PPB_EPn
+		/* Initialize EVEN buffers when in ping-pong mode. */
+		BDSnIN(i,1).BDnADR = (BDNADR_TYPE) ep_buf[i].in1;
+		SET_BDN(BDSnIN(i,1), 0, ep_buf[i].in_len);
+#endif
 	}
 	
 	#ifdef USB_NEEDS_POWER_ON
@@ -392,14 +514,24 @@ static void stall_ep0(void)
 
 static void stall_ep_in(uint8_t ep)
 {
-	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
+	/* Stall Endpoint. It's important that DTSEN and DTS are zero.
+	 * Although the datasheet doesn't stay it, the only safe way to do this
+	 * is to set BSTALL on BOTH buffers when in ping-pong mode. */
 	SET_BDN(BDSnIN(ep, 0), BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
+#ifdef PPB_EPn
+	SET_BDN(BDSnIN(ep, 1), BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
+#endif
 }
 
 static void stall_ep_out(uint8_t ep)
 {
-	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
-	SET_BDN(BDSnOUT(ep, 0), BDNSTAT_UOWN|BDNSTAT_BSTALL , ep_buf[ep].out_len);
+	/* Stall Endpoint. It's important that DTSEN and DTS are zero.
+	 * Although the datasheet doesn't stay it, the only safe way to do this
+	 * is to set BSTALL on BOTH buffers when in ping-pong mode. */
+	SET_BDN(BDSnOUT(ep, 0), BDNSTAT_UOWN|BDNSTAT_BSTALL , 0);
+#ifdef PPB_EPn
+	SET_BDN(BDSnOUT(ep, 1), BDNSTAT_UOWN|BDNSTAT_BSTALL , 0);
+#endif
 }
 
 static void send_zero_length_packet_ep0()
@@ -673,12 +805,33 @@ static inline int8_t handle_standard_control_request()
 						/* Clear Endpoint Halt Feature.
 						   Clear the STALL on the affected endpoint. */
 						if (ep_dir) {
-							ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
+#ifdef PPB_EPn
 							SET_BDN(BDSnIN(ep_num, 0), 0, ep_buf[ep_num].in_len);
+							SET_BDN(BDSnIN(ep_num, 1), 0, ep_buf[ep_num].in_len);
+#else
+							SET_BDN(BDSnIN(ep_num, 0), 0, ep_buf[ep_num].in_len);
+#endif
+							/* Clear DTS. Next packet to be sent will be DATA0. */
+							ep_buf[ep_num].flags &= ~EP_TX_DTS;
+
+							ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
 						}
 						else {
-							ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
+#ifdef PPB_EPn
+							uint8_t ppbi = (ep_buf[ep_num].flags & EP_RX_PPBI)? 1 : 0;
+							/* Put the current buffer at DTS 0, and the next (opposite) buffer at DTS 1 */
+							SET_BDN(BDSnOUT(ep_num, ppbi), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[ep_num].out_len);
+							SET_BDN(BDSnOUT(ep_num, !ppbi), BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS, ep_buf[ep_num].out_len);
+
+							/* Clear DTS */
+							ep_buf[ep_num].flags &= ~EP_RX_DTS;
+#else
 							SET_BDN(BDSnOUT(ep_num, 0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[ep_num].out_len);
+
+							/* Set DTS */
+							ep_buf[ep_num].flags |= EP_RX_DTS;
+#endif
+							ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
 						}
 					}
 #ifdef ENDPOINT_HALT_CALLBACK
@@ -874,6 +1027,17 @@ void usb_service(void)
 	}
 	
 	if (SFR_USB_STALL_IF) {
+		/* On PIC24/32, EPSTALL bits must be cleared, or else the
+		 * stalled endpoint's opposite direction (eg: EP1 IN => EP1
+		 * OUT) will also stall (incorrectly). There is no way to
+		 * determine which endpoint generated this interrupt, so all
+		 * the endpoints' EPSTALL bits must be checked and cleared. */
+		int i;
+		for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
+			volatile SFR_EP_MGMT_TYPE *ep = SFR_EP_MGMT(i);
+			ep->SFR_EP_MGMT_STALL = 0;
+		}
+
 		CLEAR_USB_STALL_IF();
 	}
 
@@ -962,28 +1126,66 @@ uint8_t usb_get_configuration(void)
 
 unsigned char *usb_get_in_buffer(uint8_t endpoint)
 {
+#ifdef PPB_EPn
+	if (ep_buf[endpoint].flags & EP_TX_PPBI /*odd*/)
+		return ep_buf[endpoint].in1;
+	else
+		return ep_buf[endpoint].in;
+#else
 	return ep_buf[endpoint].in;
+#endif
 }
 
 void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
-	if ((g_configuration > 0 || endpoint == 0) && !usb_in_endpoint_halted(endpoint)) {
+#ifdef DEBUG
+	if (endpoint == 0)
+		error();
+#endif
+	if (g_configuration > 0 && !usb_in_endpoint_halted(endpoint)) {
 		uint8_t pid;
-		pid = !BDSnIN(endpoint,0).STAT.DTS;
-		BDSnIN(endpoint,0).STAT.BDnSTAT = 0;
+		struct buffer_descriptor *bd;
+#ifdef PPB_EPn
+		uint8_t ppbi = (ep_buf[endpoint].flags & EP_TX_PPBI)? 1 : 0;
+
+		bd = &BDSnIN(endpoint,ppbi);
+		pid = (ep_buf[endpoint].flags & EP_TX_DTS)? 1 : 0;
+		bd->STAT.BDnSTAT = 0;
 
 		if (pid)
-			SET_BDN(BDSnIN(endpoint,0),
+			SET_BDN(BDSnIN(endpoint,ppbi),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
 		else
-			SET_BDN(BDSnIN(endpoint,0),
+			SET_BDN(BDSnIN(endpoint,ppbi),
 				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
+
+		ep_buf[endpoint].flags ^= EP_TX_PPBI;
+		ep_buf[endpoint].flags ^= EP_TX_DTS;
+#else
+		bd = &BDSnIN(endpoint,0);
+		pid = (ep_buf[endpoint].flags & EP_TX_DTS)? 1 : 0;
+		bd->STAT.BDnSTAT = 0;
+
+		if (pid)
+			SET_BDN(*bd,
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
+		else
+			SET_BDN(*bd,
+				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
+
+		ep_buf[endpoint].flags ^= EP_TX_DTS;
+#endif
 	}
 }
 
 bool usb_in_endpoint_busy(uint8_t endpoint)
 {
+#ifdef PPB_EPn
+	uint8_t ppbi = (ep_buf[endpoint].flags & EP_TX_PPBI)? 1: 0;
+	return BDSnIN(endpoint, ppbi).STAT.UOWN;
+#else
 	return BDSnIN(endpoint,0).STAT.UOWN;
+#endif
 }
 
 bool usb_in_endpoint_halted(uint8_t endpoint)
@@ -993,18 +1195,52 @@ bool usb_in_endpoint_halted(uint8_t endpoint)
 
 uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buf)
 {
+#ifdef PPB_EPn
+	uint8_t ppbi = (ep_buf[endpoint].flags & EP_RX_PPBI)? 1: 0;
+
+	if (ppbi /*odd*/)
+		*buf = ep_buf[endpoint].out1;
+	else
+		*buf = ep_buf[endpoint].out;
+
+	return BDN_LENGTH(BDSnOUT(endpoint, ppbi));
+#else
 	*buf = ep_buf[endpoint].out;
-	return BDN_LENGTH(BDSnOUT(endpoint,0));
+	return BDN_LENGTH(BDSnOUT(endpoint, 0));
+#endif
 }
 
 bool usb_out_endpoint_has_data(uint8_t endpoint)
 {
+#ifdef PPB_EPn
+	uint8_t ppbi = (ep_buf[endpoint].flags & EP_RX_PPBI)? 1: 0;
+	return !BDSnOUT(endpoint,ppbi).STAT.UOWN;
+#else
 	return !BDSnOUT(endpoint,0).STAT.UOWN;
+#endif
 }
 
 void usb_arm_out_endpoint(uint8_t endpoint)
 {
-	uint8_t pid = !BDSnOUT(endpoint,0).STAT.DTS;
+#ifdef PPB_EPn
+	uint8_t ppbi = (ep_buf[endpoint].flags & EP_RX_PPBI)? 1: 0;
+	uint8_t pid = (ep_buf[endpoint].flags & EP_RX_DTS)? 1: 0;
+
+	if (pid)
+		SET_BDN(BDSnOUT(endpoint,ppbi),
+			BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS,
+			ep_buf[endpoint].out_len);
+	else
+		SET_BDN(BDSnOUT(endpoint,ppbi),
+			BDNSTAT_UOWN|BDNSTAT_DTSEN,
+			ep_buf[endpoint].out_len);
+
+	/* Alternate the PPBI */
+	ep_buf[endpoint].flags ^= EP_RX_PPBI;
+	ep_buf[endpoint].flags ^= EP_RX_DTS;
+
+#else
+	uint8_t pid = (ep_buf[endpoint].flags & EP_RX_DTS)? 1: 0;
 	if (pid)
 		SET_BDN(BDSnOUT(endpoint,0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
@@ -1013,6 +1249,10 @@ void usb_arm_out_endpoint(uint8_t endpoint)
 		SET_BDN(BDSnOUT(endpoint,0),
 			BDNSTAT_UOWN|BDNSTAT_DTSEN,
 			ep_buf[endpoint].out_len);
+
+	ep_buf[endpoint].flags ^= EP_RX_DTS;
+#endif
+
 }
 
 bool usb_out_endpoint_halted(uint8_t endpoint)
