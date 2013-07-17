@@ -66,6 +66,11 @@ struct buffer_descriptor_pair {
 #endif
 static struct buffer_descriptor_pair bds[NUM_ENDPOINT_NUMBERS+1] BD_ATTR_TAG;
 
+#define BDS0OUT(oe) bds[0].ep_out
+#define BDS0IN(oe) bds[0].ep_in
+#define BDSnOUT(EP,oe) bds[(EP)].ep_out
+#define BDSnIN(EP,oe) bds[(EP)].ep_in
+
 #ifdef __C18
 /* The actual buffers to and from which the data is transferred from the SIE
    (from the USB bus). These buffers must fully be located between addresses
@@ -334,24 +339,24 @@ void usb_init(void)
 
 	/* Setup endpoint 0 Output buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	bds[0].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[0].out;
-	SET_BDN(bds[0].ep_out, BDNSTAT_UOWN, ep_buf[0].out_len);
+	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep_buf[0].out;
+	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, ep_buf[0].out_len);
 
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	bds[0].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[0].in;
-	SET_BDN(bds[0].ep_in, 0, ep_buf[0].in_len);
+	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep_buf[0].in;
+	SET_BDN(BDS0IN(0), 0, ep_buf[0].in_len);
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		/* Setup endpoint 1 Output buffer descriptor.
 		   Input and output are from the HOST perspective. */
-		bds[i].ep_out.BDnADR = (BDNADR_TYPE) ep_buf[i].out;
-		SET_BDN(bds[i].ep_out, BDNSTAT_UOWN, ep_buf[i].out_len);
+		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].out;
+		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN, ep_buf[i].out_len);
 
 		/* Setup endpoint 1 Input buffer descriptor.
 		   Input and output are from the HOST perspective. */
-		bds[i].ep_in.BDnADR = (BDNADR_TYPE) ep_buf[i].in;
-		SET_BDN(bds[i].ep_in, BDNSTAT_DTS, ep_buf[i].in_len);
+		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].in;
+		SET_BDN(BDSnIN(i,0), BDNSTAT_DTS, ep_buf[i].in_len);
 	}
 	
 	#ifdef USB_NEEDS_POWER_ON
@@ -376,45 +381,45 @@ static void reset_bd0_out(void)
 	/* Clean up the Buffer Descriptors.
 	 * Set the length and hand it back to the SIE.
 	 * The Address stays the same. */
-	SET_BDN(bds[0].ep_out, BDNSTAT_UOWN, ep_buf[0].out_len);
+	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, ep_buf[0].out_len);
 }
 
 static void stall_ep0(void)
 {
 	/* Stall Endpoint 0. It's important that DTSEN and DTS are zero. */
-	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[0].in_len);
+	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[0].in_len);
 }
 
 static void stall_ep_in(uint8_t ep)
 {
 	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
-	SET_BDN(bds[ep].ep_in, BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
+	SET_BDN(BDSnIN(ep, 0), BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[ep].in_len);
 }
 
 static void stall_ep_out(uint8_t ep)
 {
 	/* Stall Endpoint. It's important that DTSEN and DTS are zero. */
-	SET_BDN(bds[ep].ep_out, BDNSTAT_UOWN|BDNSTAT_BSTALL , ep_buf[ep].out_len);
+	SET_BDN(BDSnOUT(ep, 0), BDNSTAT_UOWN|BDNSTAT_BSTALL , ep_buf[ep].out_len);
 }
 
 static void send_zero_length_packet_ep0()
 {
-	bds[0].ep_in.STAT.BDnSTAT = 0;
-	SET_BDN(bds[0].ep_in, BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
+	BDS0IN(0).STAT.BDnSTAT = 0;
+	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
 }
 
 static void usb_send_in_buffer_0(size_t len)
 {
 	if (!usb_in_endpoint_halted(0)) {
 		uint8_t pid;
-		pid = !bds[0].ep_in.STAT.DTS;
-		bds[0].ep_in.STAT.BDnSTAT = 0;
+		pid = !BDS0IN(0).STAT.DTS;
+		BDS0IN(0).STAT.BDnSTAT = 0;
 
 		if (pid)
-			SET_BDN(bds[0].ep_in,
+			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
 		else
-			SET_BDN(bds[0].ep_in,
+			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
 	}
 }
@@ -447,8 +452,8 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
 
 	/* Send back the first transaction */
-	bds[0].ep_in.STAT.BDnSTAT = 0;
-	SET_BDN(bds[0].ep_in,
+	BDS0IN(0).STAT.BDnSTAT = 0;
+	SET_BDN(BDS0IN(0),
 		BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 		bytes_to_send);
 }
@@ -541,10 +546,11 @@ static inline int8_t handle_standard_control_request()
 		SERIAL("Get Configuration. Returning:");
 		SERIAL_VAL(g_configuration);
 
-		bds[0].ep_in.STAT.BDnSTAT = 0;
+		BDS0IN(0).STAT.BDnSTAT = 0;
 		ep_buf[0].in[0] = g_configuration;
-		SET_BDN(bds[0].ep_in,
+		SET_BDN(BDS0IN(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
+		//TODO
 	}
 	else if (setup->bRequest == GET_STATUS) {
 
@@ -555,14 +561,14 @@ static inline int8_t handle_standard_control_request()
 		if (setup->REQUEST.destination == 0 /*0=device*/) {
 			/* Status for the DEVICE requested
 			   Return as a single byte in the return packet. */
-			bds[0].ep_in.STAT.BDnSTAT = 0;
+			BDS0IN(0).STAT.BDnSTAT = 0;
 #ifdef GET_DEVICE_STATUS_CALLBACK
 			*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
 #else
 			ep_buf[0].in[0] = 0;
 			ep_buf[0].in[1] = 0;
 #endif
-			SET_BDN(bds[0].ep_in,
+			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 2);
 		}
 		else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
@@ -570,12 +576,12 @@ static inline int8_t handle_standard_control_request()
 			uint8_t ep_num = setup->wIndex & 0x0f;
 			if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 				uint8_t flags = ep_buf[ep_num].flags;
-				bds[0].ep_in.STAT.BDnSTAT = 0;
+				BDS0IN(0).STAT.BDnSTAT = 0;
 				ep_buf[0].in[0] = ((setup->wIndex & 0x80) ?
 					flags & EP_IN_HALT_FLAG :
 					flags & EP_OUT_HALT_FLAG) != 0;
 				ep_buf[0].in[1] = 0;
-				SET_BDN(bds[0].ep_in,
+				SET_BDN(BDS0IN(0),
 					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 					2);
 			}
@@ -623,9 +629,9 @@ static inline int8_t handle_standard_control_request()
 		else {
 			/* Return the current alternate setting
 			   as a single byte in the return packet. */
-			bds[0].ep_in.STAT.BDnSTAT = 0;
+			BDS0IN(0).STAT.BDnSTAT = 0;
 			ep_buf[0].in[0] = res;
-			SET_BDN(bds[0].ep_in,
+			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
 		}
 #else
@@ -633,9 +639,9 @@ static inline int8_t handle_standard_control_request()
 		 * we only have one alternate setting per
 		 * interface and return zero as that
 		 * alternate setting. */
-		bds[0].ep_in.STAT.BDnSTAT = 0;
+		BDS0IN(0).STAT.BDnSTAT = 0;
 		ep_buf[0].in[0] = 0;
-		SET_BDN(bds[0].ep_in,
+		SET_BDN(BDS0IN(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
 #endif
 	}
@@ -668,11 +674,11 @@ static inline int8_t handle_standard_control_request()
 						   Clear the STALL on the affected endpoint. */
 						if (ep_dir) {
 							ep_buf[ep_num].flags &= ~(EP_IN_HALT_FLAG);
-							SET_BDN(bds[ep_num].ep_in, BDNSTAT_DTS, ep_buf[ep_num].in_len);
+							SET_BDN(BDSnIN(ep_num, 0), 0, ep_buf[ep_num].in_len);
 						}
 						else {
 							ep_buf[ep_num].flags &= ~(EP_OUT_HALT_FLAG);
-							SET_BDN(bds[ep_num].ep_out, BDNSTAT_UOWN, ep_buf[ep_num].out_len);
+							SET_BDN(BDSnOUT(ep_num, 0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[ep_num].out_len);
 						}
 					}
 #ifdef ENDPOINT_HALT_CALLBACK
@@ -755,7 +761,7 @@ out:
 
 static inline void handle_ep0_out()
 {
-	uint8_t pkt_len = BDN_LENGTH(bds[0].ep_out);
+	uint8_t pkt_len = BDN_LENGTH(BDS0OUT(0));
 	if (ep0_data_stage_direc == 1/*1=IN*/) {
 		/* An empty OUT packet on an IN control transfer
 		 * means the STATUS stage of the control
@@ -768,8 +774,8 @@ static inline void handle_ep0_out()
 
 		/* Clean up the Buffer Descriptors.
 		   Set the length and hand it back to the SIE. */
-		bds[0].ep_out.STAT.BDnSTAT = 0;
-		SET_BDN(bds[0].ep_out,
+		BDS0OUT(0).STAT.BDnSTAT = 0;
+		SET_BDN(BDS0OUT(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 			ep_buf[0].out_len);
 	}
@@ -880,14 +886,14 @@ void usb_service(void)
 			/* An OUT or SETUP transaction has completed on
 			 * Endpoint 0.  Handle the data that was received.
 			 */
-			if (bds[0].ep_out.STAT.PID == PID_SETUP) {
+			if (BDS0OUT(0).STAT.PID == PID_SETUP) {
 				handle_ep0_setup();
 			}
-			else if (bds[0].ep_out.STAT.PID == PID_IN) {
+			else if (BDS0OUT(0).STAT.PID == PID_IN) {
 				/* Nonsense condition:
 				   (PID IN on SFR_USB_STATUS_DIR == OUT) */
 			}
-			else if (bds[0].ep_out.STAT.PID == PID_OUT) {
+			else if (BDS0OUT(0).STAT.PID == PID_OUT) {
 				handle_ep0_out();
 			}
 			else {
@@ -962,21 +968,21 @@ void usb_send_in_buffer(uint8_t endpoint, size_t len)
 {
 	if ((g_configuration > 0 || endpoint == 0) && !usb_in_endpoint_halted(endpoint)) {
 		uint8_t pid;
-		pid = !bds[endpoint].ep_in.STAT.DTS;
-		bds[endpoint].ep_in.STAT.BDnSTAT = 0;
+		pid = !BDSnIN(endpoint,0).STAT.DTS;
+		BDSnIN(endpoint,0).STAT.BDnSTAT = 0;
 
 		if (pid)
-			SET_BDN(bds[endpoint].ep_in,
+			SET_BDN(BDSnIN(endpoint,0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
 		else
-			SET_BDN(bds[endpoint].ep_in,
+			SET_BDN(BDSnIN(endpoint,0),
 				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
 	}
 }
 
 bool usb_in_endpoint_busy(uint8_t endpoint)
 {
-	return bds[endpoint].ep_in.STAT.UOWN;
+	return BDSnIN(endpoint,0).STAT.UOWN;
 }
 
 bool usb_in_endpoint_halted(uint8_t endpoint)
@@ -987,23 +993,23 @@ bool usb_in_endpoint_halted(uint8_t endpoint)
 uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buf)
 {
 	*buf = ep_buf[endpoint].out;
-	return BDN_LENGTH(bds[endpoint].ep_out);
+	return BDN_LENGTH(BDSnOUT(endpoint,0));
 }
 
 bool usb_out_endpoint_has_data(uint8_t endpoint)
 {
-	return !bds[endpoint].ep_out.STAT.UOWN;
+	return !BDSnOUT(endpoint,0).STAT.UOWN;
 }
 
 void usb_arm_out_endpoint(uint8_t endpoint)
 {
-	uint8_t pid = !bds[endpoint].ep_out.STAT.DTS;
+	uint8_t pid = !BDSnOUT(endpoint,0).STAT.DTS;
 	if (pid)
-		SET_BDN(bds[endpoint].ep_out,
+		SET_BDN(BDSnOUT(endpoint,0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 			ep_buf[endpoint].out_len);
 	else
-		SET_BDN(bds[endpoint].ep_out,
+		SET_BDN(BDSnOUT(endpoint,0),
 			BDNSTAT_UOWN|BDNSTAT_DTSEN,
 			ep_buf[endpoint].out_len);
 }
