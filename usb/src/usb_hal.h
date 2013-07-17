@@ -124,12 +124,12 @@ struct buffer_descriptor {
 };
 
 #ifdef LARGE_EP
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-           REG.STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
-#define BDN_LENGTH(REG) ( (REG.STAT.BDnSTAT & 0x03) << 8 | REG.BDnCNT )
+#define SET_BDN(REG, FLAGS, CNT) do { (REG).BDnCNT = (CNT); \
+           (REG).STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
+#define BDN_LENGTH(REG) ( ((REG).STAT.BDnSTAT & 0x03) << 8 | (REG).BDnCNT )
 #else
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-                                      REG.STAT.BDnSTAT = (FLAGS); } while(0)
+#define SET_BDN(REG, FLAGS, CNT) do { (REG).BDnCNT = (CNT); \
+                                      (REG).STAT.BDnSTAT = (FLAGS); } while(0)
 #define BDN_LENGTH(REG) (REG.BDnCNT)
 #endif
 
@@ -257,12 +257,12 @@ struct buffer_descriptor {
 };
 
 #ifdef LARGE_EP
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-           REG.STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
-#define BDN_LENGTH(REG) ( (REG.STAT.BDnSTAT & 0x03) << 8 | REG.BDnCNT )
+#define SET_BDN(REG, FLAGS, CNT) do { (REG).BDnCNT = (CNT); \
+           (REG).STAT.BDnSTAT = (FLAGS) | ((CNT) & 0x300) >> 8; } while(0)
+#define BDN_LENGTH(REG) ( ((REG).STAT.BDnSTAT & 0x03) << 8 | (REG).BDnCNT )
 #else
-#define SET_BDN(REG, FLAGS, CNT) do { REG.BDnCNT = (CNT); \
-                                      REG.STAT.BDnSTAT = (FLAGS); } while(0)
+#define SET_BDN(REG, FLAGS, CNT) do { (REG).BDnCNT = (CNT); \
+                                      (REG).STAT.BDnSTAT = (FLAGS); } while(0)
 #define BDN_LENGTH(REG) (REG.BDnCNT)
 #endif
 
@@ -388,7 +388,7 @@ struct buffer_descriptor {
 };
 
 #define SET_BDN(REG, FLAGS, CNT) \
-                     do { REG.STAT.BDnSTAT_CNT = (FLAGS) | (CNT); } while(0)
+                     do { (REG).STAT.BDnSTAT_CNT = (FLAGS) | (CNT); } while(0)
 
 #ifdef LARGE_EP
 	#define BDN_LENGTH(REG) (REG.STAT.BC)
