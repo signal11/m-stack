@@ -233,9 +233,20 @@ struct ep_buf {
 	uint8_t flags;
 };
 
+struct ep0_buf {
+	unsigned char * const out;
+	unsigned char * const in;
+
+	/* Use the EP_* flags from ep_buf for flags */
+	uint8_t flags;
+};
+
 #ifdef __C18
 #pragma idata
 #endif
+
+	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
+	                     ep_buffers.ep_0_in_buf[0] }
 
 #ifdef PPB_EPn
 	#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf[0], \
@@ -244,25 +255,19 @@ struct ep_buf {
 	                     ep_buffers.ep_##n##_in_buf[1], \
 	                     EP_##n##_OUT_LEN, \
 	                     EP_##n##_IN_LEN },
-
-	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
-	                     ep_buffers.ep_0_in_buf[0], \
-	                     NULL, NULL, \
-	                     EP_0_OUT_LEN, EP_0_IN_LEN },
 #else
 	#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf[0], \
 	                     ep_buffers.ep_##n##_in_buf[0], \
 	                     EP_##n##_OUT_LEN, \
 	                     EP_##n##_IN_LEN },
-
-	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
-	                     ep_buffers.ep_0_in_buf[0], \
-	                     EP_0_OUT_LEN, EP_0_IN_LEN },
 #endif
+
+static struct ep0_buf ep0_buf = EP_BUFS0();
 
 static struct ep_buf ep_buf[NUM_ENDPOINT_NUMBERS+1] = {
 #if NUM_ENDPOINT_NUMBERS >= 0
-	EP_BUFS0()
+	{ NULL, NULL },
+	/* TODO wasted space here */
 #endif
 #if NUM_ENDPOINT_NUMBERS >= 1
 	EP_BUFS(1)
@@ -434,6 +439,7 @@ void usb_init(void)
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
 	g_configuration = 0;
+	ep0_buf.flags = 0;
 	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++) {
 #ifdef PPB_EPn
 		ep_buf[i].flags = 0;
@@ -446,7 +452,7 @@ void usb_init(void)
 
 	/* Setup endpoint 0 Output buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep_buf[0].out;
+	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep0_buf.out;
 	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
 #ifdef PPB_EP0
 	#error Add PPB ep zero support
@@ -454,7 +460,7 @@ void usb_init(void)
 
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep_buf[0].in;
+	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep0_buf.in;
 	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
 #ifdef PPB_EP0
 	#error Add PPB ep zero support
@@ -579,7 +585,7 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
 	returning_short = len != bytes_asked_for;
-	memcpy_from_rom(ep_buf[0].in, ptr, bytes_to_send);
+	memcpy_from_rom(ep0_buf.in, ptr, bytes_to_send);
 	ep0_data_stage_in_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
 
@@ -592,7 +598,7 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 
 static inline int8_t handle_standard_control_request()
 {
-	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+	FAR struct setup_packet *setup = (struct setup_packet*) ep0_buf.out;
 	int8_t res = 0;
 
 	if (setup->bRequest == GET_DESCRIPTOR) {
@@ -679,7 +685,7 @@ static inline int8_t handle_standard_control_request()
 		SERIAL_VAL(g_configuration);
 
 		BDS0IN(0).STAT.BDnSTAT = 0;
-		ep_buf[0].in[0] = g_configuration;
+		ep0_buf.in[0] = g_configuration;
 		SET_BDN(BDS0IN(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
 		//TODO
@@ -695,10 +701,10 @@ static inline int8_t handle_standard_control_request()
 			   Return as a single byte in the return packet. */
 			BDS0IN(0).STAT.BDnSTAT = 0;
 #ifdef GET_DEVICE_STATUS_CALLBACK
-			*((uint16_t*)ep_buf[0].in) = GET_DEVICE_STATUS_CALLBACK();
+			*((uint16_t*)ep0_buf.in) = GET_DEVICE_STATUS_CALLBACK();
 #else
-			ep_buf[0].in[0] = 0;
-			ep_buf[0].in[1] = 0;
+			ep0_buf.in[0] = 0;
+			ep0_buf.in[1] = 0;
 #endif
 			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 2);
@@ -709,10 +715,10 @@ static inline int8_t handle_standard_control_request()
 			if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 				uint8_t flags = ep_buf[ep_num].flags;
 				BDS0IN(0).STAT.BDnSTAT = 0;
-				ep_buf[0].in[0] = ((setup->wIndex & 0x80) ?
+				ep0_buf.in[0] = ((setup->wIndex & 0x80) ?
 					flags & EP_IN_HALT_FLAG :
 					flags & EP_OUT_HALT_FLAG) != 0;
-				ep_buf[0].in[1] = 0;
+				ep0_buf.in[1] = 0;
 				SET_BDN(BDS0IN(0),
 					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
 					2);
@@ -762,7 +768,7 @@ static inline int8_t handle_standard_control_request()
 			/* Return the current alternate setting
 			   as a single byte in the return packet. */
 			BDS0IN(0).STAT.BDnSTAT = 0;
-			ep_buf[0].in[0] = res;
+			ep0_buf.in[0] = res;
 			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
 		}
@@ -772,7 +778,7 @@ static inline int8_t handle_standard_control_request()
 		 * interface and return zero as that
 		 * alternate setting. */
 		BDS0IN(0).STAT.BDnSTAT = 0;
-		ep_buf[0].in[0] = 0;
+		ep0_buf.in[0] = 0;
 		SET_BDN(BDS0IN(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
 #endif
@@ -863,7 +869,7 @@ static inline int8_t handle_standard_control_request()
 
 static inline void handle_ep0_setup()
 {
-	FAR struct setup_packet *setup = (struct setup_packet*) ep_buf[0].out;
+	FAR struct setup_packet *setup = (struct setup_packet*) ep0_buf.out;
 	ep0_data_stage_direc = setup->REQUEST.direction;
 	int8_t res;
 
@@ -942,7 +948,7 @@ static inline void handle_ep0_out()
 
 		if (ep0_data_stage_out_buffer) {
 			uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
-			memcpy(ep0_data_stage_out_buffer, ep_buf[0].out, bytes_to_copy);
+			memcpy(ep0_data_stage_out_buffer, ep0_buf.out, bytes_to_copy);
 			ep0_data_stage_out_buffer += bytes_to_copy;
 			ep0_data_stage_buf_remaining -= bytes_to_copy;
 
@@ -980,7 +986,7 @@ static inline void handle_ep0_in()
 		/* There's already a multi-transaction transfer in process. */
 		uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
 
-		memcpy_from_rom(ep_buf[0].in, ep0_data_stage_in_buffer, bytes_to_send);
+		memcpy_from_rom(ep0_buf.in, ep0_data_stage_in_buffer, bytes_to_send);
 		ep0_data_stage_buf_remaining -= bytes_to_send;
 		ep0_data_stage_in_buffer += bytes_to_send;
 
