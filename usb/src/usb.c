@@ -930,13 +930,6 @@ static inline void handle_ep0_out()
 		if (ep0_data_stage_callback)
 			ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
 		reset_ep0_data_stage();
-
-		/* Clean up the Buffer Descriptors.
-		   Set the length and hand it back to the SIE. */
-		BDS0OUT(0).STAT.BDnSTAT = 0;
-		SET_BDN(BDS0OUT(0),
-			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-			EP_0_LEN);
 	}
 	else {
 		/* A packet received as part of the data stage of
