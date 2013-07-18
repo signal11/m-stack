@@ -447,7 +447,7 @@ void usb_init(void)
 	/* Setup endpoint 0 Output buffer descriptor.
 	   Input and output are from the HOST perspective. */
 	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep_buf[0].out;
-	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, ep_buf[0].out_len);
+	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
 #ifdef PPB_EP0
 	#error Add PPB ep zero support
 #endif
@@ -455,7 +455,7 @@ void usb_init(void)
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
 	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep_buf[0].in;
-	SET_BDN(BDS0IN(0), 0, ep_buf[0].in_len);
+	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
 #ifdef PPB_EP0
 	#error Add PPB ep zero support
 #endif
@@ -503,13 +503,13 @@ static void reset_bd0_out(void)
 	/* Clean up the Buffer Descriptors.
 	 * Set the length and hand it back to the SIE.
 	 * The Address stays the same. */
-	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, ep_buf[0].out_len);
+	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
 }
 
 static void stall_ep0(void)
 {
 	/* Stall Endpoint 0. It's important that DTSEN and DTS are zero. */
-	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_BSTALL, ep_buf[0].in_len);
+	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_BSTALL, EP_0_LEN);
 }
 
 static void stall_ep_in(uint8_t ep)
@@ -930,7 +930,7 @@ static inline void handle_ep0_out()
 		BDS0OUT(0).STAT.BDnSTAT = 0;
 		SET_BDN(BDS0OUT(0),
 			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-			ep_buf[0].out_len);
+			EP_0_LEN);
 	}
 	else {
 		/* A packet received as part of the data stage of
