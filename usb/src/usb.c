@@ -49,15 +49,20 @@
 #endif
 
 #if PPB_MODE == PPB_EPO_OUT_ONLY
-	#error "Ping-pong buffer PPB_EPO_OUT_ONLY mode not supported"
+	#define PPB_EP0_OUT
+	#undef  PPB_EP0_IN
+	#undef  PPB_EPn
 #elif PPB_MODE == PPB_EPN_ONLY
-	#undef PPB_EP0
+	#undef  PPB_EP0_OUT
+	#undef  PPB_EP0_IN
 	#define PPB_EPn
 #elif PPB_MODE == PPB_NONE
-	#undef PPB_EP0
+	#undef PPB_EP0_OUT
+	#undef PPB_EP0_IN
 	#undef PPB_EPn
 #elif PPB_MODE == PPB_ALL
-	#define PPB_EP0
+	#define PPB_EP0_OUT
+	#define PPB_EP0_IN
 	#define PPB_EPn
 	#error "Ping-pong buffer EP0_ALL mode not supported"
 #else
@@ -83,10 +88,14 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 
 /* Calculate the number of Buffer Descriptor pairs, which depends on the
    ping-pong modes active and the number of endpoints used. */
-#ifdef PPB_EP0
+#if defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
 	#define NUM_BD_0 4
-#else
+#elif !defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
+	#define NUM_BD_0 3
+#elif !defined(PPB_EP0_IN) && !defined(PPB_EP0_OUT)
 	#define NUM_BD_0 2
+#else
+	#error "Nonsense condition detected"
 #endif
 
 #ifdef PPB_EPn
@@ -101,7 +110,10 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
    BDS0OUT() and BDS0IN() only. It is not valid to call BDSnOUT(0,oe), for
    example*/
 #if PPB_MODE == PPB_EPO_OUT_ONLY
-	#error "Ping-pong buffer PPB_EPO_OUT_ONLY mode not supported"
+	#define BDS0OUT(oe) bds[0 + oe]
+	#define BDS0IN(oe) bds[2]
+	#define BDSnOUT(EP,oe) bds[(EP) * 2 + 1]
+	#define BDSnIN(EP,oe) bds[(EP) * 2 + 2]
 #elif PPB_MODE == PPB_EPN_ONLY
 	#define BDS0OUT(oe) bds[0]
 	#define BDS0IN(oe) bds[1]
@@ -138,14 +150,20 @@ static struct buffer_descriptor bds[NUM_BD] BD_ATTR_TAG;
 
 static struct {
 /* Set up the EP_BUF() macro for EP0 */
-#ifdef PPB_EP0
+#if defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
 	#define EP_BUF(n) \
 		unsigned char ep_##n##_out_buf[2][EP_##n##_OUT_LEN]; \
 		unsigned char ep_##n##_in_buf[2][EP_##n##_IN_LEN];
-#else
+#elif !defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
+	#define EP_BUF(n) \
+		unsigned char ep_##n##_out_buf[2][EP_##n##_OUT_LEN]; \
+		unsigned char ep_##n##_in_buf[1][EP_##n##_IN_LEN];
+#elif !defined(PPB_EP0_IN) && !defined(PPB_EP0_OUT)
 	#define EP_BUF(n) \
 		unsigned char ep_##n##_out_buf[1][EP_##n##_OUT_LEN]; \
 		unsigned char ep_##n##_in_buf[1][EP_##n##_IN_LEN];
+#else
+	#error "Nonsense condition detected"
 #endif
 
 #if NUM_ENDPOINT_NUMBERS >= 0
@@ -234,8 +252,14 @@ struct ep_buf {
 };
 
 struct ep0_buf {
-	unsigned char * const out;
-	unsigned char * const in;
+	unsigned char * const out; /* buffers for the even buffer descriptor */
+	unsigned char * const in;  /* ie: ppbi = 0 */
+#ifdef PPB_EP0_OUT
+	unsigned char * const out1; /* buffer for the odd buffer descriptor */
+#endif
+#ifdef PPB_EP0_IN
+	unsigned char * const in1;  /* buffer for the odd buffer descriptor */
+#endif
 
 	/* Use the EP_* flags from ep_buf for flags */
 	uint8_t flags;
@@ -245,8 +269,25 @@ struct ep0_buf {
 #pragma idata
 #endif
 
+#if defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
+	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
+	                     ep_buffers.ep_0_in_buf[0], \
+	                     ep_buffers.ep_0_out_buf[1], \
+	                     ep_buffers.ep_0_in_buf[1] }
+
+#elif !defined(PPB_EP0_IN) && defined(PPB_EP0_OUT)
+	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
+	                     ep_buffers.ep_0_in_buf[0], \
+	                     ep_buffers.ep_0_out_buf[1] }
+
+#elif !defined(PPB_EP0_IN) && !defined(PPB_EP0_OUT)
 	#define EP_BUFS0() { ep_buffers.ep_0_out_buf[0], \
 	                     ep_buffers.ep_0_in_buf[0] }
+
+#else
+	#error "Nonsense condition detected"
+#endif
+
 
 #ifdef PPB_EPn
 	#define EP_BUFS(n) { ep_buffers.ep_##n##_out_buf[0], \
@@ -454,15 +495,17 @@ void usb_init(void)
 	   Input and output are from the HOST perspective. */
 	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep0_buf.out;
 	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
-#ifdef PPB_EP0
-	#error Add PPB ep zero support
+
+#ifdef PPB_EP0_OUT
+	BDS0OUT(1).BDnADR = (BDNADR_TYPE) ep0_buf.out1;
+	SET_BDN(BDS0OUT(1), BDNSTAT_UOWN, EP_0_LEN);
 #endif
 
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
 	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep0_buf.in;
 	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
-#ifdef PPB_EP0
+#ifdef PPB_EP0_IN
 	#error Add PPB ep zero support
 #endif
 
@@ -509,7 +552,11 @@ static void reset_bd0_out(void)
 	/* Clean up the Buffer Descriptors.
 	 * Set the length and hand it back to the SIE.
 	 * The Address stays the same. */
+#ifdef PPB_EP0_OUT
+	SET_BDN(BDS0OUT(SFR_USB_STATUS_PPBI), BDNSTAT_UOWN, EP_0_LEN);
+#else
 	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
+#endif
 }
 
 static void stall_ep0(void)
@@ -598,8 +645,17 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 
 static inline int8_t handle_standard_control_request()
 {
-	FAR struct setup_packet *setup = (struct setup_packet*) ep0_buf.out;
+	FAR struct setup_packet *setup;
 	int8_t res = 0;
+
+#ifdef PPB_EP0_OUT
+	if (SFR_USB_STATUS_PPBI)
+		setup = (struct setup_packet*) ep0_buf.out1;
+	else
+		setup = (struct setup_packet*) ep0_buf.out;
+#else
+	setup = (struct setup_packet*) ep0_buf.out;
+#endif
 
 	if (setup->bRequest == GET_DESCRIPTOR) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
@@ -869,7 +925,16 @@ static inline int8_t handle_standard_control_request()
 
 static inline void handle_ep0_setup()
 {
-	FAR struct setup_packet *setup = (struct setup_packet*) ep0_buf.out;
+	FAR struct setup_packet *setup;
+#ifdef PPB_EP0_OUT
+	if (SFR_USB_STATUS_PPBI)
+		setup = (struct setup_packet*) ep0_buf.out1;
+	else
+		setup = (struct setup_packet*) ep0_buf.out;
+#else
+	setup = (struct setup_packet*) ep0_buf.out;
+#endif
+
 	ep0_data_stage_direc = setup->REQUEST.direction;
 	int8_t res;
 
@@ -920,7 +985,11 @@ out:
 
 static inline void handle_ep0_out()
 {
+#ifdef PPB_EP0_OUT
+	uint8_t pkt_len = BDN_LENGTH(BDS0OUT(SFR_USB_STATUS_PPBI));
+#else
 	uint8_t pkt_len = BDN_LENGTH(BDS0OUT(0));
+#endif
 	if (ep0_data_stage_direc == 1/*1=IN*/) {
 		/* An empty OUT packet on an IN control transfer
 		 * means the STATUS stage of the control
@@ -941,7 +1010,14 @@ static inline void handle_ep0_out()
 
 		if (ep0_data_stage_out_buffer) {
 			uint8_t bytes_to_copy = MIN(pkt_len, ep0_data_stage_buf_remaining);
+#ifdef PPB_EP0_OUT
+			if (SFR_USB_STATUS_PPBI)
+				memcpy(ep0_data_stage_out_buffer, ep0_buf.out1, bytes_to_copy);
+			else
+				memcpy(ep0_data_stage_out_buffer, ep0_buf.out, bytes_to_copy);
+#else
 			memcpy(ep0_data_stage_out_buffer, ep0_buf.out, bytes_to_copy);
+#endif
 			ep0_data_stage_out_buffer += bytes_to_copy;
 			ep0_data_stage_buf_remaining -= bytes_to_copy;
 
@@ -1049,7 +1125,11 @@ void usb_service(void)
 			/* An OUT or SETUP transaction has completed on
 			 * Endpoint 0.  Handle the data that was received.
 			 */
+#ifdef PPB_EP0_OUT
+			uint8_t pid = BDS0OUT(SFR_USB_STATUS_PPBI).STAT.PID;
+#else
 			uint8_t pid = BDS0OUT(0).STAT.PID;
+#endif
 			if (pid == PID_SETUP) {
 				handle_ep0_setup();
 			}
