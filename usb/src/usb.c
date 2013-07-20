@@ -736,15 +736,10 @@ static inline int8_t handle_standard_control_request()
 	}
 	else if (setup->bRequest == GET_CONFIGURATION) {
 		/* Return the current Configuration. */
-
 		SERIAL("Get Configuration. Returning:");
 		SERIAL_VAL(g_configuration);
 
-		BDS0IN(0).STAT.BDnSTAT = 0;
-		ep0_buf.in[0] = g_configuration;
-		SET_BDN(BDS0IN(0),
-			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
-		//TODO
+		start_control_return(&g_configuration, 1, setup->wLength);
 	}
 	else if (setup->bRequest == GET_STATUS) {
 
@@ -755,29 +750,25 @@ static inline int8_t handle_standard_control_request()
 		if (setup->REQUEST.destination == 0 /*0=device*/) {
 			/* Status for the DEVICE requested
 			   Return as a single byte in the return packet. */
-			BDS0IN(0).STAT.BDnSTAT = 0;
+			uint16_t ret;
 #ifdef GET_DEVICE_STATUS_CALLBACK
-			*((uint16_t*)ep0_buf.in) = GET_DEVICE_STATUS_CALLBACK();
+			ret = GET_DEVICE_STATUS_CALLBACK();
 #else
-			ep0_buf.in[0] = 0;
-			ep0_buf.in[1] = 0;
+			ret = 0x0000;
 #endif
-			SET_BDN(BDS0IN(0),
-				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 2);
+			start_control_return(&ret, 2, setup->wLength);
 		}
 		else if (setup->REQUEST.destination == 2 /*2=endpoint*/) {
 			/* Status of endpoint */
 			uint8_t ep_num = setup->wIndex & 0x0f;
 			if (ep_num <= NUM_ENDPOINT_NUMBERS) {
 				uint8_t flags = ep_buf[ep_num].flags;
-				BDS0IN(0).STAT.BDnSTAT = 0;
-				ep0_buf.in[0] = ((setup->wIndex & 0x80) ?
+				uint8_t ret[2];
+				ret[0] = ((setup->wIndex & 0x80) ?
 					flags & EP_IN_HALT_FLAG :
 					flags & EP_OUT_HALT_FLAG) != 0;
-				ep0_buf.in[1] = 0;
-				SET_BDN(BDS0IN(0),
-					BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-					2);
+				ret[1] = 0;
+				start_control_return(ret, 2, setup->wLength);
 			}
 			else {
 				/* Endpoint doesn't exist. STALL. */
@@ -811,32 +802,28 @@ static inline int8_t handle_standard_control_request()
 #endif
 	}
 	else if (setup->bRequest == GET_INTERFACE) {
+		int8_t ret;
 		SERIAL("Get Interface");
 		SERIAL_VAL(setup->bRequest);
 		SERIAL_VAL(setup->REQUEST.destination);
 		SERIAL_VAL(setup->REQUEST.type);
 		SERIAL_VAL(setup->REQUEST.direction);
 #ifdef GET_INTERFACE_CALLBACK
-		int8_t res = GET_INTERFACE_CALLBACK(setup->wIndex);
-		if (res < 0)
+		ret = GET_INTERFACE_CALLBACK(setup->wIndex);
+		if (ret < 0)
 			stall_ep0();
 		else {
 			/* Return the current alternate setting
 			   as a single byte in the return packet. */
-			BDS0IN(0).STAT.BDnSTAT = 0;
-			ep0_buf.in[0] = res;
-			SET_BDN(BDS0IN(0),
-				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
+			start_control_return(&ret, 1, setup->wLength);
 		}
 #else
 		/* If there's no callback, then assume that
 		 * we only have one alternate setting per
 		 * interface and return zero as that
 		 * alternate setting. */
-		BDS0IN(0).STAT.BDnSTAT = 0;
-		ep0_buf.in[0] = 0;
-		SET_BDN(BDS0IN(0),
-			BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 1);
+		ret = 0;
+		start_control_return(&ret, 1, setup->wLength);
 #endif
 	}
 	else if (setup->bRequest == CLEAR_FEATURE || setup->bRequest == SET_FEATURE) {
