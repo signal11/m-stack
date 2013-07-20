@@ -147,7 +147,7 @@ struct buffer_descriptor {
 #define PPB_EPN_ONLY     3
 
 #if defined __XC8
-	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
+	#define memcpy_from_rom(x,y,z) memcpy(x,y,z)
 	#define FAR
 	#define BD_ATTR_TAG @##BD_ADDR
 	#ifdef BUFFER_ADDR
@@ -288,11 +288,11 @@ struct buffer_descriptor {
 /* Compiler stuff. Probably should be somewhere else. */
 #ifdef __C18
 	#define FAR far
-	#define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z);
+	#define memcpy_from_rom(x,y,z) memcpypgm2ram(x,(rom void*)y,z)
 	#define BD_ATTR_TAG
 	#define XC8_BUFFER_ADDR_TAG
 #elif defined __XC8
-	#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
+	#define memcpy_from_rom(x,y,z) memcpy(x,y,z)
 	#define FAR
 	#define BD_ATTR_TAG @##BD_ADDR
 	#ifdef BUFFER_ADDR
@@ -421,7 +421,7 @@ struct buffer_descriptor {
 
 /* Compiler stuff. Probably should be somewhere else. */
 #define FAR
-#define memcpy_from_rom(x,y,z) memcpy(x,y,z);
+#define memcpy_from_rom(x,y,z) memcpy(x,y,z)
 
 #else
 	#error "Your architecture is not supported"
