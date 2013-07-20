@@ -64,7 +64,6 @@
 	#define PPB_EP0_OUT
 	#define PPB_EP0_IN
 	#define PPB_EPn
-	#error "Ping-pong buffer EP0_ALL mode not supported"
 #else
 	#error "Must select a valid PPB_MODE"
 #endif
@@ -125,9 +124,10 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 	#define BDSnOUT(EP,oe) bds[(EP) * 2]
 	#define BDSnIN(EP,oe) bds[(EP) * 2 + 1]
 #elif PPB_MODE == PPB_ALL
-	#error "Ping-pong buffer PPB_ALL mode not supported"
-	#define PPB_EP0
-	#define PPB_EPn
+	#define BDS0OUT(oe) bds[0 + oe]
+	#define BDS0IN(oe) bds[2 + oe]
+	#define BDSnOUT(EP,oe) bds[(EP) * 4 + (oe)]
+	#define BDSnIN(EP,oe) bds[(EP) * 4 + 2 + (oe)]
 #else
 #error "Must select a valid PPB_MODE"
 #endif
@@ -401,6 +401,10 @@ void usb_init(void)
 
 	/* Initialize the USB. 18.4 of PIC24FJ64GB004 datasheet */
 	SET_PING_PONG_MODE(PPB_MODE);
+#if PPB_MODE != PPB_NONE
+	SFR_USB_PING_PONG_RESET = 1;
+	SFR_USB_PING_PONG_RESET = 0;
+#endif
 	SFR_USB_INTERRUPT_EN = 0x0;
 	SFR_USB_EXTENDED_INTERRUPT_EN = 0x0;
 	
@@ -506,7 +510,8 @@ void usb_init(void)
 	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep0_buf.in;
 	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
 #ifdef PPB_EP0_IN
-	#error Add PPB ep zero support
+	BDS0IN(1).BDnADR = (BDNADR_TYPE) ep0_buf.in1;
+	SET_BDN(BDS0IN(1), 0, EP_0_LEN);
 #endif
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
@@ -562,7 +567,13 @@ static void reset_bd0_out(void)
 static void stall_ep0(void)
 {
 	/* Stall Endpoint 0. It's important that DTSEN and DTS are zero. */
+#ifdef PPB_EP0_IN
+	uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+	SET_BDN(BDS0IN(ppbi), BDNSTAT_UOWN|BDNSTAT_BSTALL, EP_0_LEN);
+	/* The PPBI does not advance for STALL. */
+#else
 	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_BSTALL, EP_0_LEN);
+#endif
 }
 
 static void stall_ep_in(uint8_t ep)
@@ -589,15 +600,39 @@ static void stall_ep_out(uint8_t ep)
 
 static void send_zero_length_packet_ep0()
 {
+#ifdef PPB_EP0_IN
+	uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+	BDS0IN(ppbi).STAT.BDnSTAT = 0;
+	SET_BDN(BDS0IN(ppbi), BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
+	ep0_buf.flags ^= EP_TX_PPBI;
+#else
 	BDS0IN(0).STAT.BDnSTAT = 0;
 	SET_BDN(BDS0IN(0), BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, 0);
+#endif
 }
 
 static void usb_send_in_buffer_0(size_t len)
 {
 	if (!usb_in_endpoint_halted(0)) {
+#ifdef PPB_EP0_IN
+		struct buffer_descriptor *bd;
+		uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+		uint8_t pid = (ep0_buf.flags & EP_TX_DTS)? 1 : 0;
+		bd = &BDS0IN(ppbi);
+		bd->STAT.BDnSTAT = 0;
+
+		if (pid)
+			SET_BDN(*bd,
+				BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN, len);
+		else
+			SET_BDN(*bd,
+				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
+
+		ep0_buf.flags ^= EP_TX_PPBI;
+		ep0_buf.flags ^= EP_TX_DTS;
+#else
 		uint8_t pid;
-		pid = !BDS0IN(0).STAT.DTS;
+		pid = (ep0_buf.flags & EP_TX_DTS)? 1 : 0;
 		BDS0IN(0).STAT.BDnSTAT = 0;
 
 		if (pid)
@@ -606,9 +641,29 @@ static void usb_send_in_buffer_0(size_t len)
 		else
 			SET_BDN(BDS0IN(0),
 				BDNSTAT_UOWN|BDNSTAT_DTSEN, len);
+
+		ep0_buf.flags ^= EP_TX_DTS;
+#endif
 	}
 }
 
+/* Copy Data to Endpoint 0's IN Buffer
+ *
+ * Copy len bytes from ptr into endpoint 0's current IN
+ * buffer, taking into account the ping-pong state.
+ */
+#ifdef PPB_EP0_IN
+static void copy_to_ep0_in_buf(const void *ptr, size_t len)
+{
+	uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+	if (ppbi)
+		memcpy_from_rom(ep0_buf.in1, ptr, len);
+	else
+		memcpy_from_rom(ep0_buf.in, ptr, len);
+}
+#else
+	#define copy_to_ep0_in_buf(PTR, LEN) memcpy_from_rom(ep0_buf.in, PTR, LEN);
+#endif
 
 /* Start Control Return
  *
@@ -632,15 +687,13 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
 	returning_short = len != bytes_asked_for;
-	memcpy_from_rom(ep0_buf.in, ptr, bytes_to_send);
+	copy_to_ep0_in_buf(ptr, bytes_to_send);
 	ep0_data_stage_in_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
 
 	/* Send back the first transaction */
-	BDS0IN(0).STAT.BDnSTAT = 0;
-	SET_BDN(BDS0IN(0),
-		BDNSTAT_UOWN|BDNSTAT_DTS|BDNSTAT_DTSEN,
-		bytes_to_send);
+	ep0_buf.flags |= EP_TX_DTS;
+	usb_send_in_buffer_0(bytes_to_send);
 }
 
 static inline int8_t handle_standard_control_request()
@@ -1042,7 +1095,7 @@ static inline void handle_ep0_in()
 		/* There's already a multi-transaction transfer in process. */
 		uint8_t bytes_to_send = MIN(ep0_data_stage_buf_remaining, EP_0_IN_LEN);
 
-		memcpy_from_rom(ep0_buf.in, ep0_data_stage_in_buffer, bytes_to_send);
+		copy_to_ep0_in_buf(ep0_data_stage_in_buffer, bytes_to_send);
 		ep0_data_stage_buf_remaining -= bytes_to_send;
 		ep0_data_stage_in_buffer += bytes_to_send;
 

@@ -59,6 +59,7 @@
 #define SFR_USB_ADDR             UADDR
 #define SFR_USB_EN               UCONbits.USBEN
 #define SFR_USB_PKT_DIS          UCONbits.PKTDIS
+#define SFR_USB_PING_PONG_RESET  UCONbits.PPBRST
 
 #define SFR_USB_STATUS           USTAT
 #define SFR_USB_STATUS_EP        USTATbits.ENDP
@@ -198,6 +199,7 @@ struct buffer_descriptor {
 #define SFR_USB_ADDR             UADDR
 #define SFR_USB_EN               UCONbits.USBEN
 #define SFR_USB_PKT_DIS          UCONbits.PKTDIS
+#define SFR_USB_PING_PONG_RESET  UCONbits.PPBRST
 
 #define SFR_USB_STATUS           USTAT
 #define SFR_USB_STATUS_EP        USTATbits.ENDP
@@ -342,6 +344,7 @@ struct buffer_descriptor {
 #define SFR_USB_ADDR             U1ADDR
 #define SFR_USB_EN               U1CONbits.USBEN
 #define SFR_USB_PKT_DIS          U1CONbits.PKTDIS
+#define SFR_USB_PING_PONG_RESET  U1CONbits.PPBRST
 
 
 #define SFR_USB_STATUS           U1STAT
