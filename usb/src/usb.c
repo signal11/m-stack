@@ -497,40 +497,40 @@ void usb_init(void)
 
 	/* Setup endpoint 0 Output buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	BDS0OUT(0).BDnADR = (BDNADR_TYPE) ep0_buf.out;
+	BDS0OUT(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out);
 	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
 
 #ifdef PPB_EP0_OUT
-	BDS0OUT(1).BDnADR = (BDNADR_TYPE) ep0_buf.out1;
+	BDS0OUT(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out1);
 	SET_BDN(BDS0OUT(1), BDNSTAT_UOWN, EP_0_LEN);
 #endif
 
 	/* Setup endpoint 0 Input buffer descriptor.
 	   Input and output are from the HOST perspective. */
-	BDS0IN(0).BDnADR = (BDNADR_TYPE) ep0_buf.in;
+	BDS0IN(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in);
 	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
 #ifdef PPB_EP0_IN
-	BDS0IN(1).BDnADR = (BDNADR_TYPE) ep0_buf.in1;
+	BDS0IN(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in1);
 	SET_BDN(BDS0IN(1), 0, EP_0_LEN);
 #endif
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
 		/* Setup endpoint 1 Output buffer descriptor.
 		   Input and output are from the HOST perspective. */
-		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].out;
+		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out);
 		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[i].out_len);
 #ifdef PPB_EPn
 		/* Initialize EVEN buffers when in ping-pong mode. */
-		BDSnOUT(i,1).BDnADR = (BDNADR_TYPE) ep_buf[i].out1;
+		BDSnOUT(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out1);
 		SET_BDN(BDSnOUT(i,1), BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS, ep_buf[i].out_len);
 #endif
 		/* Setup endpoint 1 Input buffer descriptor.
 		   Input and output are from the HOST perspective. */
-		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) ep_buf[i].in;
+		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in);
 		SET_BDN(BDSnIN(i,0), 0, ep_buf[i].in_len);
 #ifdef PPB_EPn
 		/* Initialize EVEN buffers when in ping-pong mode. */
-		BDSnIN(i,1).BDnADR = (BDNADR_TYPE) ep_buf[i].in1;
+		BDSnIN(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in1);
 		SET_BDN(BDSnIN(i,1), 0, ep_buf[i].in_len);
 #endif
 	}

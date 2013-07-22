@@ -26,6 +26,7 @@
 #define HAS_LOW_SPEED
 
 #define BDNADR_TYPE              uint16_t
+#define PHYS_ADDR(VIRTUAL_ADDR)  VIRTUAL_ADDR
 
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
@@ -165,6 +166,7 @@ struct buffer_descriptor {
 #define HAS_ON_CHIP_XCVR_DIS
 
 #define BDNADR_TYPE              uint16_t
+#define PHYS_ADDR(VIRTUAL_ADDR)  VIRTUAL_ADDR
 
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
@@ -311,6 +313,7 @@ struct buffer_descriptor {
 #define HAS_ON_CHIP_XCVR_DIS
 
 #define BDNADR_TYPE              void *
+#define PHYS_ADDR(VIRTUAL_ADDR)  VIRTUAL_ADDR
 
 #define SFR_PULL_EN              /* Not used on PIC24 */
 #define SFR_ON_CHIP_XCVR_DIS     U1CNFG2bits.UTRDIS
