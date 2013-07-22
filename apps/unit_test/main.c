@@ -18,6 +18,10 @@
 #include "usb_config.h"
 #include "usb_ch9.h"
 
+#ifdef __PIC32MX__
+	#include <plib.h>
+#endif
+
 #ifdef __PIC24FJ64GB002__
 _CONFIG1(WDTPS_PS16 & FWPSA_PR32 & WINDIS_OFF & FWDTEN_OFF & ICS_PGx1 & GWRP_OFF & GCP_OFF & JTAGEN_OFF)
 _CONFIG2(POSCMOD_NONE & I2C1SEL_PRI & IOL1WAY_OFF & OSCIOFNC_OFF & FCKSM_CSDCMD & FNOSC_FRCPLL & PLL96MHZ_ON & PLLDIV_NODIV & IESO_OFF)
@@ -63,6 +67,14 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config LPBOR = ON
 #pragma config LVP = OFF
 
+#elif __32MX460F512L__
+#pragma config DEBUG = OFF, ICESEL = ICS_PGx2, PWP = OFF, BWP = OFF, CP = OFF
+#pragma config FNOSC = PRIPLL, FSOSCEN = OFF, IESO = OFF, POSCMOD = HS, \
+	       OSCIOFNC = OFF, FPBDIV = DIV_1, FCKSM = CSDCMD, WDTPS = PS1, \
+	       FWDTEN = OFF
+#pragma config FPLLIDIV = DIV_2, FPLLMUL = MUL_15, UPLLIDIV = DIV_2, \
+	       UPLLEN = ON, FPLLODIV = DIV_1
+
 #else
 	#error "Config flags for your device not defined"
 
@@ -85,12 +97,21 @@ int main(void)
 	/* Enable Active clock-tuning from the USB */
 	ACTCONbits.ACTSRC = 1; /* 1=USB */
 	ACTCONbits.ACTEN = 1;
-
+#elif __32MX460F512L__
+	SYSTEMConfigPerformance(80000000);
 #endif
 
-#if defined(USB_USE_INTERRUPTS) && (defined (_PIC18) || defined(_PIC14E))
-	INTCONbits.PEIE = 1;
-	INTCONbits.GIE = 1;
+
+/* Configure interrupts, per architecture */
+#ifdef USB_USE_INTERRUPTS
+	#if defined (_PIC18) || defined(_PIC14E)
+		INTCONbits.PEIE = 1;
+		INTCONbits.GIE = 1;
+	#elif __PIC32MX__
+		INTCONbits.MVEC = 1; /* Multi-vector interrupts */
+		IPC11bits.USBIP = 4; /* Interrupt priority, must set to != 0. */
+		__asm volatile("ei");
+	#endif
 #endif
 	usb_init();
 	
