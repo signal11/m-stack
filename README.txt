@@ -1,6 +1,6 @@
 
-      M-Stack: Free USB Stack for PIC 16F, 18F, and 24F Microcontrollers
-     ====================================================================
+   M-Stack: Free USB Stack for PIC 16F, 18F, 24F, and 32MX Microcontrollers
+  ==========================================================================
 
 About
 ======
@@ -129,32 +129,35 @@ M-Stack has Doxygen-generated documentation at:
 
 Supported hardware
 -------------------
-M-Stack has currently been tested on PIC18 and PIC24 devices.  Microchip has
-obviously made a conscious effort to make the register-level interfaces to
-their USB peripherals as similar as possible across MCUs and even across MCU
-lines.  While many devices should be able to be easily supported with this
-software, there are often times small differences which need to be worked
-out, the biggest of which being buffer descriptor and data buffer locations
-with respect to the DMA capabilities of the microcontroller being used.
+M-Stack has currently been tested on PIC16F, PIC18F PIC24F, and PIC32MX
+devices.  Microchip has obviously made a conscious effort to make the
+register-level interfaces to their USB peripherals as similar as possible
+across MCUs and even across MCU families.  While many devices should be able
+to be easily supported with this software, there are often times small
+differences which need to be worked out, the biggest of which being buffer
+descriptor and data buffer locations with respect to the DMA capabilities of
+the microcontroller being used.
 
 The following MCU's and configurations have been tested:
+ * PIC32MX460F512L - PIC32 USB Starter Board
  * PIC24FJ64GB002
  * PIC24FJ256DA206
  * PIC18F46J50 - PIC18F Starter Kit
  * PIC16F1459
 
-If your hardware is not supported, and it's in the PIC16F/18F/24F family, I
-can probably easily make you a port without very much trouble.  The easiest
-way is for you to send me a development board.  If your hardware is in
-another MCU family which is not currently supported, I can also make you a
-port, but it will be more effort.  In either case, I'd be happy to talk with
-you about it.
+If your hardware is not supported, and it's in the PIC16F/18F/24F/32MX
+family, I can probably easily make you a port without very much trouble. 
+The easiest way is for you to send me a development board.  If your hardware
+is in another MCU family which is not currently supported, I can also make
+you a port, but it will be more effort.  In either case, I'd be happy to
+talk with you about it.
 
 Supported Software
 -------------------
 The USB stack is supported by the following software:
  * Microchip XC8 compiler
  * Microchip XC16 compiler
+ * Microchip XC32 compiler
  * Microchip MPLAB X IDE
 
 Note that the C18 compiler is not currently supported. There are some
@@ -268,7 +271,6 @@ Limitations
 Nothing's perfect. Here are the known limitations:
  * Control transfers are supported on endpoint 0 only.
  * Isochronous transfers are not supported.
- * Ping-pong buffering is not supported.
  * Remote wake-up is not supported.
 
 
@@ -276,9 +278,7 @@ Future Plans
 =============
 
 The following features are on the horizon:
-	* PIC32 port
-	* Support for more PIC18/24F parts
-	* Ping-pong buffering
+	* Support for more specific MCUs
 	* dsPIC33E and PIC24E support
 	* Isochronous transfers
 
