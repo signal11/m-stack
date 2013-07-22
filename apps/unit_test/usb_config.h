@@ -47,8 +47,9 @@
 	#define PPB_MODE PPB_NONE
 #endif
 
-/* Comment the following line to use polling USB operation. You are responsible
-   then for calling usb_service() periodically from your application. */
+/* Comment the following line to use polling USB operation. When using polling,
+   You are responsible for calling usb_service() periodically from your
+   application. */
 #define USB_USE_INTERRUPTS
 
 /* Objects from usb_descriptors.c */
