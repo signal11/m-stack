@@ -32,7 +32,7 @@
 
 #include <stdint.h>
 
-#ifdef __XC16__
+#if defined(__XC16__) || defined(__XC32__)
 #pragma pack(push, 1)
 #elif __XC8
 #else
@@ -247,7 +247,7 @@ struct string_descriptor {
 /** @endcond */
 
 
-#ifdef __XC16__
+#if defined(__XC16__) || defined(__XC32__)
 #pragma pack(pop)
 #elif __XC8
 #else

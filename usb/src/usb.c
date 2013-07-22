@@ -19,7 +19,10 @@
  *  along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef __XC16__
+#ifdef __XC32__
+#include <xc.h>
+#include <sys/kmem.h>
+#elif __XC16__
 #include <libpic30.h>
 #include <xc.h>
 #elif __C18
@@ -27,6 +30,8 @@
 #include <delays.h>
 #elif __XC8
 #include <xc.h>
+#else
+#error "Compiler not supported"
 #endif
 
 #include <string.h>
@@ -47,6 +52,13 @@
 #ifndef PPB_MODE
 	#error "PPB_MODE not defined. Define it to one of the four PPB_* macros in usb_hal.h"
 #endif
+
+#ifdef USB_FULL_PING_PONG_ONLY
+	#if PPB_MODE != PPB_ALL
+		#error "This hardware only supports PPB_ALL"
+	#endif
+#endif
+
 
 #if PPB_MODE == PPB_EPO_OUT_ONLY
 	#define PPB_EP0_OUT
@@ -74,7 +86,11 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
+#ifdef __XC32__
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 8);
+#else
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
+#endif
 
 #ifdef __C18
 /* The buffer descriptors. Per the PIC18F4550 Data sheet, when _not_ using
@@ -140,8 +156,9 @@ static struct buffer_descriptor bds[NUM_BD] BD_ATTR_TAG;
    0x400 and 0x7FF per the datasheet.*/
 /* This addr is for the PIC18F4550 */
 #pragma udata usb_buffers=0x500
-#elif __XC16__
-	/* Buffers can go anywhere on PIC24 parts which are supported (so far). */
+#elif defined(__XC16__) || defined(__XC32__)
+	/* Buffers can go anywhere on PIC24/PIC32 parts which are supported
+	   (so far). */
 #elif __XC8
 	/* Addresses are set by BD_ADDR and BUF_ADDR below. */
 #else
@@ -400,7 +417,9 @@ void usb_init(void)
 	uint8_t i;
 
 	/* Initialize the USB. 18.4 of PIC24FJ64GB004 datasheet */
+#ifndef USB_FULL_PING_PONG_ONLY
 	SET_PING_PONG_MODE(PPB_MODE);
+#endif
 #if PPB_MODE != PPB_NONE
 	SFR_USB_PING_PONG_RESET = 1;
 	SFR_USB_PING_PONG_RESET = 0;
@@ -444,6 +463,7 @@ void usb_init(void)
 #endif
 
 #ifdef USB_NEEDS_SET_BD_ADDR_REG
+#ifdef __XC16__
 	union WORD {
 		struct {
 			uint8_t lb;
@@ -456,6 +476,25 @@ void usb_init(void)
 	w.ptr = bds;
 
 	SFR_BD_ADDR_REG = w.hb;
+
+#elif __XC32__
+	union WORD {
+		struct {
+			uint8_t lb;
+			uint8_t hb;
+			uint8_t ub;
+			uint8_t eb;
+		};
+		uint32_t w;
+		void *ptr;
+	};
+	union WORD w;
+	w.w = KVA_TO_PA(bds);
+
+	SFR_BD_ADDR_REG1 = w.hb & 0xFE;
+	SFR_BD_ADDR_REG2 = w.ub;
+	SFR_BD_ADDR_REG3 = w.eb;
+#endif
 #endif
 
 	/* These are the UEP/U1EP endpoint management registers. */
@@ -1407,6 +1446,17 @@ void usb_send_data_stage(char *buffer, size_t len,
 #ifdef __XC16__
 
 void _ISR __attribute((auto_psv)) _USB1Interrupt()
+{
+	usb_service();
+}
+
+#elif __XC32__
+
+/* No parameter for interrupt() means to use IPL=RIPL and to detect whether
+   to use shadow registers or not. This is the safest option, but if a user
+   wanted maximum performance, they could use IPL7SRS and set the USBIP to 7.
+   IPL 7 is the only time the shadow register set can be used on PIC32MX. */
+void __attribute__((vector(_USB_1_VECTOR), interrupt(), nomips16)) _USB1Interrupt()
 {
 	usb_service();
 }
