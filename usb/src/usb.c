@@ -310,17 +310,17 @@ void usb_init(void)
 	
 	/* Clear them all out. This is important because a bootloader
 	   could have set them to non-zero */
-	memset((void*)&SFR_EP_MGMT(0), 0x0, sizeof(SFR_EP_MGMT(0)) * 16);
+	memset(SFR_EP_MGMT(0), 0x0, sizeof(*SFR_EP_MGMT(0)) * 16);
 	
 	/* Set up Endpoint zero */
-	SFR_EP_MGMT(0).SFR_EP_MGMT_HANDSHAKE = 1; /* Endpoint handshaking enable */
-	SFR_EP_MGMT(0).SFR_EP_MGMT_CON_DIS = 0; /* 1=Disable control operations */
-	SFR_EP_MGMT(0).SFR_EP_MGMT_OUT_EN = 1; /* Endpoint Out Transaction Enable */
-	SFR_EP_MGMT(0).SFR_EP_MGMT_IN_EN = 1; /* Endpoint In Transaction Enable */
-	SFR_EP_MGMT(0).SFR_EP_MGMT_STALL = 0; /* Stall */
+	SFR_EP_MGMT(0)->SFR_EP_MGMT_HANDSHAKE = 1; /* Endpoint handshaking enable */
+	SFR_EP_MGMT(0)->SFR_EP_MGMT_CON_DIS = 0; /* 1=Disable control operations */
+	SFR_EP_MGMT(0)->SFR_EP_MGMT_OUT_EN = 1; /* Endpoint Out Transaction Enable */
+	SFR_EP_MGMT(0)->SFR_EP_MGMT_IN_EN = 1; /* Endpoint In Transaction Enable */
+	SFR_EP_MGMT(0)->SFR_EP_MGMT_STALL = 0; /* Stall */
 
 	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
-		volatile SFR_EP_MGMT_TYPE *ep = &SFR_EP_MGMT(1) + (i-1);
+		volatile SFR_EP_MGMT_TYPE *ep = SFR_EP_MGMT(i);
 		ep->SFR_EP_MGMT_HANDSHAKE = 1; /* Endpoint handshaking enable */
 		ep->SFR_EP_MGMT_CON_DIS = 1; /* 1=Disable control operations */
 		ep->SFR_EP_MGMT_OUT_EN = 1; /* Endpoint Out Transaction Enable */

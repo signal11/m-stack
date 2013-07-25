@@ -48,7 +48,8 @@
 #define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
 
 #define SFR_EP_MGMT_TYPE         UEP1bits_t /* TODO test */
-#define SFR_EP_MGMT(n)           UEP##n##bits
+#define UEP_REG_STRIDE 1
+#define SFR_EP_MGMT(ep)          ((SFR_EP_MGMT_TYPE*) (&UEP0 + UEP_REG_STRIDE * (ep)))
 #define SFR_EP_MGMT_HANDSHAKE    EPHSHK
 #define SFR_EP_MGMT_STALL        EPSTALL
 #define SFR_EP_MGMT_OUT_EN       EPOUTEN
@@ -181,7 +182,8 @@ struct buffer_descriptor {
 #define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
 
 #define SFR_EP_MGMT_TYPE         UEP1bits_t /* TODO test */
-#define SFR_EP_MGMT(n)           UEP##n##bits
+#define UEP_REG_STRIDE 1
+#define SFR_EP_MGMT(ep)          ((SFR_EP_MGMT_TYPE*) (&UEP0 + UEP_REG_STRIDE * (ep)))
 #define SFR_EP_MGMT_HANDSHAKE    EPHSHK
 #define SFR_EP_MGMT_STALL        EPSTALL
 #define SFR_EP_MGMT_OUT_EN       EPOUTEN
@@ -319,7 +321,8 @@ struct buffer_descriptor {
 #define SFR_USB_EXTENDED_INTERRUPT_EN U1EIE
 
 #define SFR_EP_MGMT_TYPE         U1EP1BITS
-#define SFR_EP_MGMT(n)           U1EP##n##bits
+#define UEP_REG_STRIDE 1
+#define SFR_EP_MGMT(ep)          ((SFR_EP_MGMT_TYPE*) (&U1EP0 + UEP_REG_STRIDE * (ep)))
 #define SFR_EP_MGMT_HANDSHAKE    EPHSHK
 #define SFR_EP_MGMT_STALL        EPSTALL
 #define SFR_EP_MGMT_IN_EN        EPTXEN   /* In/out from HOST perspective */
