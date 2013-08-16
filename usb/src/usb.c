@@ -402,6 +402,36 @@ static size_t  ep0_data_stage_buf_remaining;
 static void   *ep0_data_stage_context;
 static uint8_t ep0_data_stage_direc; /*1=IN, 0=OUT, Same as USB spec.*/
 
+#ifdef _PIC14E
+/* Convert a pointer, which can be a normal banked pointer or a linear
+ * pointer, to a linear pointer.
+ *
+ * The USB buffer descriptors need linear addresses. The XC8 compiler will
+ * generate banked (not linear) addresses for the arrays in ep_buffers if
+ * ep_buffers can fit within a single bank. This is good for code size, but
+ * the buffer descriptors cannot take banked addresses, so they must be
+ * generated from the banked addresses.
+ *
+ * See section 3.6.2 of the PIC16F1459 datasheet for details.
+ */
+static uint16_t pic16_linear_addr(void *ptr)
+{
+	uint8_t high, low;
+	uint16_t addr = (uint16_t) ptr;
+
+	/* Addresses over 0x2000 are already linear addresses. */
+	if (addr >= 0x2000)
+		return addr;
+
+	high = (addr & 0xff00) >> 8;
+	low  = addr & 0x00ff;
+
+	return 0x2000 +
+	       (low & 0x7f) - 0x20 +
+	       ((high << 1) + (low & 0x80)? 1: 0) * 0x50;
+}
+#endif
+
 static void reset_ep0_data_stage()
 {
 	ep0_data_stage_in_buffer = NULL;

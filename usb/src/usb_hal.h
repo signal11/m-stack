@@ -26,7 +26,7 @@
 #define HAS_LOW_SPEED
 
 #define BDNADR_TYPE              uint16_t
-#define PHYS_ADDR(VIRTUAL_ADDR)  (VIRTUAL_ADDR)
+#define PHYS_ADDR(VIRTUAL_ADDR)  pic16_linear_addr(VIRTUAL_ADDR)
 
 #define SFR_FULL_SPEED_EN        UCFGbits.FSEN
 #define SFR_PULL_EN              UCFGbits.UPUEN
