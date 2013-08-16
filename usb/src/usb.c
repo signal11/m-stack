@@ -789,7 +789,8 @@ static inline int8_t handle_standard_control_request()
 	setup = (struct setup_packet*) ep0_buf.out;
 #endif
 
-	if (setup->bRequest == GET_DESCRIPTOR) {
+	if (setup->bRequest == GET_DESCRIPTOR &&
+	    setup->REQUEST.bmRequestType == 0x80 /* Section 9.4, Table 9-3 */) {
 		char descriptor = ((setup->wValue >> 8) & 0x00ff);
 		uint8_t descriptor_index = setup->wValue & 0x00ff;
 
