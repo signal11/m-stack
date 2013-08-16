@@ -1445,10 +1445,9 @@ void usb_send_data_stage(char *buffer, size_t len,
 {
 	/* Start sending the first block. Subsequent blocks will be sent
 	   when IN tokens are received on endpoint zero. */
-	start_control_return(buffer, len, len);
-
 	ep0_data_stage_callback = callback;
 	ep0_data_stage_context = context;
+	start_control_return(buffer, len, len);
 }
 
 
