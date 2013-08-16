@@ -407,10 +407,10 @@ static void reset_ep0_data_stage()
 	ep0_data_stage_in_buffer = NULL;
 	ep0_data_stage_out_buffer = NULL;
 	ep0_data_stage_buf_remaining = 0;
+	ep0_data_stage_callback = NULL;
 
 	/* There's no need to reset the following because no decisions are
 	   made based on them:
-	     ep0_data_stage_callback,
 	     ep0_data_stage_context,
 	     ep0_data_stage_direc
 	 */
