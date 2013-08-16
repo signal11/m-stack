@@ -41,6 +41,16 @@
 #include "usb_hal.h"
 #include "usb_ch9.h"
 
+#if _PIC14E && __XC8
+	/* This is necessary to avoid a warning about ep0_data_stage_callback
+	 * never being assigned to anything other than NULL. Since this is a
+	 * library, it's possible (and likely) that the application will not
+	 * make use of data stage callbacks, or control transfers at all. This
+	 * is only an issue on PIC16F parts (so far) on XC8.
+	 */
+	#pragma warning disable 1088
+#endif
+
 #define MIN(x,y) (((x)<(y))?(x):(y))
 
 /* Even though they're the same, It's convenient below (for the buffer
