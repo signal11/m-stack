@@ -1121,7 +1121,8 @@ static inline void handle_ep0_out()
 				if (bytes_to_copy < pkt_len) {
 					/* The buffer provided by the application was too short */
 					stall_ep0();
-					ep0_data_stage_callback(0/*false*/, ep0_data_stage_context);
+					if (ep0_data_stage_callback)
+						ep0_data_stage_callback(0/*false*/, ep0_data_stage_context);
 					reset_ep0_data_stage();
 				}
 				else {
