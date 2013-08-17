@@ -77,14 +77,11 @@ been tested anywhere outside my own office and my own programs.
 
 License
 --------
-For right this minute, the software is licensed under the LGPL. That will
-likely change in the near future, to add a linking exception for unmodified
-copies of the M-Stack.
+The software is licensed under the LGPL. It may be used in commercial and
+open hardware projects so long as the conditions of the LGPL can be met.
 
-In the near future, this product will be licensed under both open source and
-commercial licenses, with commercial licenses being available for purchase
-for companies and projects which cannot comply with the terms of any of the
-open source license.
+Commercial licenses are available for purchase for companies and projects
+which cannot or wish to not comply with the terms of the LGPL.
 
 Contribution
 -------------
