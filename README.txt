@@ -23,6 +23,9 @@ operations:
  * Handling and sending standard setup requests
  * Enumeration
 
+The following device classes are supported:
+ * HID - Human Interface Device
+
 While having a working USB stack is of great benefit when starting a USB
 project, know that there is no substitute for actually knowing the details
 of how USB works.  The USB specification should be consulted frequently when
@@ -167,6 +170,7 @@ Source Tree Structure
  +- apps/                  <- Firmware USB device applications,
      |                        examples, and tests
      +- unit_test/         <- Unit test firmware
+     +- hid_mouse/         <- HID Mouse example
      +- bootloader/        <- USB bootloader firmware and software
  +- host_test/             <- Software applications to run from a PC Host
 
@@ -175,6 +179,7 @@ USB Stack Source Files
 usb/src/usb.c         - The implementation of the USB stack.
 usb/src/usb_hal.h     - Hardware abstraction layer (HAL) containing
                         differences specific to each platform.
+usb/src/usb_hid.c     - Implementation of the HID class.
 usb/include/usb.h     - The API header for the USB stack. Applications should
                         #include this file.
 usb/include/usb_ch9.h - Enums and structs from Chapter 9 of the USB
@@ -182,6 +187,7 @@ usb/include/usb_ch9.h - Enums and structs from Chapter 9 of the USB
                         enumeration.  An application should #include this
                         file from their usb_descriptors.c and from any file
                         which deals with control transfers.
+usb/src/usb_hid.h     - Enums, structs, and callbacks for the HID class
 
 Application Source Files (Unit Test Example)
 ---------------------------------------------
@@ -195,6 +201,7 @@ apps/unit_test/usb_descriptors.c - The application's descriptors. The
                                    application should set the descriptors in
                                    this file as desired to suit the
                                    application's needs.
+apps/hid_mouse/*                 - HID mouse example (same files as above)
 
 Making Your Own Project
 ------------------------
