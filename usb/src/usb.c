@@ -91,7 +91,6 @@
 #endif
 
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct endpoint_descriptor), 7);
-STATIC_SIZE_CHECK_EQUAL(sizeof(struct hid_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
