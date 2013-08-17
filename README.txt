@@ -66,17 +66,9 @@ available under an open source license.  Instead of complaining about it on
 the internet, I wrote one.
 
 
-Status and License
-===================
-
-Status
--------
-Right now this should be considered Alpha-quality software, which means that
-I believe it to be functional, and have tested it as such, but it has not
-been tested anywhere outside my own office and my own programs.
-
 License
---------
+========
+
 The software is licensed under the LGPL. It may be used in commercial and
 open hardware projects so long as the conditions of the LGPL can be met.
 
