@@ -33,39 +33,6 @@ Home
 The master web page for this project can be found at:
 	http://www.signal11.us/oss/m-stack/
 
-
-Motivation
-===========
-
-* Why make a USB stack when Microchip will give you a stack for free with
-  source code?
-
-The Microchip Libraries for Applications (MLA, formerly MAL) is a tremendous
-resource for PIC MCU programmers.  Microchip's USB stack, MCHPFSUSB, is a
-highly functional software library which supports Microchip's entire line of
-MCU products with working examples which work on Microchip's entire line of
-development boards.  Microchip allows downloads of the source code for no
-cost from their website.  With this much functionality available for no
-cost, making a 3rd party USB stack seems like crazy talk.
-
-There's one problem with the MCHPFSUSB stack though, and that is the
-license.  Microchip places two restrictions on their source code.  The first
-is that it can only be used on Microchip products (but it won't run on
-anyone else's products anyway).  The second is that the source cannot be
-redistributed.  Thus, the MCHPFSUSB stack is proprietary, and Microchip's
-license says it using exactly this term.  These restrictions are a major
-limitation from a free software perspective, and so far have limited the
-adoption of Microchip PIC microcontrollers for open hardware projects, where
-it is desired that end users be able to build and modify the source code.
-Microchip's license indirectly also limits the types of software which can
-be linked in along side it, since some open source software cannot be linked
-with proprietary software.
-
-For these reasons, it is desirable to have a USB stack for PIC MCUs which is
-available under an open source license.  Instead of complaining about it on
-the internet, I wrote one.
-
-
 License
 ========
 
