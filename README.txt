@@ -26,6 +26,10 @@ operations:
 The following device classes are supported:
  * HID - Human Interface Device
 
+Other features include:
+ * Clean, well-documented examples (device, and PC-host (libusb))
+ * Fast PIC24 bootloader
+
 While having a working USB stack is of great benefit when starting a USB
 project, know that there is no substitute for actually knowing the details
 of how USB works.  The USB specification should be consulted frequently when
