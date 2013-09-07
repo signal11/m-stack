@@ -203,6 +203,40 @@ int8_t SET_INTERFACE_CALLBACK(uint8_t interface, uint8_t alt_setting);
 int8_t GET_INTERFACE_CALLBACK(uint8_t interface);
 #endif
 
+#ifdef OUT_TRANSACTION_CALLBACK
+/** @brief Callback for an OUT transaction
+ *
+ * OUT_TRANSACTION_CALLBACK() is called when a transaction has completed
+ * on an endpoint numbered 1 through 15, that is when data has been received
+ * from the host. The application may then get the data received by calling
+ * @p usb_get_out_buffer(), and can then re-arm the endpoint by calling @p
+ * usb_arm_out_endpoint(). The application may choose to not re-arm the
+ * endpoint if the application intends to do it at a later time.
+ *
+ * This function is called from interrupt context and should not block.
+ *
+ * @param endpoint   The endpoint on which the transfer completed
+ */
+void OUT_TRANSACTION_CALLBACK(uint8_t endpoint);
+#endif
+
+
+#ifdef IN_TRANSACTION_COMPLETE_CALLBACK
+/** @brief Callback for an IN transaction
+ *
+ * IN_TRANSACTION_COMPLETE_CALLBACK() is called when an IN transaction has
+ * completed on an endpoint numbered 1 through 15, meaning the transaction
+ * has successfully been delivered to the host. The application may send
+ * another transaction to the host using @p usb_get_in_buffer() and @p
+ * usb_send_in_buffer() from this callback if desired.
+ *
+ * This function is called from interrupt context and should not block.
+ *
+ * @param endpoint   The endpoint on which the transfer completed
+ */
+void IN_TRANSACTION_COMPLETE_CALLBACK(uint8_t endpoint);
+#endif
+
 #ifdef UNKNOWN_SETUP_REQUEST_CALLBACK
 /** @brief Callback for an unrecognized SETUP request
  *

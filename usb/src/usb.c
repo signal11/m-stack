@@ -1282,7 +1282,9 @@ void usb_service(void)
 				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_IN_HALT_FLAG)
 					stall_ep_in(SFR_USB_STATUS_EP);
 				else {
-
+#ifdef IN_TRANSACTION_COMPLETE_CALLBACK
+					IN_TRANSACTION_COMPLETE_CALLBACK(SFR_USB_STATUS_EP);
+#endif
 				}
 			}
 			else {
@@ -1291,7 +1293,9 @@ void usb_service(void)
 				if (ep_buf[SFR_USB_STATUS_EP].flags & EP_OUT_HALT_FLAG)
 					stall_ep_out(SFR_USB_STATUS_EP);
 				else {
-
+#ifdef OUT_TRANSACTION_CALLBACK
+					OUT_TRANSACTION_CALLBACK(SFR_USB_STATUS_EP);
+#endif
 				}
 			}
 		}
