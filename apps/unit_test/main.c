@@ -170,6 +170,16 @@ int8_t app_get_interface_callback(uint8_t interface)
 	return 0;
 }
 
+void app_out_transaction_callback(uint8_t endpoint)
+{
+
+}
+
+void app_in_transaction_complete_callback(uint8_t endpoint)
+{
+
+}
+
 static char buf[512];
 
 static void data_cb(bool transfer_ok, void *context)

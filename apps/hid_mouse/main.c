@@ -195,6 +195,16 @@ int8_t app_get_interface_callback(uint8_t interface)
 	return 0;
 }
 
+void app_out_transaction_callback(uint8_t endpoint)
+{
+
+}
+
+void app_in_transaction_complete_callback(uint8_t endpoint)
+{
+
+}
+
 int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 {
 	/* To use the HID device class, have a handler for unknown setup
