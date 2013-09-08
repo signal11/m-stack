@@ -1,0 +1,71 @@
+
+Libusb and WinUSB on Windows with M-Stack
+==========================================
+
+Userspace software can make use of WinUSB for communication with M-Stack
+devices from Windows hosts.  In addition, Libusb can use WinUSB as a filter
+driver, allowing easy creation of cross-platform applications using Libusb.
+
+While the source code for libusb applications can be the same across
+platforms, Libusb and WinUSB on Windows will not support isochronous
+endpoints.  This is a limitation of WinUSB.
+
+INF Files
+----------
+On Windows, an INF file is used to bind a hardware device to a driver.  For
+WinUSB applications, an INF file is required for each type of device which
+the WinUSB driver is to be bound to.  This INF file must be "installed" on
+each computer where it will be used.  Further, signing by Microsoft is
+required if annoying popups are to be avoided.  Signing by Microsoft is
+expensive.
+
+On Windows 8, a device may include the Windows-specific Operating System
+descriptor along with both the Extended CompatID Descriptor, and the
+Extended Properties Descriptor (both Windows-specific and non-standard) to
+bind WinUSB to a device without creating and installing an INF file.
+Support for this method has been pushed down to Windows 7 as well (and maybe
+Vista), but not Windows XP.  Connecting a device with the Windows Operating
+System Descriptor (henceforth a WinUSB device) will work properly out of the
+box on Windows 8.  On Windows 7, it will require the computer to be
+connected to the internet and have Windows Update enabled for driver
+downloads (which is the default) so that Windows can automatically download
+and install the WinUSB driver the first time a WinUSB device is connected.
+
+Mechanism
+----------
+When a USB device is connected to a Windows computer for the first time,
+Windows will ask the new device for string descriptor 0xee.  If this
+descriptor is of a specified format, Windows will assume that the device is
+a WinUSB device, causing Windows to treat string descriptor 0xee as a
+Windows Operating System Descriptor, and causing it to read the requestID
+field from this descriptor.  Windows will then issue control transfers,
+using the requestID as a bRequest, to request both the Extended CompatID
+Descriptor and the Extended Properties Descriptor.  The Extended CompatID
+Descriptor contains a compatibleID string which Windows will use to bind a
+specific driver to the device.  Setting compatibleID to "WINUSB" will bind
+WinUSB to the device.  The unit_test example which comes with M-Stack
+provides an example of a WinUSB device.
+
+See the documents in the references section below for more details.
+
+Tricks
+-------
+Windows will only read the Microsoft-specific descriptors the first time the
+device is connected, which is undisrable during development of a WinUSB
+device.  Windows can be forced to re-read the descriptors by performing the
+following steps:
+	1. In the Device Manager, right-click the device (which will show
+	   as "WinUSB Device" under "Universal Serial Bus Devices") and
+	   select "Uninstall." This will unbind the driver.
+	2. In the registry, delete the section associated with your device in
+	   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\UsbFlags .
+	   The device keys in UsbFlags begin with the VID and PID of the
+	   device they describe.
+	3. Disconnect and re-connect your device. The next time the device
+	   is connected, Windows will request the WinUSB descriptors.
+
+References
+-----------
+http://blogs.msdn.com/b/usbcoreblog/archive/2012/09/26/how-to-install-winusb-sys-without-a-custom-inf.aspx
+http://msdn.microsoft.com/library/windows/hardware/gg463182
+(Search MSDN for "Microsoft OS Descriptors" if the above link fails)
