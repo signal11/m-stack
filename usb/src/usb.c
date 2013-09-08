@@ -40,6 +40,7 @@
 #include "usb.h"
 #include "usb_hal.h"
 #include "usb_ch9.h"
+#include "usb_microsoft.h"
 
 #if _PIC14E && __XC8
 	/* This is necessary to avoid a warning about ep0_data_stage_callback
@@ -95,6 +96,11 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_os_descriptor), 18);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_compat_header), 16);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_compat_function), 24);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_properties_header), 10);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_property_section_header), 8);
 #ifdef __XC32__
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 8);
 #else
@@ -809,21 +815,45 @@ static inline int8_t handle_standard_control_request()
 			}
 		}
 		else if (descriptor == DESC_STRING) {
-#ifdef USB_STRING_DESCRIPTOR_FUNC
-			const void *desc;
-			int16_t len;
+#ifdef MICROSOFT_OS_DESC_VENDOR_CODE
+			if (descriptor_index == 0xee) {
+				/* Microsoft descriptor Requested */
+				#ifdef __XC8
+				/* static is better in all cases on XC8. On
+				 * XC16/32, non-static uses less RAM. */
+				static
+				#endif
+				struct microsoft_os_descriptor os_descriptor =
+				{
+					0x12,                          /* bLength */
+					0x3,                           /* bDescriptorType */
+					{'M','S','F','T','1','0','0'}, /* qwSignature */
+					MICROSOFT_OS_DESC_VENDOR_CODE, /* bMS_VendorCode */
+					0x0,                           /* bPad */
+				};
 
-			len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
-			if (len < 0) {
-				stall_ep0();
-				SERIAL("Unsupported string descriptor requested");
+				start_control_return(&os_descriptor, sizeof(os_descriptor), setup->wLength);
 			}
 			else
-				start_control_return(desc, len, setup->wLength);
-#else
-			/* Strings are not supported on this device. */
-			stall_ep0();
 #endif
+			{
+#ifdef USB_STRING_DESCRIPTOR_FUNC
+				const void *desc;
+				int16_t len;
+				{
+					len = USB_STRING_DESCRIPTOR_FUNC(descriptor_index, &desc);
+					if (len < 0) {
+						stall_ep0();
+						SERIAL("Unsupported string descriptor requested");
+					}
+					else
+						start_control_return(desc, len, setup->wLength);
+				}
+#else
+				/* Strings are not supported on this device. */
+				stall_ep0();
+#endif
+			}
 		}
 		else {
 #ifdef UNKNOWN_GET_DESCRIPTOR_CALLBACK
@@ -1073,6 +1103,30 @@ static inline void handle_ep0_setup()
 		if (res < 0)
 			goto handle_unknown;
 	}
+#ifdef MICROSOFT_OS_DESC_VENDOR_CODE
+	else if (setup->bRequest == MICROSOFT_OS_DESC_VENDOR_CODE) {
+		const void *desc;
+		int16_t len = -1;
+
+		if (setup->REQUEST.bmRequestType == 0xC0 &&
+		    setup->wIndex == 0x0004) {
+			len = MICROSOFT_COMPAT_ID_DESCRIPTOR_FUNC(
+				setup->wValue,
+				&desc);
+		}
+		else if (setup->REQUEST.bmRequestType == 0xC1 &&
+		         setup->wIndex == 0x0005) {
+			len = MICROSOFT_CUSTOM_PROPERTY_DESCRIPTOR_FUNC(
+				setup->wValue,
+				&desc);
+		}
+
+		if (len < 0)
+			stall_ep0();
+		else
+			start_control_return(desc, len, setup->wLength);
+	}
+#endif
 	else
 		goto handle_unknown;
 
