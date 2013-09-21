@@ -8,12 +8,9 @@ bootloaders in several key ways in both licensing and implementation.
 
 License
 --------
-This bootloader is free software, and its firmware and software are usable
-under the terms of the Simplified BSD License, the text of which is located
-in LICENSE-bsd.txt in this directory.  Note that this license covers the
-bootloader firmware and software only (ie: everything under this directory),
-and not the USB stack itself.  Information about the USB stack and its
-license is in the top-level README for this project.
+Like the rest of M-Stack, this bootloader is free software, and its firmware
+and software are usable under the terms of either the LGPL version 3, or the
+Apache License, version 2.0.
 
 Firmware Implementation
 ------------------------
