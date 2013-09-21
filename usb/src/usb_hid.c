@@ -8,7 +8,10 @@
  *
  *  M-Stack is free software: you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the
- *  Free Software Foundation, version 3
+ *  Free Software Foundation, version 3; or the Apache License, version 2.0
+ *  as published by the Apache Software Foundation.  If you have purchased a
+ *  commercial license for this software from Signal 11 Software, your
+ *  commerical license superceeds the information in this header.
  *
  *  M-Stack is distributed in the hope that it will be useful, but WITHOUT
  *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -17,6 +20,9 @@
  *
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You should have received a copy of the Apache License, verion 2.0 along
+ *  with this software.  If not, see <http://www.apache.org/licenses/>.
  */
 
 #include <usb_config.h>
