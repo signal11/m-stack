@@ -1,12 +1,23 @@
 /*
  * M-Stack Intel Hex File Reader
  *
- * This file may be used under the terms of the Simplified BSD License
- * (2-clause), which can be found in LICENSE-bsd.txt in the parent
- * directory.
+ *  M-Stack is free software: you can redistribute it and/or modify it under
+ *  the terms of the GNU Lesser General Public License as published by the
+ *  Free Software Foundation, version 3; or the Apache License, version 2.0
+ *  as published by the Apache Software Foundation.  If you have purchased a
+ *  commercial license for this software from Signal 11 Software, your
+ *  commerical license superceeds the information in this header.
  *
- * It is worth noting that M-Stack itself is not under the same license as
- * this file.  See the top-level README.txt for more information.
+ *  M-Stack is distributed in the hope that it will be useful, but WITHOUT
+ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You should have received a copy of the Apache License, verion 2.0 along
+ *  with this software.  If not, see <http://www.apache.org/licenses/>.
  *
  * Alan Ott
  * Signal 11 Software
