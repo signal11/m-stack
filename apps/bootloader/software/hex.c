@@ -35,6 +35,12 @@
 
 #define LINE_LENGTH 1024
 
+#ifdef DEBUG
+	#define log printf
+#else
+	#define log
+#endif
+
 /* Intel Hex File format record types */
 enum {
 	REC_DATA = 0,
@@ -299,7 +305,7 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 				goto out;
 			}
 				
-			printf("Reading %3d bytes at %06lx\n", byte_count, addr);
+			log("Reading %3d bytes at %06lx\n", byte_count, addr);
 			size_t offset = addr - region->address;
 			for (i = 0; i < byte_count; i++) {
 				region->data[offset + i] =
@@ -311,11 +317,11 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			break;
 		case REC_EXTENDED_SEGMENT_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 4;
-			printf("Setting Extended addr: %lx\n", extended_addr);
+			log("Setting Extended addr: %lx\n", extended_addr);
 			break;
 		case REC_EXTENDED_LINEAR_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 16;
-			printf("Setting Extended addr2: %lx\n", extended_addr);
+			log("Setting Extended addr2: %lx\n", extended_addr);
 			break;
 		default:
 			fprintf(stderr, "Unsupported Record type: 0x%02hhx\n", record_type);
