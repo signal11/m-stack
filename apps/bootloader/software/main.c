@@ -231,6 +231,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
+	/* Erase */
+	res = bootloader_erase(bl);
+	if (res < 0) {
+		fprintf(stderr, "Erasing of device failed\n");
+		return 1;
+	}
+
 	/* Program */
 	res = bootloader_program(bl);
 	if (res < 0) {
