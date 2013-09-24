@@ -269,6 +269,11 @@ static void empty_cb(bool transfer_ok, void *context)
 
 static void reset_cb(bool transfer_ok, void *context)
 {
+	/* Delay before resetting*/
+	int i = 100000;
+	while(i--)
+		;
+
 	asm("reset");
 }
 
