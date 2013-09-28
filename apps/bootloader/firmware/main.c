@@ -270,7 +270,7 @@ static void empty_cb(bool transfer_ok, void *context)
 static void reset_cb(bool transfer_ok, void *context)
 {
 	/* Delay before resetting*/
-	int i = 100000;
+	uint16_t i = 65535;
 	while(i--)
 		;
 
