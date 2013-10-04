@@ -377,11 +377,17 @@ int bootloader_init(struct bootloader **bootl, const char *filename, uint16_t vi
 	bl = *bootl; /* Convenience pointer */
 
 	/* Load the Hex file */
-	res = hex_load(filename, &bl->hd);
-	
-	if (res < 0) {
-		printf("Unable to load hex file: %d\n", res);
-		return BOOTLOADER_CANT_OPEN_FILE;
+	if (filename) {
+		res = hex_load(filename, &bl->hd);
+
+		if (res < 0) {
+			printf("Unable to load hex file: %d\n", res);
+			return BOOTLOADER_CANT_OPEN_FILE;
+		}
+	}
+	else {
+		/* No filename, so load up an empty structure. */
+		hex_init_empty(&bl->hd);
 	}
 
 	region = bl->hd->regions;

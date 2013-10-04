@@ -97,6 +97,7 @@ static bool parse_vid_pid(const char *str, uint16_t *vid, uint16_t *pid)
 
 int main(int argc, char **argv)
 {
+	bool do_program = false;
 	bool do_verify = false;
 	bool do_reset = false;
 	char **itr;
@@ -190,6 +191,7 @@ int main(int argc, char **argv)
 			}
 			
 			filename = opt;
+			do_program = true;
 		}
 		itr++;
 		opt = *itr;
@@ -198,7 +200,7 @@ int main(int argc, char **argv)
 	vid = vidpid_valid? vid: DEFAULT_VID;
 	pid = vidpid_valid? pid: DEFAULT_PID;
 	
-	if (!filename) {
+	if (!filename && !do_reset) {
 	        fprintf(stderr, "No Filename specified. Specify a filename of use \"-\" to read from stdin.\n");
 	        return 1;
 	}
@@ -231,18 +233,20 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	/* Erase */
-	res = bootloader_erase(bl);
-	if (res < 0) {
-		fprintf(stderr, "Erasing of device failed\n");
-		return 1;
-	}
+	if (do_program) {
+		/* Erase */
+		res = bootloader_erase(bl);
+		if (res < 0) {
+			fprintf(stderr, "Erasing of device failed\n");
+			return 1;
+		}
 
-	/* Program */
-	res = bootloader_program(bl);
-	if (res < 0) {
-		fprintf(stderr, "Programming of device failed\n");
-		return 1;
+		/* Program */
+		res = bootloader_program(bl);
+		if (res < 0) {
+			fprintf(stderr, "Programming of device failed\n");
+			return 1;
+		}
 	}
 
 	/* Verify */
