@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 	const char *opt;
 	const char *filename = NULL;
 	uint16_t vid = 0, pid = 0;
-	bool vidpid_valid;
+	bool vidpid_valid = false;
 	struct bootloader *bl;
 	int res;
 
