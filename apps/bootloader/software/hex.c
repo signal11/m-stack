@@ -340,6 +340,14 @@ out:
 	return ret;
 }
 
+void hex_init_empty(struct hex_data **data)
+{
+	struct hex_data *hd;
+	hd = malloc(sizeof(struct hex_data));
+	hd->regions = NULL;
+	*data = hd;
+}
+
 void hex_free(struct hex_data *hd)
 {
 	struct hex_data_region *r;

@@ -49,6 +49,7 @@ enum hex_error_code {
 };
 
 enum hex_error_code hex_load(const char *filename, struct hex_data **data);
+void hex_init_empty(struct hex_data **data);
 void hex_free(struct hex_data *hd);
 
 #endif // HEX_H__
