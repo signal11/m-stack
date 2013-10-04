@@ -38,7 +38,7 @@
 #ifdef DEBUG
 	#define log printf
 #else
-	#define log
+	#define log(...)
 #endif
 
 /* Intel Hex File format record types */
