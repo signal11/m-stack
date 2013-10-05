@@ -32,14 +32,9 @@
 #include <arpa/inet.h>
 
 #include "hex.h"
+#include "log.h"
 
 #define LINE_LENGTH 1024
-
-#ifdef DEBUG
-	#define log printf
-#else
-	#define log(...)
-#endif
 
 /* Intel Hex File format record types */
 enum {
@@ -184,6 +179,7 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 	hd = malloc(sizeof(struct hex_data));
 	hd->regions = NULL;
 	
+	log_hex("Checking HEX file for data integrity...\n");
 	
 	/* First pass: check for data integrity and create the
 	 * hex_data_region objects which which will contain the data. */
@@ -261,12 +257,15 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			extended_addr = read_short(line, DATA_INDEX) << 16;
 			break;
 		default:
-			fprintf(stderr, "Unsupported Record type: 0x%02hhx\n", record_type);
+			fprintf(stderr, "Hex file load: Unsupported Record type: 0x%02hhx\n", record_type);
 			ret = HEX_ERROR_UNSUPPORTED_RECORD;
 			goto out;
 			break;
 		}
 	}
+
+	log_hex("Integrity check passed.\n");
+	log_hex("Parsing data...\n");
 
 	/* Allocate the memory buffer for each hex_data_region. */
 	iter = hd->regions;
@@ -305,7 +304,7 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 				goto out;
 			}
 				
-			log("Reading %3d bytes at %06lx\n", byte_count, addr);
+			log_hex("Reading %3d bytes at %06lx\n", byte_count, addr);
 			size_t offset = addr - region->address;
 			for (i = 0; i < byte_count; i++) {
 				region->data[offset + i] =
@@ -317,19 +316,21 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			break;
 		case REC_EXTENDED_SEGMENT_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 4;
-			log("Setting Extended addr: %lx\n", extended_addr);
+			log_hex("Setting Extended addr: %lx\n", extended_addr);
 			break;
 		case REC_EXTENDED_LINEAR_ADDRESS:
 			extended_addr = read_short(line, DATA_INDEX) << 16;
-			log("Setting Extended addr2: %lx\n", extended_addr);
+			log_hex("Setting Extended addr2: %lx\n", extended_addr);
 			break;
 		default:
-			fprintf(stderr, "Unsupported Record type: 0x%02hhx\n", record_type);
+			fprintf(stderr, "Hex file load: Unsupported Record type: 0x%02hhx\n", record_type);
 			ret = HEX_ERROR_UNSUPPORTED_RECORD;
 			goto out;
 			break;
 		}
 	}
+
+	log_hex("Hex data parsed successfully.\n");
 
 	*data_out = hd;
 	fclose(fp);

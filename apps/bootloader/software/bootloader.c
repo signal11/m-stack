@@ -33,6 +33,7 @@
 
 #include "hex.h"
 #include "bootloader.h"
+#include "log.h"
 
 /* Protocol commands */
 #define CLEAR_FLASH 100
@@ -126,7 +127,7 @@ static int clear_flash(libusb_device_handle *handle)
 		10000/*timeout millis*/);
 
 	if (res < 0) {
-		fprintf(stderr, "Error clearing flash : %s\n", libusb_error_name(res));
+		log_libusb("Error clearing flash : %s\n", libusb_error_name(res));
 		return res;
 	}
 
@@ -146,7 +147,7 @@ static int send_data(libusb_device_handle *handle, size_t address, const unsigne
 		1000/*timeout millis*/);
 
 	if (res < 0) {
-		fprintf(stderr, "Error Sending Data : %s\n", libusb_error_name(res));
+		log_libusb("Error Sending Data : %s\n", libusb_error_name(res));
 		return res;
 	}
 
@@ -168,7 +169,7 @@ static int get_chip_info(libusb_device_handle *handle, struct chip_info *info)
 	/* TODO: Take care of byte swapping issues in chip_info. */
 
 	if (res < 0) {
-		fprintf(stderr, "Error request chip info: %s\n", libusb_error_name(res));
+		log_libusb("Error request chip info: %s\n", libusb_error_name(res));
 		return res;
 	}
 
@@ -188,7 +189,7 @@ static int request_data(libusb_device_handle *handle, size_t address, unsigned c
 		1000/*timeout millis*/);
 
 	if (res < 0) {
-		fprintf(stderr, "Error requesting data: %s\n", libusb_error_name(res));
+		log_libusb("Error requesting data: %s\n", libusb_error_name(res));
 		return res;
 	}
 
@@ -208,7 +209,7 @@ static int send_reset(libusb_device_handle *handle)
 		1000/*timeout millis*/);
 
 	if (res < 0) {
-		fprintf(stderr, "Error Sending Reset: %s\n", libusb_error_name(res));
+		log_libusb("Error Sending Reset: %s\n", libusb_error_name(res));
 		return res;
 	}
 
@@ -244,7 +245,7 @@ int bootloader_verify(struct bootloader *bl)
 
 		if (address >= bl->chip_info.config_words_base &&
 		    address < bl->chip_info.config_words_top) {
-			printf("Skipping Config words at %lx\n", address);
+			log("Verify: skipping config words at %lx\n", address);
 			goto end_region_verify;
 		}
 		
@@ -297,7 +298,7 @@ int bootloader_program(struct bootloader *bl)
 		
 		if (address >= bl->chip_info.config_words_base &&
 		    address < bl->chip_info.config_words_top) {
-			printf("Skipping Config words at %lx\n", address);
+			log("Program: skipping config words at %lx\n", address);
 			goto end_region;
 		}
 
@@ -320,10 +321,10 @@ int bootloader_program(struct bootloader *bl)
 			memset(buf, 0xff, total_bytes_to_send);
 			memcpy(buf+bytes_to_add, region->data, data_bytes_to_send);
 
-			printf("Padding block at %lx down to %lx\n", region->address, address);
+			log("Padding block at %lx down to %lx\n", region->address, address);
 			res = send_data(bl->handle, address, buf, total_bytes_to_send);
 			if (res < 0) {
-				fprintf(stderr, "Sending data block %lx failed: %s\n", region->address, libusb_error_name(res));
+				log_libusb("Sending data block %lx failed: %s\n", region->address, libusb_error_name(res));
 				res = -1;
 				goto failure;
 			}
@@ -339,7 +340,7 @@ int bootloader_program(struct bootloader *bl)
 
 			res = send_data(bl->handle, address, ptr, len_to_send);
 			if (res < 0) {
-				fprintf(stderr, "Sending data block %lx failed: %s\n", address, libusb_error_name(res));
+				log_libusb("Sending data block %lx failed: %s\n", address, libusb_error_name(res));
 				res = -1;
 				goto failure;
 			}
@@ -381,7 +382,7 @@ int bootloader_init(struct bootloader **bootl, const char *filename, uint16_t vi
 		res = hex_load(filename, &bl->hd);
 
 		if (res < 0) {
-			printf("Unable to load hex file: %d\n", res);
+			fprintf(stderr, "Unable to load hex file. Error: %d\n", res);
 			return BOOTLOADER_CANT_OPEN_FILE;
 		}
 	}
@@ -390,9 +391,10 @@ int bootloader_init(struct bootloader **bootl, const char *filename, uint16_t vi
 		hex_init_empty(&bl->hd);
 	}
 
+	log("Hex file regions:\n");
 	region = bl->hd->regions;
 	while (region) {
-		printf("Data Region at %08lx for %4lx\n", region->address, region->len);
+		log("  Data Region at %08lx for %4lx bytes (hex)\n", region->address, region->len);
 		region = region->next;
 	}
 	
@@ -425,8 +427,9 @@ int bootloader_init(struct bootloader **bootl, const char *filename, uint16_t vi
 
 	bl->bytes_per_row = bl->chip_info.bytes_per_instruction *
 	                    bl->chip_info.instructions_per_row;
-	
-	printf("bytes per inst: %d\n inst per row %d\n",
+
+	log("Queried MCU to find:\n");
+	log("  bytes per inst: %d\n  inst per row %d\n",
 	       bl->chip_info.bytes_per_instruction,
 	       bl->chip_info.instructions_per_row);
 

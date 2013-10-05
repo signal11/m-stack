@@ -19,6 +19,11 @@ CXXFLAGS= $(CFLAGS)
 LDFLAGS= -g
 LDLIBS=
 
+# Debugging: See log.h
+#CFLAGS+= -DDEBUG
+#CFLAGS+= -DLOG_LIBUSB_ERRORS
+#CFLAGS+= -DLOG_HEX
+
 OS=$(shell uname)
 ifneq ($(OS), Darwin)
 LDLIBS+=`pkg-config --libs libusb-1.0`
