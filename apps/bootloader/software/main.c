@@ -47,6 +47,9 @@
 #define DEFAULT_VID 0xa0a0
 #define DEFAULT_PID 0x0002
 
+static bool verbose_output = false;
+#define info(...) do { if (verbose_output) printf(__VA_ARGS__); } while(0)
+
 static void print_usage(const char *prog_name)
 {
 	printf("Usage: %s [OPTION]... FILE\n", prog_name);
@@ -54,6 +57,7 @@ static void print_usage(const char *prog_name)
 	printf("OPTIONS can be one of:\n");
 	printf("  -d  --dev=VID:PID     USB VID/PID of the device to program\n");
 	printf("  -v, --verify          verify program write\n");
+	printf("  -l  --verbose         Verbose (loud) output\n");
 	printf("  -r, --reset           reset device when done\n");
 	printf("  -h, --help            print help message and exit\n\n");
 	printf("Use a single hyphen (-) to read firmware hex file from stdin.\n");
@@ -129,6 +133,8 @@ int main(int argc, char **argv)
 					do_reset = true;
 				else if (!strcmp(opt, "--verify"))
 					do_verify = true;
+				else if (!strcmp(opt, "--verbose"))
+					verbose_output = true;
 				else if (!strncmp(opt, "--dev", 5)) {
 					if (opt[5] != '=') {
 						fprintf(stderr, "--dev requires vid/pid pair\n\n");
@@ -161,6 +167,9 @@ int main(int argc, char **argv)
 						break;
 					case 'r':
 						do_reset = true;
+						break;
+					case 'l':
+						verbose_output = true;
 						break;
 					case 'd':
 						itr++;
@@ -208,6 +217,7 @@ int main(int argc, char **argv)
 	/* Command line parsing is done. Do the programming of the device. */
 
 	/* Open the device */
+	info("Opening the bootloader device.\n");
 	res = bootloader_init(&bl, filename, vid, pid);
 	if (res == BOOTLOADER_CANT_OPEN_FILE) {
 		fprintf(stderr, "Unable to open file %s\n", filename);
@@ -235,6 +245,7 @@ int main(int argc, char **argv)
 	
 	if (do_program) {
 		/* Erase */
+		info("Erasing flash.\n");
 		res = bootloader_erase(bl);
 		if (res < 0) {
 			fprintf(stderr, "Erasing of device failed\n");
@@ -242,6 +253,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Program */
+		info("Programming.\n");
 		res = bootloader_program(bl);
 		if (res < 0) {
 			fprintf(stderr, "Programming of device failed\n");
@@ -251,6 +263,7 @@ int main(int argc, char **argv)
 
 	/* Verify */
 	if (do_verify) {
+		info("Verifying.\n");
 		res = bootloader_verify(bl);
 		if (res < 0) {
 			fprintf(stderr, "Verification of programmed memory failed\n");
@@ -260,6 +273,7 @@ int main(int argc, char **argv)
 
 	/* Reset */
 	if (do_reset) {
+		info("Resetting the device.\n");
 		res = bootloader_reset(bl);
 		if (res < 0) {
 			fprintf(stderr, "Device Reset failed\n");
