@@ -28,20 +28,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+
+#if _MSC_VER && _MSC_VER < 1600
+	#include "c99.h"
+#else
+	#include <inttypes.h>
+	#include <stdbool.h>
+#endif
 
 #include "hex.h"
 #include "bootloader.h"
 
-#ifdef _MSC_VER
-    #if _MSC_VER < 1600
-        typedef unsigned char bool;
-    #else
-        #include <stdbool.h>
-    #endif
+#ifdef WIN32
+	#include <Windows.h>
+	#define sleep(X) Sleep(X*1000)
 #else
-	#include <stdbool.h>
+	#include <unistd.h>
 #endif
-
 
 /* Change these for your application */
 #define DEFAULT_VID 0xa0a0

@@ -25,11 +25,25 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
+
+#if _MSC_VER && _MSC_VER < 1600
+	#include "c99.h"
+#else
+	#include <stdint.h>
+	#include <stdbool.h>
+#endif
+
+#ifdef _MSC_VER
+	#pragma warning (disable:4996)
+#endif
+
+#ifdef WIN32
+	#include <winsock2.h>
+#else
+	#include <arpa/inet.h>
+#endif
 
 #include "hex.h"
 #include "log.h"

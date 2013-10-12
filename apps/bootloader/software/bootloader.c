@@ -29,11 +29,25 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#if _MSC_VER && _MSC_VER < 1600
+	#include "c99.h"
+#else
+	#include <stdbool.h>
+#endif
+
+#ifdef WIN32
+	#define snprintf _snprintf
+#endif
+
 #include <libusb.h>
 
 #include "hex.h"
 #include "bootloader.h"
 #include "log.h"
+
+#ifdef _MSC_VER
+	#pragma warning (disable:4996)
+#endif
 
 /* Protocol commands */
 #define CLEAR_FLASH 100

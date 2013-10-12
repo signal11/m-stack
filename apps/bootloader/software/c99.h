@@ -1,5 +1,5 @@
 /*
- * M-Stack Bootloader
+ * Selected C99 Definitions, for pre-2010 versions of Visual Studio
  *
  *  M-Stack is free software: you can redistribute it and/or modify it under
  *  the terms of the GNU Lesser General Public License as published by the
@@ -21,38 +21,27 @@
  *
  * Alan Ott
  * Signal 11 Software
- * 2013-05-15
+ * 2013-04-29
  */
 
-#ifndef BOOTLOADER_H__
-#define BOOTLOADER_H__
+#ifndef S11_C99_H__
+#define S11_C99_H__
 
-#if _MSC_VER && _MSC_VER < 1600
-	#include "c99.h"
-#else
-	#include <stdint.h>
+#if _MSC_VER && _MSC_VER >= 1600
+	#error "c99.h shouldn't be included on Visual Studio >= 2010"
 #endif
 
+#if __GNUC__
+	#error "c99.h shouldn't be included on GCC compilers"
+#endif
 
-/* The Bootloader API functions return 0 on success and a negative error
- * code on error. */
+typedef unsigned __int8 uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned char bool;
+#define false 0
+#define true  1
 
-#define BOOTLOADER_ERROR -1
-#define BOOTLOADER_CANT_OPEN_FILE -2   /* Returned from *_init() */
-#define BOOTLOADER_CANT_OPEN_DEVICE -3 /* Returned from *_init() */
-#define BOOTLOADER_CANT_QUERY_DEVICE -4 /* Returned from *_init() */
-#define BOOTLOADER_MULTIPLE_CONNECTED -5 /* Returned from *_init() */
+#define PRIx32 "x"
 
-struct bootloader; /* opaque struct */
-
-int  bootloader_init(struct bootloader **bootl,
-                     const char *filename,
-                     uint16_t vid,
-                     uint16_t pid);
-int  bootloader_erase(struct bootloader *bl);
-int  bootloader_program(struct bootloader *bl);
-int  bootloader_verify(struct bootloader *bl);
-int  bootloader_reset(struct bootloader *bl);
-void bootloader_free(struct bootloader *bl);
-
-#endif /* BOOTLOADER_H__ */
+#endif /* S11_C99_H__ */
