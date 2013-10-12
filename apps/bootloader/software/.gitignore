@@ -1,3 +1,9 @@
 *.o
 *.so
 bootloader
+*.exe
+msvc/Debug
+msvc/Release
+msvc/*.ncb
+msvc/*.suo
+msvc/*.vcproj.*.user
