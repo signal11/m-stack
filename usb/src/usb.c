@@ -47,6 +47,7 @@
 #include "usb_hal.h"
 #include "usb_ch9.h"
 #include "usb_microsoft.h"
+#include "usb_winusb.h"
 
 #if _PIC14E && __XC8
 	/* This is necessary to avoid a warning about ep0_data_stage_callback
@@ -167,6 +168,25 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
 	#define BDSnIN(EP,oe) bds[(EP) * 4 + 2 + (oe)]
 #else
 #error "Must select a valid PPB_MODE"
+#endif
+
+#if defined(AUTOMATIC_WINUSB_SUPPORT) && !defined(MICROSOFT_OS_DESC_VENDOR_CODE)
+#error "Must define a MICROSOFT_OS_DESC_VENDOR_CODE for Automatic WinUSB"
+#endif
+
+#ifdef AUTOMATIC_WINUSB_SUPPORT
+	/* Make sure the Microsoft descriptor functions aren't defined */
+	#ifdef MICROSOFT_COMPAT_ID_DESCRIPTOR_FUNC
+		#error "Must not define MICROSOFT_COMPAT_ID_DESCRIPTOR_FUNC when using Automatic WinUSB"
+	#endif
+	#ifdef MICROSOFT_CUSTOM_PROPERTY_DESCRIPTOR_FUNC
+		#error "Must not define MICROSOFT_CUSTOM_PROPERTY_DESCRIPTOR_FUNC when using Automatic WinUSB"
+	#endif
+
+	/* Define the Microsoft descriptor functions to the handlers
+	 * implemented in usb_winusb.c */
+	#define MICROSOFT_COMPAT_ID_DESCRIPTOR_FUNC m_stack_winusb_get_microsoft_compat
+	#define MICROSOFT_CUSTOM_PROPERTY_DESCRIPTOR_FUNC m_stack_winusb_get_microsoft_property
 #endif
 
 static struct buffer_descriptor bds[NUM_BD] BD_ATTR_TAG;
