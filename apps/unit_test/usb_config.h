@@ -63,12 +63,12 @@
 #define USB_DEVICE_DESCRIPTOR this_device_descriptor
 #define USB_CONFIG_DESCRIPTOR_MAP usb_application_config_descs
 #define USB_STRING_DESCRIPTOR_FUNC usb_application_get_string
-#define MICROSOFT_COMPAT_ID_DESCRIPTOR_FUNC usb_application_get_microsoft_compat
-#define MICROSOFT_CUSTOM_PROPERTY_DESCRIPTOR_FUNC usb_application_get_microsoft_property
 
 /* The Setup Request number (bRequest) to tell the host to use for the
  * Microsoft descriptors. See docs/winusb.txt for details. */
 #define MICROSOFT_OS_DESC_VENDOR_CODE 0x50
+/* Automatically send the descriptors to bind the WinUSB driver on Windows */
+#define AUTOMATIC_WINUSB_SUPPORT
 
 /* Optional callbacks from usb.c. Leave them commented if you don't want to
    use them. For the prototypes and documentation for each one, see usb.h. */

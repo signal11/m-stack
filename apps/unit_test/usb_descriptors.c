@@ -21,7 +21,6 @@
 #include "usb_config.h"
 #include "usb.h"
 #include "usb_ch9.h"
-#include "usb_microsoft.h"
 
 #ifdef __C18
 #define ROMPTR rom
@@ -146,44 +145,6 @@ static const ROMPTR struct configuration_1_packet configuration_1 =
 	},
 };
 
-/* Microsoft-specific descriptors for automatic binding of the WinUSB driver.
- * See docs/winusb.txt for details. */
-struct extended_compat_descriptor_packet {
-	struct microsoft_extended_compat_header header;
-	struct microsoft_extended_compat_function function;
-};
-
-static struct extended_compat_descriptor_packet
-	this_extended_compat_descriptor =
-{
-	/* Header */
-	{
-	sizeof(struct extended_compat_descriptor_packet), /* dwLength */
-	0x0100, /* dwVersion*/
-	0x0004, /* wIndex: 0x0004 = Extended Compat ID */
-	1,      /* bCount, number of custom property sections */
-	{0},    /* reserved[7] */
-	},
-
-	/* Function */
-	{
-	0x0,      /* bFirstInterfaceNumber */
-	0x1,      /* reserved. Set to 1 in the Microsoft example */
-	"WINUSB", /* compatibleID[8] */
-	"",       /* subCompatibleID[8] */
-	{0},      /* reserved2[6] */
-	},
-};
-
-struct microsoft_extended_properties_header interface_0_property_descriptor =
-{
-	sizeof(interface_0_property_descriptor), /* dwLength */
-	0x0100, /* bcdVersion */
-	0x0005, /* wIndex, Extended Properties descriptor */
-	0x0,    /* bCount, Number of custom property sections */
-};
-
-
 /* String Descriptors
  *
  * String descriptors are optional. If strings are used, string #0 is
@@ -270,19 +231,3 @@ const struct configuration_descriptor *usb_application_config_descs[] =
 };
 STATIC_SIZE_CHECK_EQUAL(USB_ARRAYLEN(USB_CONFIG_DESCRIPTOR_MAP), NUMBER_OF_CONFIGURATIONS);
 STATIC_SIZE_CHECK_EQUAL(sizeof(USB_DEVICE_DESCRIPTOR), 18);
-
-uint16_t usb_application_get_microsoft_compat(uint8_t interface,
-                                              const void **descriptor)
-{
-	/* Check the interface here for composite devices. */
-	*descriptor = &this_extended_compat_descriptor;
-	return sizeof(this_extended_compat_descriptor);
-}
-
-uint16_t usb_application_get_microsoft_property(uint8_t interface,
-                                                const void **descriptor)
-{
-	/* Check the interface here for composite devices. */
-	*descriptor = &interface_0_property_descriptor;
-	return sizeof(interface_0_property_descriptor);
-}
