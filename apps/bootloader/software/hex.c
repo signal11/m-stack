@@ -75,7 +75,7 @@ static uint8_t read_byte(const char *line, size_t offset)
 
 static uint16_t read_short(const char *line, size_t offset)
 {
-	char chars[5];
+	char chars[6];
 	char *endptr;
 	uint16_t res;
 	
