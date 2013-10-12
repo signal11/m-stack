@@ -293,6 +293,7 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 		case REC_DATA:
 		{
 			int i;
+			size_t offset;
 			int byte_count = read_byte(line, BYTE_COUNT_INDEX);
 			size_t addr = extended_addr +
 					read_short(line, ADDRESS_INDEX);
@@ -305,7 +306,7 @@ enum hex_error_code hex_load(const char *filename, struct hex_data **data_out)
 			}
 				
 			log_hex("Reading %3d bytes at %06lx\n", byte_count, addr);
-			size_t offset = addr - region->address;
+			offset = addr - region->address;
 			for (i = 0; i < byte_count; i++) {
 				region->data[offset + i] =
 					read_byte(line, DATA_INDEX + 2 * i);
