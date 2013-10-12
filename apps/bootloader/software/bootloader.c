@@ -219,7 +219,7 @@ static int send_reset(libusb_device_handle *handle)
 
 static void print_data(const unsigned char *data, size_t len)
 {
-	int i;
+	size_t i;
 	
 	for (i = 0; i < len; i++) {
 		printf("%02hhx ", data[i]);

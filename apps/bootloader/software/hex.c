@@ -68,7 +68,7 @@ static uint8_t read_byte(const char *line, size_t offset)
 	chars[1] = line[offset+1];
 	chars[2] = '\0';
 
-	res = strtoul(chars, &endptr, 16);
+	res = (uint8_t) strtoul(chars, &endptr, 16);
 	
 	return res;
 }
@@ -82,7 +82,7 @@ static uint16_t read_short(const char *line, size_t offset)
 	memcpy(chars, line + offset, 4);
 	chars[5] = '\0';
 
-	res = strtoul(chars, &endptr, 16);
+	res = (uint16_t) strtoul(chars, &endptr, 16);
 	
 	return res;
 }
