@@ -55,6 +55,12 @@
 #define USB_CONFIG_DESCRIPTOR_MAP usb_application_config_descs
 #define USB_STRING_DESCRIPTOR_FUNC usb_application_get_string
 
+/* The Setup Request number (bRequest) to tell the host to use for the
+ * Microsoft descriptors. See docs/winusb.txt for details. */
+#define MICROSOFT_OS_DESC_VENDOR_CODE 0x50
+/* Automatically send the descriptors to bind the WinUSB driver on Windows */
+#define AUTOMATIC_WINUSB_SUPPORT
+
 /* Optional callbacks from usb.c. Leave them commented if you don't want to
    use them. For the prototypes and documentation for each one, see usb.h. */
 
