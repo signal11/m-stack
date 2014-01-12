@@ -142,7 +142,7 @@ struct buffer_descriptor {
 #define BDN_LENGTH(REG) (REG.BDnCNT)
 #endif
 
-#ifdef _16F1459
+#if defined(_16F1459) || defined(_16F1454)
 #define BD_ADDR 0x2000
 #define BUFFER_ADDR 0x2080
 #else
