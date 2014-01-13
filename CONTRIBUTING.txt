@@ -1,0 +1,51 @@
+Contributions to M-Stack will require a signed copy of the Individual
+Contributor License Agreement (ICLA) which is present in this directory. 
+This contributor agreement is borrowed from the Apache Software Foundation,
+and modified to suit this project.
+
+When you contribute the first time, a maintainer will send you the ICLA. 
+Replying with the information requested and the text "I Agree" is
+sufficient.  The information requested can be in one block at the top of the
+email; the form doesn't have to be filled out in the traditional sense.
+
+Each patch sent to this project requires a sign-off in the commit message,
+certifying that the person who submitted it either wrote it or has
+authorization to pass it on as Open Source software. A sign-off line looks
+like the following:
+
+Signed-off-by: Alan Ott <alan@signal11.us>
+
+Place the sign-off as the last line of your commit message. The sign-off
+indicates that you agree to the Developer's Certificate of Origin, which was
+created for the Linux kernel.  Its text follows:
+
+        Developer's Certificate of Origin 1.1
+
+        By making a contribution to this project, I certify that:
+
+        (a) The contribution was created in whole or in part by me and I
+            have the right to submit it under the open source license
+            indicated in the file; or
+
+        (b) The contribution is based upon previous work that, to the best
+            of my knowledge, is covered under an appropriate open source
+            license and I have the right under that license to submit that
+            work with modifications, whether created in whole or in part
+            by me, under the same open source license (unless I am
+            permitted to submit under a different license), as indicated
+            in the file; or
+
+        (c) The contribution was provided directly to me by some other
+            person who certified (a), (b) or (c) and I have not modified
+            it.
+
+	(d) I understand and agree that this project and the contribution
+	    are public and that a record of the contribution (including all
+	    personal information I submit with it, including my sign-off) is
+	    maintained indefinitely and may be redistributed consistent with
+	    this project or the open source license(s) involved.
+
+
+Thank you for your contributions to M-Stack!
+
+Alan.
