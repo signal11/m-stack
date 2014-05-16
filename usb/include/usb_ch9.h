@@ -131,6 +131,22 @@ enum DescriptorTypes {
 	DESC_INTERFACE_ASSOCIATION = 0xB,
 };
 
+/** Device Classes
+ *
+ * Some Device class constants which don't correspond to actual
+ * classes.
+ *
+ * Device class codes which correspond to actual device classes are
+ * defined in that device class's header file (for M-Stack supported
+ * device classes).
+ */
+enum DeviceClassCodes {
+	DEVICE_CLASS_DEFINED_AT_INTERFACE_LEVEL = 0x0,
+	DEVICE_CLASS_MISC = 0xef,
+	DEVICE_CLASS_APPLICATION_SPECIFIC = 0xfe,
+	DEVICE_CLASS_VENDOR_SPECIFIC = 0xff,
+};
+
 /** Endpoint Attributes */
 enum EndpointAttributes {
 	EP_CONTROL = 0x0,
@@ -220,6 +236,22 @@ struct string_descriptor {
 	uint8_t bLength;
 	uint8_t bDescriptorType; /**< Set to DESC_STRING */
 	uint16_t chars[];
+};
+
+/** Interface Association Descriptor
+ *
+ * See the Interface Association Descriptors Engineering Change Note (ECN)
+ * available from www.usb.org .
+ */
+struct interface_association_descriptor {
+	uint8_t bLength;         /**< Set to 8 bytes */
+	uint8_t bDescriptorType; /**< Set to DESC_INTERFACE_ASSOCIATION = 0xB */
+	uint8_t bFirstInterface;
+	uint8_t bInterfaceCount;
+	uint8_t bFunctionClass;
+	uint8_t bFunctionSubClass;
+	uint8_t bFunctionProtocol;
+	uint8_t iFunction; /**< String Descriptor Index */
 };
 
 /* Doxygen end-of-group for ch9_items */

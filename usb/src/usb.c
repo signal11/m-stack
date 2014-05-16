@@ -102,6 +102,7 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct endpoint_descriptor), 7);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct configuration_descriptor), 9);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct device_descriptor), 18);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct interface_association_descriptor), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct setup_packet), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_os_descriptor), 18);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_compat_header), 16);
