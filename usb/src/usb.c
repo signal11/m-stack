@@ -796,7 +796,7 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 {
 	uint8_t bytes_to_send = MIN(len, EP_0_IN_LEN);
 	bytes_to_send = MIN(bytes_to_send, bytes_asked_for);
-	returning_short = len != bytes_asked_for;
+	returning_short = len < bytes_asked_for;
 	copy_to_ep0_in_buf(ptr, bytes_to_send);
 	ep0_data_stage_in_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
