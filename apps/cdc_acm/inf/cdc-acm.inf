@@ -1,0 +1,59 @@
+; M-Stack CDC-ACM Windows INF file
+;
+; This file has been tested on Windows 7, 64-bit. It may or may not work on
+; Windows versions earlier than 7. Improvements and bug reports are welcome.
+;
+; Change the VID and PID (VID_PID_STRING) below to match the VID and PID
+; of your device. You may or may not need the MI_00. Have a look at
+; "Hardware Ids" in your device's properties page (details tab) in the device
+; manager.
+
+
+[Version]
+Signature="$Windows NT$"
+Class=Ports
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%MFGNAME%
+DriverVer=05/16/2014,1.0.0.15
+
+[Manufacturer]
+%MFGNAME%=DeviceList, NTx86, NTamd64, NTia64, NTarm
+
+
+[DeviceList.NTamd64]
+%DESC_CDC_DEMO% = DriverInstall, %VID_PID_STRING%
+
+[DeviceList.NTx86]
+%DESC_CDC_DEMO% = DriverInstall, %VID_PID_STRING%
+
+[DeviceList.NTia64]
+%DESC_CDC_DEMO% = DriverInstall, %VID_PID_STRING%
+
+[DeviceList.NTarm]
+%DESC_CDC_DEMO% = DriverInstall, %VID_PID_STRING%
+
+; For the DriverInstall sections below see:
+;   http://support.microsoft.com/kb/837637
+;   http://www.microchip.com/forums/m488342.aspx
+;
+; This INF file includes mdmcpq.inf, which is a standard Windows
+; INF file that you can find by searching for it recursively from
+; %WINDIR%. It's in the WinSxS folders. In that file, you can see
+; the symbols referenced here (eg: FakeModemCopyFileSection, etc).
+
+[DriverInstall]
+include=mdmcpq.inf
+CopyFiles=FakeModemCopyFileSection
+
+[DriverInstall.Services]
+include=mdmcpq.inf
+AddService=usbser, 0x00000002, LowerFilter_Service_Inst
+
+[DriverInstall.HW]
+include=mdmcpq.inf
+AddReg=LowerFilterAddReg
+
+[Strings]
+MFGNAME = "Signal 11 Software"
+DESC_CDC_DEMO = "M-Stack CDC Demo"
+VID_PID_STRING = "USB\VID_A0A0&PID_0004&MI_00"
