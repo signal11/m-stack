@@ -25,6 +25,7 @@ operations:
 
 The following device classes are supported:
  * HID - Human Interface Device
+ * CDC-ACM - Communication Device Class - Abstract Control Model
 
 Other features include:
  * Clean, well-documented examples (device, and PC-host (libusb))
