@@ -1046,12 +1046,10 @@ static inline int8_t handle_standard_control_request()
 						/* Set Endpoint Halt Feature.
 						   Stall the affected endpoint. */
 						if (ep_dir) {
-							ep_buf[ep_num].flags |= EP_IN_HALT_FLAG;
-							stall_ep_in(ep_num);
+							usb_halt_ep_in(ep_num);
 						}
 						else {
-							ep_buf[ep_num].flags |= EP_OUT_HALT_FLAG;
-							stall_ep_out(ep_num);
+							usb_halt_ep_out(ep_num);
 						}
 					}
 					else {
