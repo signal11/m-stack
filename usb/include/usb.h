@@ -427,6 +427,18 @@ void usb_send_in_buffer(uint8_t endpoint, size_t len);
  */
 bool usb_in_endpoint_busy(uint8_t endpoint);
 
+/** @brief Halt an IN endpoint
+ *
+ * Set the ENDPOINT_HALT condition on an IN endpoint. Do not call this on
+ * endpoint zero.
+ *
+ * @param endpoint   The endpoint requested
+ * @returns
+ *    Return 0 if the endpoint can be halted, or -1 if the endpoint number
+ *    is invalid.
+*/
+uint8_t usb_halt_ep_in(uint8_t ep);
+
 /** @brief Check whether an endpoint is halted
  *
  * Check if an endpoint has been halted by the host. If an endpoint is
@@ -464,6 +476,18 @@ bool usb_out_endpoint_has_data(uint8_t endpoint);
  * @param endpoint   The endpoint requested
  */
 void usb_arm_out_endpoint(uint8_t endpoint);
+
+/** @brief Halt an OUT endpoint
+ *
+ * Set the ENDPOINT_HALT condition on an OUT endpoint. Do not call this on
+ * endpoint zero.
+ *
+ * @param endpoint   The endpoint requested
+ * @returns
+ *    Return 0 if the endpoint can be halted, or -1 if the endpoint number
+ *    is invalid.
+ */
+uint8_t usb_halt_ep_out(uint8_t ep);
 
 /** @brief Check whether an OUT endpoint is halted
  *

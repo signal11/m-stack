@@ -1493,6 +1493,17 @@ bool usb_in_endpoint_busy(uint8_t endpoint)
 #endif
 }
 
+uint8_t usb_halt_ep_in(uint8_t ep)
+{
+	if (ep == 0 || ep > NUM_ENDPOINT_NUMBERS)
+		return -1;
+
+	ep_buf[ep].flags |= EP_IN_HALT_FLAG;
+	stall_ep_in(ep);
+
+	return 0;
+}
+
 bool usb_in_endpoint_halted(uint8_t endpoint)
 {
 	return ep_buf[endpoint].flags & EP_IN_HALT_FLAG;
@@ -1558,6 +1569,17 @@ void usb_arm_out_endpoint(uint8_t endpoint)
 	ep_buf[endpoint].flags ^= EP_RX_DTS;
 #endif
 
+}
+
+uint8_t usb_halt_ep_out(uint8_t ep)
+{
+	if (ep == 0 || ep > NUM_ENDPOINT_NUMBERS)
+		return -1;
+
+	ep_buf[ep].flags |= EP_OUT_HALT_FLAG;
+	stall_ep_out(ep);
+
+	return 0;
 }
 
 bool usb_out_endpoint_halted(uint8_t endpoint)
