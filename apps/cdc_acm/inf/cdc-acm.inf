@@ -14,7 +14,7 @@ Signature="$Windows NT$"
 Class=Ports
 ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
 Provider=%MFGNAME%
-DriverVer=05/16/2014,1.0.0.15
+DriverVer=05/16/2014,1.0.0.18
 
 [Manufacturer]
 %MFGNAME%=DeviceList, NTx86, NTamd64, NTia64, NTarm
@@ -41,11 +41,11 @@ DriverVer=05/16/2014,1.0.0.15
 ; %WINDIR%. It's in the WinSxS folders. In that file, you can see
 ; the symbols referenced here (eg: FakeModemCopyFileSection, etc).
 
-[DriverInstall]
+[DriverInstall.NT]
 include=mdmcpq.inf
 CopyFiles=FakeModemCopyFileSection
 
-[DriverInstall.Services]
+[DriverInstall.NT.Services]
 include=mdmcpq.inf
 AddService=usbser, 0x00000002, LowerFilter_Service_Inst
 
