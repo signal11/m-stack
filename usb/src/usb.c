@@ -687,6 +687,21 @@ static void stall_ep0(void)
 #endif
 }
 
+#ifdef NEEDS_CLEAR_STALL
+static void clear_ep0_stall(void)
+{
+	/* Clear Endpoint 0 Stall and UOWN. This is supposed to be done by
+	 * the hardware, but it isn't on PIC16 and PIC18. */
+#ifdef PPB_EP0_IN
+	uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+	SET_BDN(BDS0IN(ppbi), 0, EP_0_LEN);
+	/* The PPBI does not advance for STALL. */
+#else
+	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
+#endif
+}
+#endif
+
 static void stall_ep_in(uint8_t ep)
 {
 	/* Stall Endpoint. It's important that DTSEN and DTS are zero.
@@ -1114,6 +1129,12 @@ static inline void handle_ep0_setup()
 	ep0_data_stage_direc = setup->REQUEST.direction;
 	int8_t res;
 
+#ifdef NEEDS_CLEAR_STALL
+	/* The datasheets say the MCU will clear BSTALL and UOWN when
+	 * a SETUP packet is received. This does not seem to happen on
+	 * PIC16 or PIC18, so clear the stall explicitly. */
+	clear_ep0_stall();
+#endif
 	if (ep0_data_stage_buf_remaining) {
 		/* A SETUP transaction has been received while waiting
 		 * for a DATA stage to complete; something is broken.

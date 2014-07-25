@@ -30,6 +30,7 @@
 #ifdef _PIC14E
 #define NEEDS_PULL /* Whether to pull up D+/D- with SFR_PULL_EN. */
 #define HAS_LOW_SPEED
+#define NEEDS_CLEAR_STALL
 
 #define BDNADR_TYPE              uint16_t
 #define PHYS_ADDR(VIRTUAL_ADDR)  pic16_linear_addr(VIRTUAL_ADDR)
@@ -170,6 +171,7 @@ struct buffer_descriptor {
 #define NEEDS_PULL /* Whether to pull up D+/D- with SFR_PULL_EN. */
 #define HAS_LOW_SPEED
 #define HAS_ON_CHIP_XCVR_DIS
+#define NEEDS_CLEAR_STALL
 
 #define BDNADR_TYPE              uint16_t
 #define PHYS_ADDR(VIRTUAL_ADDR)  (VIRTUAL_ADDR)
