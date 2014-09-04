@@ -107,6 +107,7 @@ The following MCU's and configurations have been tested:
  * PIC24FJ64GB002
  * PIC24FJ256DA206
  * PIC18F46J50 - PIC18F Starter Kit
+ * PIC18F25K50 - Pololu P-Star 25K50 Micro
  * PIC16F1459
  * PIC16F1454 - similar to PIC16F1459
 
