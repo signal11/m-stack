@@ -1337,7 +1337,11 @@ void usb_service(void)
 	}
 
 
+#ifdef USB_USE_INTERRUPTS
+	if (SFR_USB_TOKEN_IF && SFR_TRANSFER_IE) {
+#else
 	if (SFR_USB_TOKEN_IF) {
+#endif
 
 		//struct ustat_bits ustat = *((struct ustat_bits*)&USTAT);
 
