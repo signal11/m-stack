@@ -1660,6 +1660,21 @@ void usb_send_data_stage(char *buffer, size_t len,
 	start_control_return(buffer, len, len);
 }
 
+/* Private Functions */
+
+#ifdef USB_USE_INTERRUPTS
+/* Manipulate the transaction (token) interrupt.  There is no stack or
+ * counter used to keep track of enable/disable calls, so care must be used
+ * to ensure that calls to these functions are not nested.  */
+void usb_disable_transaction_interrupt()
+{
+	SFR_TRANSFER_IE = 0;
+}
+void usb_enable_transaction_interrupt()
+{
+	SFR_TRANSFER_IE = 1;
+}
+#endif
 
 
 #ifdef USB_USE_INTERRUPTS
