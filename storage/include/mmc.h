@@ -314,6 +314,24 @@ int8_t mmc_read_block(struct mmc_card *mmc,
                       uint32_t block_addr,
                       uint8_t *data);
 
+/** @brief Write a block of data to the MMC card
+ *
+ * Write a block of data to the SD card. For the purposes of this library,
+ * block size is fixed at 512 bytes for all SD cards, and block_addr is the
+ * block address to write to (ie: the multiple of 512 bytes). You must pass
+ * in a buffer which is 512 bytes long.
+ *
+ * @param instance   The MMC card to write to
+ * @param block_addr The block number to write to
+ * @param data       The buffer containing the data. This buffer must be
+ *                   MMC_BLOCK_SIZE (512) bytes in length.
+ * @returns
+ *   Return 0 if the data was written successuflly or -1 otherwise.
+ */
+int8_t mmc_write_block(struct mmc_card *mmc,
+                       uint32_t block_addr,
+                       uint8_t *data);
+
 /* Doxygen end-of-group for public_api */
 /** @}*/
 
