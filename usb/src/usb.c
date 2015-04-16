@@ -951,6 +951,13 @@ static inline int8_t handle_standard_control_request()
 #ifdef SET_CONFIGURATION_CALLBACK
 		SET_CONFIGURATION_CALLBACK(req);
 #endif
+		/* Re-initialize the endpoints. USB 2.0 section 9.1.1.5
+		 * requires that all endpoint data toggles be reset to DATA0
+		 * when SET_CONFIGURATION is received. With ping-ponging
+		 * involved, the only way to properly reset the data toggles
+		 * is to reset all the endpoints. */
+		init_endpoints();
+
 		send_zero_length_packet_ep0();
 		g_configuration = req;
 
