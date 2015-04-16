@@ -205,6 +205,15 @@ struct msc_scsi_read_10_command {
 	uint8_t control_flags;
 };
 
+struct msc_scsi_write_10_command {
+	uint8_t operation_code;
+	uint8_t wrprotect_flags;
+	uint32_t logical_block_address;
+	uint8_t group_number;
+	uint16_t transfer_length;
+	uint8_t control;
+};
+
 enum MSCSCSIVersion {
 	MSC_SCSI_SPC_VERSION_2 = 4,
 	MSC_SCSI_SPC_VERSION_3 = 5,
@@ -305,6 +314,7 @@ struct scsi_sense_response {
 enum MSCApplicationStates {
 	MSC_IDLE,
 	MSC_DATA_TRANSPORT_IN,  /**< Next transactions will be data sent */
+	MSC_DATA_TRANSPORT_OUT, /**< Next transactions will be data received */
 	MSC_STALL,              /**< Next transaction needs to stall */
 	MSC_CSW,                /**< Next transaction will contain the CSW */
 	MSC_NEEDS_RESET_RECOVERY, /**< Reset recovery is required */
@@ -391,6 +401,12 @@ struct msc_application_data {
 		uint8_t *rx_buf;       /**< Data received from the host. */
 	};
 	uint16_t tx_len_remaining; /**< TX data remaining in the current block */
+#ifdef MSC_WRITE_SUPPORT
+	uint8_t *rx_buf_cur; /**< Current position in the RX buffer */
+	size_t rx_buf_len;   /**< Length of the application's block RX buffer */
+	/* Endpoint buffer management. */
+	uint8_t out_ep_missed_transactions; /**< Number of out transactions not processed */
+#endif
 	msc_completion_callback operation_complete_callback;
 };
 
@@ -521,6 +537,23 @@ uint8_t msc_start_send_to_host(struct msc_application_data *app_data,
 void msc_notify_read_operation_complete(
                                     struct msc_application_data *app_data,
                                     bool passed);
+
+#ifdef MSC_WRITE_SUPPORT
+/** Notify Write Completed
+ *
+ * Tell the MSC class that a data block provided to a write callback
+ * has been written (or has failed), and that the transfer can now either
+ * provide the next block to be written (if success), or complete (with SCSI
+ * MEDIUM_ERROR) if failed.
+ *
+ * Pass true as @p passed if the write succeeded or false if it failed.
+ *
+ * @param app_data       Pointer to application data for this interface.
+ * @param passed         Whether the write operation completed successfully
+ */
+void msc_notify_block_write_complete(struct msc_application_data *app_data,
+                                     bool passed);
+#endif
 
 /** MSC Bulk-Only Mass Storage Reset callback
  *
@@ -669,6 +702,53 @@ extern int8_t MSC_START_READ(
 #else
 #error "You must define MSC_START_READ in your usb_config.h"
 #endif
+
+#ifdef MSC_WRITE_SUPPORT
+#ifdef MSC_START_WRITE
+/** MSC Write Callback
+ *
+ * The USB Stack will call this function when the host requests to write
+ * data to the device.  The application's implementation of this function
+ * will provide a buffer (@p buffer) where the USB stack will place the data
+ * as it is received.  Once the buffer is full, the USB stack will call the
+ * provided callback function (@p callback), notifying the application that
+ * it can begin processing the data (ie: writing it to the medium).  Once
+ * the buffer has been processed (and the application is done with the
+ * buffer), the application must then call @p
+ * msc_notify_block_write_complete() to notify the USB stack that it is
+ * ready for the next buffer-full of data.
+ *
+ * Note that this funciton must simply set any necessary state on the
+ * appliction side and return the requested data quickly. In other words,
+ * this function must not block.
+ *
+ * @param app_data       Pointer to application data for this interface.
+ * @param lun            The Logical Unit Number (LUN) of the medium requested.
+ * @param lba_address    Logical Block Address the data is intended for.
+ * @param num_blocks     Number of blocks which will eventually be written.
+ * @param buffer         The place to put the data from the USB bus
+ * @param buffer_len     The size of the buffer in bytes. It must be a
+ *                       multiple of the OUT endpoint size.
+ * @param callback       A function to be called when the data has been
+ *                       received from the host. It will be called from
+ *                       interrupt context and must not block.
+ *
+ * @returns
+ *   Return a code from @p MSCReturnCodes. Returning non-success will cause
+ *   an error to be returned to the host.
+ */
+extern int8_t MSC_START_WRITE(
+		struct msc_application_data *app_data,
+		uint8_t lun,
+		uint32_t lba_address,
+		uint16_t num_blocks,
+		uint8_t **buffer,
+		size_t *buffer_len,
+		msc_completion_callback *callback);
+#else
+#error "You must either define MSC_START_WRITE in your usb_config.h or make this MSC class read-only."
+#endif /* MSC_START_WRITE */
+#endif /* MSC_WRITE_SUPPORT */
 
 /* Doxygen end-of-group for msc_items */
 /** @}*/

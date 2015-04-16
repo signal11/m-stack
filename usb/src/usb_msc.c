@@ -43,11 +43,11 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct msc_scsi_request_sense_command), 6);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct msc_scsi_mode_sense_6_command), 6);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct msc_scsi_start_stop_unit), 6);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct msc_scsi_read_10_command), 10);
+STATIC_SIZE_CHECK_EQUAL(sizeof(struct msc_scsi_write_10_command), 10);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct scsi_inquiry_response), 36);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct scsi_capacity_response), 8);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct scsi_mode_sense_response), 4);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct scsi_sense_response), 18);
-
 
 
 #if MSC_MAX_LUNS_PER_INTERFACE > 0x10
@@ -411,6 +411,7 @@ static int8_t check_dn_cases(struct msc_application_data *msc,
 	return 0;
 }
 
+#ifdef MSC_WRITE_SUPPORT
 /* Check the Do cases: 3, 8, 11, 12, and 13 (BOT section 6.7). Case 12 is
  * correct. Other cases stall appropriate endpoints.
  *
@@ -472,6 +473,7 @@ static int8_t check_do_cases(struct msc_application_data *msc,
 	/* Case 12 (Ho = Do): OK */
 	return 0;
 }
+#endif
 
 #ifdef MULTI_CLASS_DEVICE
 static uint8_t *msc_interfaces;
@@ -533,6 +535,11 @@ uint8_t msc_init(struct msc_application_data *app_data, uint8_t count)
 		d->transferred_bytes = 0;
 		d->tx_buf = NULL;
 		d->tx_len_remaining = 0;
+#ifdef MSC_WRITE_SUPPORT
+		d->rx_buf_cur = NULL;
+		d->rx_buf_len = 0;
+		d->out_ep_missed_transactions = 0;
+#endif
 		d->operation_complete_callback = NULL;
 		memset(d->block_size, 0, sizeof(d->block_size));
 	}
@@ -612,6 +619,40 @@ int8_t process_msc_setup_request(const struct setup_packet *setup)
 	}
 	return -1;
 }
+
+#ifdef MSC_WRITE_SUPPORT
+/* Copy data to the application's buffer. If the application's buffer
+ * is full, return -1.
+ *
+ * It will be common for this function to be called when the buffer is full,
+ * since writing to the medium is slower than USB, and since the host relies
+ * on the device to throttle the connection as appropriate.
+ *
+ * If -1 is returned from this function, it will be up to the caller to make
+ * sure that this function is re-called later, when there is buffer space
+ * available. */
+static inline uint8_t receive_data(struct msc_application_data *msc,
+                                       const uint8_t *data, uint16_t len)
+{
+	/* Make sure this doesn't take us off the end of the
+	 * application's buffer. */
+	if (msc->rx_buf_cur + len > msc->rx_buf + msc->rx_buf_len)
+		return -1;
+
+	/* Copy to the application's buffer. */
+	memcpy(msc->rx_buf_cur, data, len);
+	msc->rx_buf_cur += len;
+
+	/* If this is the last piece of the data block, notify the
+	 * application that it's buffer is now full and that it can start
+	 * writing to the medium.  */
+	if (msc->rx_buf_cur >= msc->rx_buf + msc->rx_buf_len) {
+		msc->operation_complete_callback(msc, true);
+	}
+
+	return 0;
+}
+#endif
 
 /* Send the next transaction containing data from the medium to the host. */
 static int8_t send_next_data_transaction(struct msc_application_data *msc)
@@ -704,6 +745,82 @@ void msc_notify_read_operation_complete(
 out:
 	usb_enable_transaction_interrupt();
 }
+
+#ifdef MSC_WRITE_SUPPORT
+void msc_notify_block_write_complete(struct msc_application_data *msc,
+                                     bool passed)
+{
+	uint8_t i, count;
+
+	usb_disable_transaction_interrupt();
+
+	if (msc->state != MSC_DATA_TRANSPORT_OUT) {
+		goto out;
+	}
+
+	if (!passed) {
+		/* Save off the error codes. These will be read by the host
+		 * with a REQUEST_SENSE SCSI command. */
+		set_scsi_sense(msc, MSC_ERROR_WRITE);
+
+		uint32_t residue = msc->requested_bytes_cbw -
+		                                     msc->transferred_bytes;
+		stall_out_and_set_status(msc, residue, MSC_STATUS_FAILED);
+		msc->out_ep_missed_transactions = 0;
+		goto out;
+	}
+
+	msc->transferred_bytes += msc->rx_buf_len;
+
+	if (msc->transferred_bytes < msc->requested_bytes) {
+		/* Still more blocks left to transfer and write. Reset the
+		 * buffer pointer to the beginning of the buffer to prepare
+		 * to receive the next block from the host. */
+		msc->rx_buf_cur = msc->rx_buf;
+	}
+	else {
+		/* No more blocks left to transfer */
+		uint32_t residue = msc->requested_bytes_cbw -
+		                                     msc->transferred_bytes;
+
+		send_csw(msc, residue, MSC_STATUS_PASSED);
+		msc->state = MSC_IDLE;
+	}
+
+	/* Handle any pending data.  There's a good chance the USB
+	 * peripheral received data while the write was occurring. That data
+	 * was held in the endpoint buffer(s) by
+	 * msc_out_transaction_complete(). Process that data now. Make sure to
+	 * _only_ call msc_out_transaction_complete() the exact number of
+	 * times a transaction completed in order to avoid a race condition
+	 * window (more below).
+	 *
+	 * usb_endpoint_has_data() can't be used to determine how many
+	 * transactions are pending because since this function runs
+	 * with interrupts disabled. Doing so would open up a race condition
+	 * window where the endpoint would be read too many times if a
+	 * transaction were to complete during this function. For this reason
+	 * msc->out_ep_missed_transactions is used to keep track of how many
+	 * OUT transactions are pending (with data on the endpoint buffers).
+	 *
+	 * Make a new variable for count below because
+	 * msc->out_ep_missed_transactions is also manipulated by
+	 * msc_out_transaction_complete(), and if the application buffer is
+	 * short (eg: smaller the length of two transactions), there's a
+	 * possibility that one call to msc_out_transaction_complete() could
+	 * fail (if the application buffer is full), in which case
+	 * msc_out_transaction_complete() would re-increment
+	 * msc->out_ep_missed_transactions.  */
+	count = msc->out_ep_missed_transactions;
+	for (i = 0; i < count; i++) {
+		msc_out_transaction_complete(msc->out_endpoint);
+		msc->out_ep_missed_transactions--;
+	}
+
+out:
+	usb_enable_transaction_interrupt();
+}
+#endif /* MSC_WRITE_SUPPORT */
 
 static void process_msc_command(struct msc_application_data *msc,
                                 const uint8_t *data, uint16_t len)
@@ -993,6 +1110,65 @@ static void process_msc_command(struct msc_application_data *msc,
 			goto fail;
 		}
 	}
+#ifdef MSC_WRITE_SUPPORT
+	else if (command == MSC_SCSI_WRITE_10) {
+		uint32_t scsi_request_len;
+		int8_t res;
+		struct msc_scsi_write_10_command *cmd =
+			(struct msc_scsi_write_10_command *) cbw->CBWCB;
+
+		swap4(&cmd->logical_block_address);
+		swap2(&cmd->transfer_length); /* length in blocks */
+
+		scsi_request_len = cmd->transfer_length * msc->block_size[lun];
+
+		/* Handle the nonsensical, but possible case of the host
+		 * asking to write 0 bytes in the SCSI command. That actually
+		 * makes this a Dn case rather than a Do case, and is
+		 * required by the USBCV test. */
+		if (scsi_request_len == 0) {
+			res = check_dn_cases(msc, cbw);
+			if (res < 0)
+				goto fail;
+
+			/* If check_dn_cases() succeeded, then the host is
+			 * not expecting to write any data, so send the CSW */
+			send_csw(msc, 0, MSC_STATUS_PASSED);
+			goto fail; /* Not a failure, but handled the same */
+		}
+
+		/* Write(10): Device intends to receive data
+		 *            from the host (Do) */
+		res = check_do_cases(msc, cbw, scsi_request_len);
+		if (res < 0)
+			goto fail;
+
+		/* Start the Data-Transport. The application will give
+		 * a buffer to put the data into. */
+		res = MSC_START_WRITE(msc,
+		               lun,
+		               cmd->logical_block_address,
+		               cmd->transfer_length,
+		               &msc->rx_buf,
+		               &msc->rx_buf_len,
+		               &msc->operation_complete_callback);
+
+		if (res < 0) {
+			set_scsi_sense(msc, res);
+			stall_out_and_set_status(msc,
+			                         cbw_length,
+			                         MSC_STATUS_FAILED);
+			goto fail;
+		}
+
+		/* Initialize the data transport */
+		msc->requested_bytes = scsi_request_len;
+		msc->requested_bytes_cbw = cbw_length;
+		msc->transferred_bytes = 0;
+		msc->rx_buf_cur = msc->rx_buf;
+		msc->state = MSC_DATA_TRANSPORT_OUT;
+	}
+#endif /* MSC_WRITE_SUPPORT */
 	else {
 		/* Unsupported command. See Axelson, page 69. */
 		const bool direc_is_in = direction_is_in(cbw->bmCBWFlags);
@@ -1077,13 +1253,56 @@ void msc_out_transaction_complete(uint8_t endpoint)
 	struct msc_application_data *msc;
 	const unsigned char *out_buf;
 	uint16_t out_buf_len;
+#ifdef MSC_WRITE_SUPPORT
+	uint8_t res;
+#endif
 
 	msc = get_app_data_by_endpoint(endpoint, 0/*OUT*/);
 	if (!msc)
 		return;
 
-	out_buf_len = usb_get_out_buffer(endpoint, &out_buf);
-	process_msc_command(msc, out_buf, out_buf_len);
+	/* If the OUT endpoint is halted because of a failed write (from
+	 * msc_notify_block_write_complete(), while interrupts are
+	 * disabled), it's possible that a transaction completed before the
+	 * endpoint was halted, and that interrupt would cause this
+	 * function to be called on a halted endpoint.  Since in that case
+	 * this is a stray interrupt, there's no need to re-arm the
+	 * endpoint.  */
+	if (usb_out_endpoint_halted(endpoint))
+		return;
 
+	out_buf_len = usb_get_out_buffer(endpoint, &out_buf);
+
+#ifdef MSC_WRITE_SUPPORT
+	if (msc->state == MSC_DATA_TRANSPORT_OUT) {
+		/* In the DATA_TRANSPORT_OUT state, treat this transaction
+		 * as data which is to be written to the medium. This call
+		 * may fail if the application's buffer is full, in which
+		 * case the endpoint will not be re-armed, and the data
+		 * will remain in the endpoint buffer until there is space
+		 * in the application's buffer. */
+		res = receive_data(msc, out_buf, out_buf_len);
+	}
+	else {
+		process_msc_command(msc, out_buf, out_buf_len);
+		res = 0;
+	}
+
+	/* If the data could not be handled by the application yet (because
+	 * the application's buffer is full), don't re-arm the endpoint now.
+	 * Keep the received data in the endpoint's buffer until the
+	 * application has reset its own buffer (and has signaled such by
+	 * calling msc_write_complete()).  At that point, the endpoint's
+	 * data will be handled and the endpoint re-armed.  */
+	if (res == 0)
+		usb_arm_out_endpoint(endpoint);
+	else
+		msc->out_ep_missed_transactions++;
+#else
+	/* If read-only, then OUT transactions are always processed
+	 * and fully handled, leaving no reason to have missed
+	 * transactions, as above. */
+	process_msc_command(msc, out_buf, out_buf_len);
 	usb_arm_out_endpoint(endpoint);
+#endif
 }
