@@ -481,6 +481,73 @@ static void reset_ep0_data_stage()
 #define SERIAL(x)
 #define SERIAL_VAL(x)
 
+/* Initialize or reset all of the endpoints. This is done:
+ *   1. at startup,
+ *   2. following a USB reset, and
+ *   3. whenever a SET_CONFIGURATION transfer is received. */
+static void init_endpoints(void)
+{
+	uint8_t i;
+
+	/* Hold ping-pong in reset for the whole time the endpoints
+	   are being configured */
+	SFR_USB_PING_PONG_RESET = 1;
+	/* Reset the flags */
+	ep0_buf.flags = 0;
+	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++) {
+#ifdef PPB_EPn
+		ep_buf[i].flags = 0;
+#else
+		ep_buf[i].flags = EP_RX_DTS;
+#endif
+	}
+
+	/* Clear all the buffer-descriptors and re-initialize */
+	memset(bds, 0x0, sizeof(bds));
+
+	/* Setup endpoint 0 Output buffer descriptor.
+	   Input and output are from the HOST perspective. */
+	BDS0OUT(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out);
+	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
+
+#ifdef PPB_EP0_OUT
+	BDS0OUT(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out1);
+	SET_BDN(BDS0OUT(1), BDNSTAT_UOWN, EP_0_LEN);
+#endif
+
+	/* Setup endpoint 0 Input buffer descriptor.
+	   Input and output are from the HOST perspective. */
+	BDS0IN(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in);
+	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
+#ifdef PPB_EP0_IN
+	BDS0IN(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in1);
+	SET_BDN(BDS0IN(1), 0, EP_0_LEN);
+#endif
+
+	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
+		/* Setup endpoint 1 Output buffer descriptor.
+		   Input and output are from the HOST perspective. */
+		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out);
+		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[i].out_len);
+#ifdef PPB_EPn
+		/* Initialize EVEN buffers when in ping-pong mode. */
+		BDSnOUT(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out1);
+		SET_BDN(BDSnOUT(i,1), BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS, ep_buf[i].out_len);
+#endif
+		/* Setup endpoint 1 Input buffer descriptor.
+		   Input and output are from the HOST perspective. */
+		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in);
+		SET_BDN(BDSnIN(i,0), 0, ep_buf[i].in_len);
+#ifdef PPB_EPn
+		/* Initialize EVEN buffers when in ping-pong mode. */
+		BDSnIN(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in1);
+		SET_BDN(BDSnIN(i,1), 0, ep_buf[i].in_len);
+#endif
+	}
+
+	SFR_USB_PING_PONG_RESET = 0;
+}
+
 /* usb_init() is called at powerup time, and when the device gets
    the reset signal from the USB bus (D+ and D- both held low) indicated
    by interrput bit URSTIF. */
@@ -595,57 +662,9 @@ void usb_init(void)
 	SFR_USB_ADDR = 0x0;
 	addr_pending = 0;
 	g_configuration = 0;
-	ep0_buf.flags = 0;
-	for (i = 0; i <= NUM_ENDPOINT_NUMBERS; i++) {
-#ifdef PPB_EPn
-		ep_buf[i].flags = 0;
-#else
-		ep_buf[i].flags = EP_RX_DTS;
-#endif
-	}
 
-	memset(bds, 0x0, sizeof(bds));
+	init_endpoints();
 
-	/* Setup endpoint 0 Output buffer descriptor.
-	   Input and output are from the HOST perspective. */
-	BDS0OUT(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out);
-	SET_BDN(BDS0OUT(0), BDNSTAT_UOWN, EP_0_LEN);
-
-#ifdef PPB_EP0_OUT
-	BDS0OUT(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.out1);
-	SET_BDN(BDS0OUT(1), BDNSTAT_UOWN, EP_0_LEN);
-#endif
-
-	/* Setup endpoint 0 Input buffer descriptor.
-	   Input and output are from the HOST perspective. */
-	BDS0IN(0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in);
-	SET_BDN(BDS0IN(0), 0, EP_0_LEN);
-#ifdef PPB_EP0_IN
-	BDS0IN(1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep0_buf.in1);
-	SET_BDN(BDS0IN(1), 0, EP_0_LEN);
-#endif
-
-	for (i = 1; i <= NUM_ENDPOINT_NUMBERS; i++) {
-		/* Setup endpoint 1 Output buffer descriptor.
-		   Input and output are from the HOST perspective. */
-		BDSnOUT(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out);
-		SET_BDN(BDSnOUT(i,0), BDNSTAT_UOWN|BDNSTAT_DTSEN, ep_buf[i].out_len);
-#ifdef PPB_EPn
-		/* Initialize EVEN buffers when in ping-pong mode. */
-		BDSnOUT(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].out1);
-		SET_BDN(BDSnOUT(i,1), BDNSTAT_UOWN|BDNSTAT_DTSEN|BDNSTAT_DTS, ep_buf[i].out_len);
-#endif
-		/* Setup endpoint 1 Input buffer descriptor.
-		   Input and output are from the HOST perspective. */
-		BDSnIN(i,0).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in);
-		SET_BDN(BDSnIN(i,0), 0, ep_buf[i].in_len);
-#ifdef PPB_EPn
-		/* Initialize EVEN buffers when in ping-pong mode. */
-		BDSnIN(i,1).BDnADR = (BDNADR_TYPE) PHYS_ADDR(ep_buf[i].in1);
-		SET_BDN(BDSnIN(i,1), 0, ep_buf[i].in_len);
-#endif
-	}
-	
 	#ifdef USB_NEEDS_POWER_ON
 	SFR_USB_POWER = 1;
 	#endif
