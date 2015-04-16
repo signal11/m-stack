@@ -79,6 +79,7 @@
 /* Configuration from the MSC Class (usb_msc.h) */
 #define MSC_MAX_LUNS_PER_INTERFACE 1
 //#define MSC_SUPPORT_MULTIPLE_MSC_INTERFACES
+#define MSC_WRITE_SUPPORT
 
 /* Callbacks from the MSC class (usb_msc.h) */
 #define MSC_GET_MAX_LUN_CALLBACK app_get_max_lun
@@ -86,6 +87,7 @@
 #define MSC_UNIT_READY app_get_unit_ready
 #define MSC_START_STOP_UNIT app_start_stop_unit
 #define MSC_START_READ app_msc_start_read
+#define MSC_START_WRITE app_msc_start_write
 
 /* Application callbacks, not used by the MSC class or USB stack, but used
  * for the application. */

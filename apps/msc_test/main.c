@@ -154,6 +154,7 @@ static struct mmc_card mmc;
  * an array of these if this is a multi-MSC-interface composite device. */
 struct msc_rw_data {
 	bool read_operation_needed;
+	bool write_operation_needed;
 	uint8_t lun;
 	uint32_t lba_address;
 	uint16_t num_blocks;
@@ -212,6 +213,39 @@ fail:
 	msc_notify_read_operation_complete(msc, false);
 	return -1;
 }
+
+/* Receive complete callback. This is called when an entire block has
+ * been received from the host which needs to be written to the media. */
+static void rx_complete_callback(struct msc_application_data *app_data,
+                                         bool transfer_ok)
+{
+	if (!transfer_ok)
+		return;
+
+	msc_rw_data.write_operation_needed = true;
+}
+
+#ifdef MSC_WRITE_SUPPORT
+static int8_t do_write(struct msc_application_data *msc,
+                       struct msc_rw_data *d)
+{
+	int8_t res = 0;
+
+	/* Perform the blocking write */
+	res = mmc_write_block(&mmc, msc_rw_data.lba_address, mmc_read_buf);
+	msc_rw_data.write_operation_needed = false;
+
+	/* Increment the LBA address for the next write. Since the USB
+	 * host will concatenate the data for all the blocks, the LBA
+	 * address has to be kept track of in the application. */
+	msc_rw_data.lba_address++;
+
+	/* Notify the MSC stack that the write has completed */
+	msc_notify_block_write_complete(msc, res == 0);
+
+	return res;
+}
+#endif
 
 int main(void)
 {
@@ -316,6 +350,11 @@ int main(void)
 			if (msc_rw_data.read_operation_needed) {
 				do_read(&msc_data, &msc_rw_data);
                         }
+#ifdef MSC_WRITE_SUPPORT
+			if (msc_rw_data.write_operation_needed) {
+				do_write(&msc_data, &msc_rw_data);
+			}
+#endif
                 }
 
 		#ifndef USB_USE_INTERRUPTS
@@ -413,7 +452,15 @@ int8_t app_get_storage_info(const struct msc_application_data *app_data,
 
 	*block_size = MMC_BLOCK_SIZE;
 	*num_blocks = mmc_get_num_blocks(&mmc);
-	*write_protect = false; // TODO
+#ifdef MSC_WRITE_SUPPORT
+	/* Write protection switch status can be read from MMC card sockets
+	 * which support it, usually as an I/O line. It cannot be read from
+	 * the MMC card's SPI interface. */
+	*write_protect = false;
+#else
+	/* With a read-only MSC implementation, write-protect is always on. */
+	*write_protect = true;
+#endif
 
 	return MSC_SUCCESS;
 }
@@ -511,6 +558,27 @@ int8_t app_msc_start_read(struct msc_application_data *app_data, uint8_t lun,
 	msc_rw_data.num_blocks = num_blocks;
 
 	msc_rw_data.read_operation_needed = true;
+
+	return MSC_SUCCESS;
+}
+
+int8_t app_msc_start_write(
+		struct msc_application_data *app_data,
+		uint8_t lun, uint32_t lba_address, uint16_t num_blocks,
+		uint8_t **buffer, size_t *buffer_len,
+		msc_completion_callback *callback)
+{
+	if (lun > 0)
+		return MSC_ERROR_INVALID_LUN;
+
+	if (lba_address + num_blocks > mmc_get_num_blocks(&mmc))
+		return MSC_ERROR_INVALID_ADDRESS;
+
+	msc_rw_data.lba_address = lba_address;
+	msc_rw_data.num_blocks = num_blocks;
+	*buffer = mmc_read_buf;
+	*buffer_len = MMC_BLOCK_SIZE;
+	*callback = rx_complete_callback;
 
 	return MSC_SUCCESS;
 }
