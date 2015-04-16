@@ -152,14 +152,14 @@ static struct mmc_card mmc;
 /* Data to manage the reading of data from the SD card as requested by the
  * host. One of these structures is necessary for each MSC interface, so make
  * an array of these if this is a multi-MSC-interface composite device. */
-struct msc_read_data {
+struct msc_rw_data {
 	bool read_operation_needed;
 	uint8_t lun;
 	uint32_t lba_address;
 	uint16_t num_blocks;
 	bool stopped;
 };
-struct msc_read_data msc_read_data;
+struct msc_rw_data msc_rw_data;
 
 
 static uint8_t mmc_read_buf[MMC_BLOCK_SIZE];
@@ -171,9 +171,9 @@ static void tx_complete_callback(struct msc_application_data *app_data,
 {
 	/* Transmission to the host has completed. Set up to read and send the
 	 * next block */
-	msc_read_data.lba_address++;
-	msc_read_data.num_blocks--;
-	msc_read_data.read_operation_needed = true;
+	msc_rw_data.lba_address++;
+	msc_rw_data.num_blocks--;
+	msc_rw_data.read_operation_needed = true;
 }
 
 /* Read a block from the MMC card and initiate transferring to the host. The
@@ -181,14 +181,14 @@ static void tx_complete_callback(struct msc_application_data *app_data,
  * context. This should only be called when d->read_operation_needed is
  * true. */
 static int8_t do_read(struct msc_application_data *msc,
-                      struct msc_read_data *d)
+                      struct msc_rw_data *d)
 {
 	int8_t res = 0;
 
 	if (d->num_blocks > 0) {
 		/* There are more blocks to read and send, so read and
 		 * send the next one. */
-		msc_read_data.read_operation_needed = false;
+		msc_rw_data.read_operation_needed = false;
 
 		res = mmc_read_block(&mmc, d->lba_address, mmc_read_buf);
 		if (res < 0)
@@ -202,7 +202,7 @@ static int8_t do_read(struct msc_application_data *msc,
 	}
 	else {
 		/* No more blocks to read. */
-		msc_read_data.read_operation_needed = false;
+		msc_rw_data.read_operation_needed = false;
 		msc_notify_read_operation_complete(msc, true);
 	}
 
@@ -313,8 +313,8 @@ int main(void)
 			 * is handled here in the main thread. The read
 			 * is initiated (from interrupt context) in
 			 * app_msc_start_read(). */
-			if (msc_read_data.read_operation_needed) {
-				do_read(&msc_data, &msc_read_data);
+			if (msc_rw_data.read_operation_needed) {
+				do_read(&msc_data, &msc_rw_data);
                         }
                 }
 
@@ -506,11 +506,11 @@ int8_t app_msc_start_read(struct msc_application_data *app_data, uint8_t lun,
 	if (lba_address + num_blocks > mmc_get_num_blocks(&mmc))
 		return MSC_ERROR_INVALID_ADDRESS;
 
-	msc_read_data.lun = lun;
-	msc_read_data.lba_address = lba_address;
-	msc_read_data.num_blocks = num_blocks;
+	msc_rw_data.lun = lun;
+	msc_rw_data.lba_address = lba_address;
+	msc_rw_data.num_blocks = num_blocks;
 
-	msc_read_data.read_operation_needed = true;
+	msc_rw_data.read_operation_needed = true;
 
 	return MSC_SUCCESS;
 }
