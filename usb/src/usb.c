@@ -1133,6 +1133,30 @@ static inline void handle_ep0_setup()
 	 * PIC16 or PIC18, so clear the stall explicitly. */
 	clear_ep0_stall();
 #endif
+
+	/* Receiving a Setup packet cancels any control transfer which was
+	 * in progress and thus invalidates any IN transactions which were
+	 * pending for a previous control transfer. Cancel any of these IN
+	 * transactions which were pending. */
+#ifdef PPB_EP0_OUT
+	/* For ping-pong mode on EP 0, note below that ppbi is the next
+	 * ping-pong buffer which would be written to, meaning that !ppbi is
+	 * the buffer which would have an IN transaction pending (if any).
+	 *
+	 * Only one ping-pong buffer is cleared (instead of both) because
+	 * M-Stack only puts one transfer at a time on the control IN endpoint.
+	 */
+	uint8_t ppbi = (ep0_buf.flags & EP_TX_PPBI)? 1: 0;
+	if (BDS0IN(!ppbi).STAT.UOWN) {
+		SET_BDN(BDS0IN(!ppbi), 0, EP_0_LEN);
+		ep0_buf.flags ^= EP_TX_PPBI;
+	}
+#else
+	if (BDS0IN(0).STAT.UOWN) {
+		SET_BDN(BDS0IN(0), 0, EP_0_LEN);
+	}
+#endif
+
 	if (ep0_data_stage_buf_remaining) {
 		/* A SETUP transaction has been received while waiting
 		 * for a DATA stage to complete; something is broken.
