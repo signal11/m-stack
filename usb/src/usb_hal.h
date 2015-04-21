@@ -558,8 +558,8 @@ struct buffer_descriptor {
 
 #define BD_ADDR
 #define BUFFER_ADDR
-#define BD_ATTR_TAG __attribute__((aligned(512)))
-#define XC8_BUFFER_ADDR_TAG
+#define BD_ATTR_TAG __attribute__((aligned(512), coherent))
+#define XC8_BUFFER_ADDR_TAG __attribute__((coherent))
 
 #define PPB_NONE         0 /* Unused on PIC32 */
 #define PPB_EPO_OUT_ONLY 1 /* Unused on PIC32 */
