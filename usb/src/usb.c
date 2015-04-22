@@ -59,6 +59,13 @@
 	#pragma warning disable 1088
 #endif
 
+#ifdef __XC8
+	/* XC8 gives bogus warnings (at least on PIC18) about
+	 * ep0_data_stage_callback() being called when NULL. The code does
+	 * check for NULL, and is safe. */
+	#pragma warning disable 1471
+#endif
+
 #define MIN(x,y) (((x)<(y))?(x):(y))
 
 /* Even though they're the same, It's convenient below (for the buffer
