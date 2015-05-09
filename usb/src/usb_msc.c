@@ -1283,8 +1283,13 @@ void msc_out_transaction_complete(uint8_t endpoint)
 		 * in the application's buffer. */
 		res = receive_data(msc, out_buf, out_buf_len);
 	}
-	else {
+	else if (msc->state == MSC_IDLE) {
 		process_msc_command(msc, out_buf, out_buf_len);
+		res = 0;
+	}
+	else {
+		/* OUT transaction completed when the device is not in a
+		 * state that can handle it. Ignore the data. */
 		res = 0;
 	}
 
@@ -1302,7 +1307,8 @@ void msc_out_transaction_complete(uint8_t endpoint)
 	/* If read-only, then OUT transactions are always processed
 	 * and fully handled, leaving no reason to have missed
 	 * transactions, as above. */
-	process_msc_command(msc, out_buf, out_buf_len);
+	if (msc->state == MSC_IDLE)
+		process_msc_command(msc, out_buf, out_buf_len);
 	usb_arm_out_endpoint(endpoint);
 #endif
 }
