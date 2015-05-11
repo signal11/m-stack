@@ -402,14 +402,12 @@ int8_t mmc_write_block(struct mmc_card *mmc,
 
 	MMC_SPI_SET_CS(spi_instance, 0);
 	res = __send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R1_LEN);
-	if (res < 0) {
-		mmc->state = MMC_STATE_IDLE;
-		goto err;
-	}
+	if (res < 0)
+		goto card_error;
 
 	if (buf[0] != 0x0) {
 		res = -1;
-		goto err;
+		goto card_error;
 	}
 
 	buf[0] = 0xfe; /* Start Block Token (7.3.3.2) */
@@ -428,33 +426,32 @@ int8_t mmc_write_block(struct mmc_card *mmc,
 	                     spi_instance, 0xff, &buf[0],
 			     MMC_COMMAND_TIMEOUT, NUM_READ_RETRIES);
 
-	if (res < 0) {
-		mmc->state = MMC_STATE_IDLE;
-		goto err;
-	}
+	if (res < 0)
+		goto card_error;
 
 	/* Read the data response (7.3.3.1) */
-	if ((buf[0] & 0x1f) != 0x05)
-		goto err;
+	if ((buf[0] & 0x1f) != 0x05) {
+		res = -1;
+		goto out;
+	}
 
 	/* Skip the busy bytes (0x00) which the MMC card sends while writing */
 	res = skip_bytes_timeout(spi_instance, 0x0, &buf[0],
 	                         MMC_WRITE_TIMEOUT, NUM_WRITE_RETRIES);
 
-	if (res < 0) {
-		mmc->state = MMC_STATE_IDLE;
-		goto err;
-	}
+	if (res < 0)
+		goto card_error;
 
-err:
+out:
 	/* End the write operation, successful or not. */
 	MMC_SPI_SET_CS(spi_instance, 1);
 
 	/* Give it 8 extra clocks per section 4.4. */
 	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
 
+	/* Give up if the data response indicated failure */
 	if (res < 0)
-		return res;
+		return -1;
 
 	/* Issue SPI CMD13: SEND_STATUS to make sure the
 	 * write completed successfully */
@@ -465,14 +462,26 @@ err:
 	buf[4] = 0;
 	res = send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R2_LEN);
 	if (res < 0)
-		return -1;
+		goto card_error_no_cs;
 
+	/* A non-zero repsonse (R2, 16-bit) indicates write failure */
 	if (buf[0] != 0 || buf[1] != 0)
 		return -1;
 
-	return res;
-}
+	return 0;
 
+card_error:
+	/* End the write operation, successful or not. */
+	MMC_SPI_SET_CS(spi_instance, 1);
+
+	/* Give it 8 extra clocks per section 4.4. */
+	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+card_error_no_cs:
+	mmc->state = MMC_STATE_IDLE;
+
+	return -1;
+}
 
 int8_t mmc_init_card(struct mmc_card *mmc)
 {
