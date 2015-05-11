@@ -235,10 +235,11 @@ static void blank_clock(uint8_t spi_instance)
 
 /* This is used for reading a block of data from a READ_SINGLE_BLOCK or from
  * a SEND_CSD.*/
-static int8_t __read_data_block(uint8_t spi_instance,
+static int8_t __read_data_block(struct mmc_card *mmc,
                                 uint8_t *data,
                                 uint16_t len)
 {
+	uint8_t spi_instance = mmc->spi_instance;
 	uint16_t ck; /* Checksum */
 	int8_t res = 0;
 	uint8_t token;
@@ -356,7 +357,7 @@ int8_t mmc_read_block(struct mmc_card *mmc,
 		goto err;
 	}
 
-	res = __read_data_block(spi_instance, data, 512);
+	res = __read_data_block(mmc, data, 512);
 
 err:
 	MMC_SPI_SET_CS(spi_instance, 1);
@@ -619,7 +620,7 @@ int8_t mmc_init_card(struct mmc_card *mmc)
 		return -1;
 	}
 
-	res = __read_data_block(spi_instance, buf, 16);
+	res = __read_data_block(mmc, buf, 16);
 	MMC_SPI_SET_CS(spi_instance, 1);
 	/* Give it 8 extra clocks per section 4.4. */
 	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
