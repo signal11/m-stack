@@ -182,6 +182,11 @@ void MMC_TIMER_STOP(uint8_t instance);
 
 #endif /* MMC_USE_TIMER */
 
+enum MMCState {
+	MMC_STATE_IDLE = 0,
+	MMC_STATE_READY = 1,
+};
+
 /** MMC Card Structure
  *
  * This structure represents an instance of an MMC card. The application
@@ -211,7 +216,7 @@ struct mmc_card {
 	/* The following are used by the MMC system. Do not initialize or
 	 * overwrite them. */
 	bool card_ccs; /* false: SDSC, true: SDHC or SDXC */
-	bool card_initialized;
+	uint8_t state; /* enum MMCState */
 	uint32_t card_size_blocks; /* Card size in 512-byte blocks */
 };
 

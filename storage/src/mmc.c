@@ -96,7 +96,7 @@ static uint8_t read[1024];
 static void reset_state(struct mmc_card *cd)
 {
 	cd->card_ccs = false;
-	cd->card_initialized = false;
+	cd->state = MMC_STATE_IDLE;
 	cd->card_size_blocks = 0;
 }
 
@@ -280,7 +280,7 @@ err:
 
 uint32_t mmc_get_num_blocks(struct mmc_card *mmc)
 {
-	if (!mmc->card_initialized)
+	if (mmc->state == MMC_STATE_IDLE)
 		return 0;
 
 	return mmc->card_size_blocks;
@@ -290,7 +290,7 @@ bool mmc_ready(struct mmc_card *mmc)
 {
 	uint8_t buf[6];
 
-	if (!mmc->card_initialized)
+	if (mmc->state == MMC_STATE_IDLE)
 		return false;
 
 	/* Issue SPI CMD13: SEND_STATUS */
@@ -302,7 +302,7 @@ bool mmc_ready(struct mmc_card *mmc)
 	send_mmc_command(mmc->spi_instance, buf, CMD_LEN, RESP_R1_LEN);
 
 	if (buf[0] != 0x0) {
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		return false;
 	}
 
@@ -311,12 +311,12 @@ bool mmc_ready(struct mmc_card *mmc)
 
 bool mmc_is_initialized(struct mmc_card *mmc)
 {
-	return mmc->card_initialized;
+	return mmc->state != MMC_STATE_IDLE;
 }
 
 void mmc_set_uninitialized(struct mmc_card *mmc)
 {
-	mmc->card_initialized = false;
+	mmc->state = MMC_STATE_IDLE;
 }
 
 int8_t mmc_read_block(struct mmc_card *mmc,
@@ -346,13 +346,13 @@ int8_t mmc_read_block(struct mmc_card *mmc,
 	MMC_SPI_SET_CS(spi_instance, 0);
 	res = __send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R1_LEN);
 	if (res < 0) {
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		goto err;
 	}
 
 	if (buf[0] != 0x0) {
 		res = -1;
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		goto err;
 	}
 
@@ -396,7 +396,7 @@ int8_t mmc_write_block(struct mmc_card *mmc,
 	MMC_SPI_SET_CS(spi_instance, 0);
 	res = __send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R1_LEN);
 	if (res < 0) {
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		goto err;
 	}
 
@@ -422,7 +422,7 @@ int8_t mmc_write_block(struct mmc_card *mmc,
 			     MMC_COMMAND_TIMEOUT, NUM_READ_RETRIES);
 
 	if (res < 0) {
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		goto err;
 	}
 
@@ -435,7 +435,7 @@ int8_t mmc_write_block(struct mmc_card *mmc,
 	                         MMC_WRITE_TIMEOUT, NUM_WRITE_RETRIES);
 
 	if (res < 0) {
-		mmc->card_initialized = false;
+		mmc->state = MMC_STATE_IDLE;
 		goto err;
 	}
 
@@ -708,7 +708,7 @@ int8_t mmc_init_card(struct mmc_card *mmc)
 
 	MMC_SPI_SET_SPEED(spi_instance, max_speed_hz);
 
-	mmc->card_initialized = true;
+	mmc->state = MMC_STATE_READY;
 
 #ifdef MMC_DEBUG
 	/* Read some blocks and test out the mechanism. */
