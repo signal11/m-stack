@@ -249,18 +249,16 @@ static int8_t __read_data_block(struct mmc_card *mmc,
 	res = skip_bytes_timeout(spi_instance, 0xff, &token,
 	                         MMC_READ_TIMEOUT, NUM_READ_RETRIES);
 	if (res < 0)
-		goto err;
+		goto card_error;
 
 	if (~token & 0xf0) {
 		/* Data error Token (7.3.3.3) */
-		res = -1;
-		goto err;
+		goto read_error;
 	}
 
 	/* 0xfe is the data start token (7.3.3.2). */
 	if (token != 0xfe) {
-		res = -1;
-		goto err;
+		goto card_error;
 	}
 
 	MMC_SPI_TRANSFER(spi_instance, NULL, data, len);     /* Read the data */
@@ -273,10 +271,18 @@ static int8_t __read_data_block(struct mmc_card *mmc,
 
 	/* Verify the checksum */
 	if (ck != 0)
-		res = -1;
+		goto read_error;
 
-err:
-	return res;
+	return 0;
+
+card_error:
+	/* card_error is a protocol error with the communication.
+	 * In this case, the card will need to be reset. */
+	mmc->state = MMC_STATE_IDLE;
+read_error:
+	/* read_error means a read operation failed, but the
+	 * protocol is still intact. */
+	return -1;
 }
 
 uint32_t mmc_get_num_blocks(struct mmc_card *mmc)
