@@ -185,6 +185,7 @@ void MMC_TIMER_STOP(uint8_t instance);
 enum MMCState {
 	MMC_STATE_IDLE = 0,
 	MMC_STATE_READY = 1,
+	MMC_STATE_WRITE_MULTIPLE = 2,
 };
 
 /** MMC Card Structure
@@ -218,6 +219,9 @@ struct mmc_card {
 	bool card_ccs; /* false: SDSC, true: SDHC or SDXC */
 	uint8_t state; /* enum MMCState */
 	uint32_t card_size_blocks; /* Card size in 512-byte blocks */
+	uint16_t write_position;   /* Position in the current block during a
+				    * multi-block write (in bytes). */
+	uint16_t checksum;         /* Current checksum value */
 };
 
 /** @brief Initialize the MMC System
@@ -336,6 +340,71 @@ int8_t mmc_read_block(struct mmc_card *mmc,
 int8_t mmc_write_block(struct mmc_card *mmc,
                        uint32_t block_addr,
                        uint8_t *data);
+
+/** @brief Begin a multi-block write operation to the MMC card
+ *
+ * Multi-block writes offer better performance and give a better lifespan to
+ * the media. This function only begins the multi-block write, and must be
+ * followed-up with calls to @p mmc_multiblock_write_data() (which provide
+ * the actual data to be written), and @p mmc_multiblock_write_end(). In the
+ * event of an error, mmc_multiblock_write_cancel() will cancel the
+ * operation.
+ *
+ * @param mmc        The MMC card to write to
+ * @param block_addr The first block number to write to
+ *
+ * @returns
+ *   Return 0 if the command completed successuflly or -1 otherwise.
+ */
+int8_t mmc_multiblock_write_start(struct mmc_card *mmc,
+                                  uint32_t block_addr);
+
+/** @brief Write data to the MMC card as part of a multi-block write
+ *
+ * Write data to the MMC card.  This function is expected to be called
+ * repeatedly to pass data to the MMC card.  The amount of data can be less
+ * than an entire block, but it is important that the data passed in does
+ * not cross a block boundary.  The implementation will automatically handle
+ * the starting and stopping of blocks on the media when necessary.  @p
+ * mmc_multiblock_write_start() must be called prior to this function, and
+ * @p mmc_multiblock_write_end() must be called after all the data from all
+ * the blocks has been passed in.
+ *
+ * @param mmc        The MMC card to write to
+ * @param data       The buffer containing the data. The data must not
+ *                   cross a block boundary (@see MMC_BLOCK_SIZE).
+ * @param len        The number of bytes in @p data.
+ * @returns
+ *   Return 0 if the data was handled successuflly or -1 otherwise.
+ */
+int8_t mmc_multiblock_write_data(struct mmc_card *mmc,
+                                 uint8_t *data, size_t len);
+
+/** @brief End a multi-block write operation
+ *
+ * Perform the completion of a multi-block write operation.  This function
+ * should be called once all the data has been passed in using @p
+ * mmc_multiblock_write_data().
+ *
+ * @param mmc        The MMC card being written
+ *
+ * @returns
+ *   Return 0 if the write operation completed successuflly or -1 otherwise.
+ */
+int8_t mmc_multiblock_write_end(struct mmc_card *mmc);
+
+/** @brief Cancel a multi-block write operation
+ *
+ * This function should be called if for some reason a multi-block write
+ * operation must be canceled prior to all the data being transferred.
+ *
+ * @param mmc        The MMC card being written
+ *
+ * @returns
+ *   Return 0 if the write completed successuflly or -1 otherwise.
+ */
+int8_t mmc_multiblock_write_cancel(struct mmc_card *mmc);
+
 
 /* Doxygen end-of-group for public_api */
 /** @}*/

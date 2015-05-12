@@ -98,6 +98,8 @@ static void reset_state(struct mmc_card *cd)
 	cd->card_ccs = false;
 	cd->state = MMC_STATE_IDLE;
 	cd->card_size_blocks = 0;
+	cd->write_position = 0;
+	cd->checksum = 0;
 }
 
 int8_t mmc_init(struct mmc_card *card_data, uint8_t count)
@@ -299,6 +301,8 @@ bool mmc_ready(struct mmc_card *mmc)
 
 	if (mmc->state == MMC_STATE_IDLE)
 		return false;
+	if (mmc->state == MMC_STATE_WRITE_MULTIPLE)
+		return true;
 
 	/* Issue SPI CMD13: SEND_STATUS */
 	buf[0] = 0x40 | 55;
@@ -481,6 +485,240 @@ card_error_no_cs:
 	mmc->state = MMC_STATE_IDLE;
 
 	return -1;
+}
+
+int8_t mmc_multiblock_write_start(struct mmc_card *mmc, uint32_t block_addr)
+{
+	uint8_t buf[6];
+	uint8_t spi_instance = mmc->spi_instance;
+	int8_t res = 0;
+
+	/* Range check the starting addr against the card size. */
+	if (block_addr >= mmc->card_size_blocks)
+		return -1;
+
+	/* For SDSC cards, the address specified is the byte address. For
+	 * SDHC and SDXC cards, the address specified is the block address */
+	if (!mmc->card_ccs)
+		block_addr *= 512;
+
+	/* Send CMD25: WRITE_MULTIPLE_BLOCK */
+	buf[0] = 0x40 | 25;
+	buf[1] = (block_addr & 0xff000000) >> 24;
+	buf[2] = (block_addr & 0x00ff0000) >> 16;
+	buf[3] = (block_addr & 0x0000ff00) >> 8;
+	buf[4] = block_addr & 0x000000ff;
+
+	MMC_SPI_SET_CS(spi_instance, 0);
+	res = __send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R1_LEN);
+	if (res < 0) {
+		mmc->state = MMC_STATE_IDLE;
+		goto err;
+	}
+
+	if (buf[0] != 0x0) {
+		res = -1;
+		goto err;
+	}
+
+	/* Give it 8 extra clocks per section 4.4. */
+	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+	mmc->write_position = 0;
+	mmc->checksum = 0;
+
+	mmc->state = MMC_STATE_WRITE_MULTIPLE;
+
+	return 0;
+
+err:
+	/* An error occurred. End the write operation */
+	MMC_SPI_SET_CS(spi_instance, 1);
+
+	/* Give it 8 extra clocks per section 4.4. */
+	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+	return res;
+}
+
+int8_t mmc_multiblock_write_data(struct mmc_card *mmc,
+                                 uint8_t *data, size_t len)
+{
+	uint8_t spi_instance = mmc->spi_instance;
+	uint8_t buf[2];
+	int8_t res;
+
+	/* Make sure there is a multi-block write underway */
+	if (mmc->state != MMC_STATE_WRITE_MULTIPLE)
+		return -1;
+
+	/* Make sure the data won't cross a block boundary. */
+	if (mmc->write_position + len > MMC_BLOCK_SIZE) {
+		goto write_failed;
+	}
+
+	if (mmc->write_position == 0) {
+		/* A new block is starting. Send start token. */
+		buf[0] = 0xfc; /* Multi-Block Start Block Token (7.3.3.2) */
+		MMC_SPI_TRANSFER(spi_instance, buf, NULL, 1);
+
+		/* Clear the checksum for this new block*/
+		mmc->checksum = 0;
+	}
+
+	/* Send the data */
+	MMC_SPI_TRANSFER(spi_instance, data, NULL, len);
+
+	/* Update the checksum. */
+	mmc->checksum = add_crc16_array(mmc->checksum, data, len);
+	mmc->write_position += len;
+
+	if (mmc->write_position >= MMC_BLOCK_SIZE) {
+		/* An entire block has been sent. Send the checksum
+		 * and end this block. */
+		buf[0] = mmc->checksum & 0xff;
+		buf[1] = mmc->checksum >> 8 & 0xff;
+		MMC_SPI_TRANSFER(spi_instance, buf, NULL, 2);
+
+		/* Skip 0xff bytes before the response */
+		res = skip_bytes_timeout(
+				     spi_instance, 0xff, &buf[0],
+				     MMC_COMMAND_TIMEOUT, NUM_READ_RETRIES);
+
+		if (res < 0)
+			goto card_error;
+
+		/* Read the Data Response (CRC Status) Token (7.3.3.1) */
+		if ((buf[0] & 0x1f) != 0x05)
+			goto write_failed;
+
+		/* Give it 8 extra clocks per section 4.4. */
+		MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+		/* Skip the busy bytes (0x00) which the MMC card
+		 * sends while writing */
+		res = skip_bytes_timeout(spi_instance, 0x0, &buf[0],
+					 MMC_WRITE_TIMEOUT, NUM_WRITE_RETRIES);
+		if (res < 0)
+			goto card_error;
+
+		mmc->write_position = 0;
+	}
+
+	return 0;
+
+card_error:
+	mmc->state = MMC_STATE_IDLE;
+
+write_failed:
+	/* End the write operation, successful or not. */
+	MMC_SPI_SET_CS(spi_instance, 1);
+
+	/* Give it 8 extra clocks per section 4.4. */
+	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+	mmc->state = MMC_STATE_READY;
+
+	return -1;
+}
+
+int8_t mmc_multiblock_write_end(struct mmc_card *mmc)
+{
+	uint8_t spi_instance = mmc->spi_instance;
+	uint8_t buf[6];
+	uint8_t c, res;
+
+	/* Finishing write. Send stop token. */
+	c = 0xfd; /* Multi-Block Stop Transmission Token (7.3.3.2) */
+	MMC_SPI_TRANSFER(spi_instance, &c, NULL, 1);
+
+	/* Skip 0xff bytes after the token */
+	res = skip_bytes_timeout(
+			     spi_instance, 0xff, &c,
+			     MMC_COMMAND_TIMEOUT, NUM_WRITE_RETRIES);
+	if (res < 0)
+		goto err;
+
+	/* Skip the busy bytes (0x00) which the MMC card
+	 * sends while finishing the multi-block write */
+	res = skip_bytes_timeout(spi_instance, 0x0, &c,
+				 MMC_WRITE_TIMEOUT, NUM_WRITE_RETRIES);
+
+	/* After the 0x0 bytes, the card should send 0xff bytes, but there
+	 * might be one byte of half 0's and half 1's (eg: 0x1f, 0x0f, or
+	 * 0x07) depending on the timing. */
+	if (c != 0xff) {
+		MMC_SPI_TRANSFER(spi_instance, NULL, &c, 1);
+		if (c != 0xff) {
+			res = -1;
+			goto card_error;
+		}
+	}
+
+err:
+	/* End the write operation, successful or not. */
+	MMC_SPI_SET_CS(spi_instance, 1);
+
+	/* Give it 8 extra clocks per section 4.4. */
+	MMC_SPI_TRANSFER(spi_instance, NULL, NULL, 1);
+
+	if (res < 0)
+		goto card_error;
+
+	/* Issue SPI CMD13: SEND_STATUS to make sure the
+	 * write completed successfully */
+	buf[0] = 0x40 | 13;
+	buf[1] = 0;
+	buf[2] = 0;
+	buf[3] = 0;
+	buf[4] = 0;
+	res = send_mmc_command(spi_instance, buf, CMD_LEN, RESP_R2_LEN);
+	if (res < 0)
+		goto card_error;
+
+	if (buf[0] != 0 || buf[1] != 0) {
+		/* Write failed, for some reason*/
+		res = -1;
+	}
+
+	mmc->state = MMC_STATE_READY;
+
+	return res;
+
+card_error:
+	/* End the write operation, successful or not. */
+	MMC_SPI_SET_CS(spi_instance, 1);
+
+	mmc->state = MMC_STATE_IDLE;
+
+	return res;
+}
+
+int8_t mmc_multiblock_write_cancel(struct mmc_card *mmc)
+{
+	uint16_t bytes_to_write = MMC_BLOCK_SIZE - mmc->write_position;
+	uint8_t c = 0xff;
+	uint8_t res;
+
+	/* Make sure there is a multi-block write underway */
+	if (mmc->state != MMC_STATE_WRITE_MULTIPLE)
+		return -1;
+
+	/* Clock out the rest of this block and end the write. Calling
+	 * *_write_data() once per byte is not very efficient, but without a
+	 * buffer to pass in, there isn't much other way which doesn't
+	 * significantly increase stack usage. Since this is an extremely
+	 * infrequent case, small code size should win out anyway. */
+	while (bytes_to_write > 0) {
+		res = mmc_multiblock_write_data(mmc, &c, 1);
+		if (res < 0)
+			return -1;
+		bytes_to_write--;
+	}
+
+	res = mmc_multiblock_write_end(mmc);
+
+	return res;
 }
 
 int8_t mmc_init_card(struct mmc_card *mmc)
