@@ -639,6 +639,13 @@ static inline uint8_t receive_data(struct msc_application_data *msc,
 	if (msc->rx_buf_cur + len > msc->rx_buf + msc->rx_buf_len)
 		return -1;
 
+	/* Ignore this data if it is more than was expected. This indicates
+	 * an error on the host side, but it can be handled here by just
+	 * ignoring the extra data. The difference will be reflected in the
+	 * residue in the CSW. */
+	if (msc->transferred_bytes >= msc->requested_bytes)
+		return 0;
+
 	/* Copy to the application's buffer. */
 	memcpy(msc->rx_buf_cur, data, len);
 	msc->rx_buf_cur += len;
