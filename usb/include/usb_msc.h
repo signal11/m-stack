@@ -46,7 +46,7 @@
 #error "Compiler not supported"
 #endif
 
-/** @defgroup cdc_items USB MSC Class Enumerations and Descriptors
+/** @defgroup msc_items USB MSC Class Enumerations and Descriptors
  *  @brief Packet structs, constants, and callback functions implementing
  *  the "Universal Serial Bus Mass Storage Class", revision 1.4, and the
  *  "Universal Serial Bus Mass Storage Class Bulk-Only Transport", revision
