@@ -159,6 +159,7 @@ struct msc_rw_data {
 	uint32_t lba_address;
 	uint16_t num_blocks;
 	bool stopped;
+	uint32_t bytes_handled;
 };
 struct msc_rw_data msc_rw_data;
 
@@ -239,10 +240,26 @@ static int8_t do_write(struct msc_application_data *msc,
 	 * host will concatenate the data for all the blocks, the LBA
 	 * address has to be kept track of in the application. */
 	msc_rw_data.lba_address++;
+	msc_rw_data.num_blocks--;
 
 	/* Notify the MSC stack that the write has completed */
-	msc_notify_block_write_complete(msc, res == 0);
+	msc_notify_write_data_handled(msc);
 
+	/* Fail the operation early if the write failed */
+	if (res < 0) {
+		msc_notify_write_operation_complete(
+		                       msc, false, msc_rw_data.bytes_handled);
+		goto fail;
+	}
+
+	msc_rw_data.bytes_handled += MMC_BLOCK_SIZE;
+
+	/* Report successful transport if this was the last block */
+	if (msc_rw_data.num_blocks == 0)
+		msc_notify_write_operation_complete(
+		                       msc, true, msc_rw_data.bytes_handled);
+
+fail:
 	return res;
 }
 #endif
@@ -576,6 +593,7 @@ int8_t app_msc_start_write(
 
 	msc_rw_data.lba_address = lba_address;
 	msc_rw_data.num_blocks = num_blocks;
+	msc_rw_data.bytes_handled = 0;
 	*buffer = mmc_read_buf;
 	*buffer_len = MMC_BLOCK_SIZE;
 	*callback = rx_complete_callback;

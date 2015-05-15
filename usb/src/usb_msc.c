@@ -784,8 +784,7 @@ static void handle_missed_out_transactions(struct msc_application_data *msc)
 	}
 }
 
-void msc_notify_block_write_complete(struct msc_application_data *msc,
-                                     bool passed)
+void msc_notify_write_data_handled(struct msc_application_data *msc)
 {
 	usb_disable_transaction_interrupt();
 
@@ -793,38 +792,68 @@ void msc_notify_block_write_complete(struct msc_application_data *msc,
 		goto out;
 	}
 
+	/* Ignore if this function has been called too many times. */
+	if (msc->transferred_bytes >= msc->requested_bytes)
+		goto out;
+
+	msc->transferred_bytes += msc->rx_buf_len;
+
+	if (msc->transferred_bytes < msc->requested_bytes) {
+		/* Still more data left to transfer and write. Reset the
+		 * buffer pointer to the beginning of the buffer to prepare
+		 * to receive more data from the host. */
+		msc->rx_buf_cur = msc->rx_buf;
+	}
+
+out:
+	handle_missed_out_transactions(msc);
+
+	usb_enable_transaction_interrupt();
+}
+
+void msc_notify_write_operation_complete(struct msc_application_data *msc,
+                                         bool passed,
+                                         uint32_t bytes_processed)
+{
+	uint32_t residue;
+
+	usb_disable_transaction_interrupt();
+
+	if (msc->state != MSC_DATA_TRANSPORT_OUT) {
+		goto out;
+	}
+
+	residue = msc->requested_bytes_cbw - bytes_processed;
+
 	if (!passed) {
 		/* Save off the error codes. These will be read by the host
 		 * with a REQUEST_SENSE SCSI command. */
 		set_scsi_sense(msc, MSC_ERROR_WRITE);
 
-		uint32_t residue = msc->requested_bytes_cbw -
-		                                     msc->transferred_bytes;
 		stall_out_and_set_status(msc, residue, MSC_STATUS_FAILED);
 		msc->out_ep_missed_transactions = 0;
-		goto out;
+		goto fail;
 	}
-
-	msc->transferred_bytes += msc->rx_buf_len;
 
 	if (msc->transferred_bytes < msc->requested_bytes) {
-		/* Still more blocks left to transfer and write. Reset the
-		 * buffer pointer to the beginning of the buffer to prepare
-		 * to receive the next block from the host. */
-		msc->rx_buf_cur = msc->rx_buf;
+		/* The application is ending the Data Transport before the
+		 * host has sent all the data it expects to send. This
+		 * becomes case 11 (Ho > Do). Stall the OUT endpoint, but set
+		 * the status to PASSED, because the device processed all the
+		 * data it intended to process. */
+		stall_out_and_set_status(msc, residue, MSC_STATUS_PASSED);
+		msc->out_ep_missed_transactions = 0;
+		goto fail;
 	}
 	else {
-		/* No more blocks left to transfer */
-		uint32_t residue = msc->requested_bytes_cbw -
-		                                     msc->transferred_bytes;
-
+		/* No more data left to transfer */
 		send_csw(msc, residue, MSC_STATUS_PASSED);
 		msc->state = MSC_IDLE;
 	}
 
 out:
 	handle_missed_out_transactions(msc);
-
+fail:
 	usb_enable_transaction_interrupt();
 }
 #endif /* MSC_WRITE_SUPPORT */
@@ -1269,7 +1298,7 @@ void msc_out_transaction_complete(uint8_t endpoint)
 		return;
 
 	/* If the OUT endpoint is halted because of a failed write (from
-	 * msc_notify_block_write_complete(), while interrupts are
+	 * msc_notify_write_operation_complete(), while interrupts are
 	 * disabled), it's possible that a transaction completed before the
 	 * endpoint was halted, and that interrupt would cause this
 	 * function to be called on a halted endpoint.  Since in that case

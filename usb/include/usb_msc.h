@@ -539,20 +539,59 @@ void msc_notify_read_operation_complete(
                                     bool passed);
 
 #ifdef MSC_WRITE_SUPPORT
-/** Notify Write Completed
+/** Notify Write Data Handled
  *
- * Tell the MSC class that a data block provided to a write callback
- * has been written (or has failed), and that the transfer can now either
- * provide the next block to be written (if success), or complete (with SCSI
- * MEDIUM_ERROR) if failed.
+ * Tell the MSC class that a block of data provided to a write callback
+ * has been handled, and that the buffer is no longer in use by the
+ * applicaiton. The MSC stack will now provide the next block to be written
+ * into the same buffer and call the callback provided to @p
+ * MSC_START_WRITE().
+ *
+ * Note that calling this function does not necessarily indicate that the
+ * data was successfully written to the medium. It only indicates that the
+ * application has received the buffer and dealt with it, and requests that
+ * the MSC stack put the next block of data into the buffer. It is possible
+ * the application does not know that a write operation has failed (or will
+ * fail) until the end of the write operation.
+ *
+ * Note that if there are OUT transfers pending (and waiting because the
+ * application is using the buffer), and if the application's buffer is
+ * sufficiently small, then the MSC stack could potentially call the @p
+ * msc_completion_callback() from this function. With small buffers, this is
+ * a typical case.
+ *
+ * If there was an error in handling the data, call @p
+ * msc_notify_write_operation_complete() instead to cancel the transport.
+ *
+ * @param app_data       Pointer to application data for this interface.
+ */
+void msc_notify_write_data_handled(struct msc_application_data *app_data);
+
+/** Notify Write Operation Complete
+ *
+ * Tell the MSC class that a write operation has completed, either with
+ * full success, with partial success, or with failure. The MSC stack can now
+ * complete the data transport and report the status to the host.
+ *
+ * In the case of a complete success, set @p passed to true, and set @p
+ * bytes_processed to the number of bytes which were asked for and written.
+ *
+ * In the case of a failure or a partial success, set @p passed to false
+ * and set @p bytes_processed to the number of bytes which were acutally
+ * written successfully.
  *
  * Pass true as @p passed if the write succeeded or false if it failed.
  *
- * @param app_data       Pointer to application data for this interface.
- * @param passed         Whether the write operation completed successfully
+ * @param app_data         Pointer to application data for this interface.
+ * @param passed           Whether the write operation fully completed
+ *                         successfully, writing all desired data.
+ * @param bytes_processed  The number of bytes successfully written. This may
+ *                         be fewer than the number of bytes asked for by the
+ *                         host.
  */
-void msc_notify_block_write_complete(struct msc_application_data *app_data,
-                                     bool passed);
+void msc_notify_write_operation_complete(struct msc_application_data *app_data,
+                                         bool passed,
+                                         uint32_t bytes_processed);
 #endif
 
 /** MSC Bulk-Only Mass Storage Reset callback
