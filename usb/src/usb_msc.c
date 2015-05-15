@@ -747,11 +747,46 @@ out:
 }
 
 #ifdef MSC_WRITE_SUPPORT
+/* Must be called with the transaction interrupt disabled */
+static void handle_missed_out_transactions(struct msc_application_data *msc)
+{
+	/* Handle any pending data.  There's a good chance the USB
+	 * peripheral received data while the write was occurring. That data
+	 * was held in the endpoint buffer(s) by
+	 * msc_out_transaction_complete(). Process that data now. Make sure to
+	 * _only_ call msc_out_transaction_complete() the exact number of
+	 * times a transaction completed in order to avoid a race condition
+	 * window (more below).
+	 *
+	 * usb_endpoint_has_data() can't be used to determine how many
+	 * transactions are pending because since this function runs
+	 * with interrupts disabled. Doing so would open up a race condition
+	 * window where the endpoint would be read too many times if a
+	 * transaction were to complete during this function. For this reason
+	 * msc->out_ep_missed_transactions is used to keep track of how many
+	 * OUT transactions are pending (with data on the endpoint buffers).
+	 *
+	 * Make a new variable for count below because
+	 * msc->out_ep_missed_transactions is also manipulated by
+	 * msc_out_transaction_complete(), and if the application buffer is
+	 * short (eg: smaller the length of two transactions), there's a
+	 * possibility that one call to msc_out_transaction_complete() could
+	 * fail (if the application buffer is full), in which case
+	 * msc_out_transaction_complete() would re-increment
+	 * msc->out_ep_missed_transactions.  */
+
+	uint8_t i, count;
+
+	count = msc->out_ep_missed_transactions;
+	for (i = 0; i < count; i++) {
+		msc_out_transaction_complete(msc->out_endpoint);
+		msc->out_ep_missed_transactions--;
+	}
+}
+
 void msc_notify_block_write_complete(struct msc_application_data *msc,
                                      bool passed)
 {
-	uint8_t i, count;
-
 	usb_disable_transaction_interrupt();
 
 	if (msc->state != MSC_DATA_TRANSPORT_OUT) {
@@ -787,37 +822,9 @@ void msc_notify_block_write_complete(struct msc_application_data *msc,
 		msc->state = MSC_IDLE;
 	}
 
-	/* Handle any pending data.  There's a good chance the USB
-	 * peripheral received data while the write was occurring. That data
-	 * was held in the endpoint buffer(s) by
-	 * msc_out_transaction_complete(). Process that data now. Make sure to
-	 * _only_ call msc_out_transaction_complete() the exact number of
-	 * times a transaction completed in order to avoid a race condition
-	 * window (more below).
-	 *
-	 * usb_endpoint_has_data() can't be used to determine how many
-	 * transactions are pending because since this function runs
-	 * with interrupts disabled. Doing so would open up a race condition
-	 * window where the endpoint would be read too many times if a
-	 * transaction were to complete during this function. For this reason
-	 * msc->out_ep_missed_transactions is used to keep track of how many
-	 * OUT transactions are pending (with data on the endpoint buffers).
-	 *
-	 * Make a new variable for count below because
-	 * msc->out_ep_missed_transactions is also manipulated by
-	 * msc_out_transaction_complete(), and if the application buffer is
-	 * short (eg: smaller the length of two transactions), there's a
-	 * possibility that one call to msc_out_transaction_complete() could
-	 * fail (if the application buffer is full), in which case
-	 * msc_out_transaction_complete() would re-increment
-	 * msc->out_ep_missed_transactions.  */
-	count = msc->out_ep_missed_transactions;
-	for (i = 0; i < count; i++) {
-		msc_out_transaction_complete(msc->out_endpoint);
-		msc->out_ep_missed_transactions--;
-	}
-
 out:
+	handle_missed_out_transactions(msc);
+
 	usb_enable_transaction_interrupt();
 }
 #endif /* MSC_WRITE_SUPPORT */
