@@ -525,7 +525,7 @@ uint8_t msc_start_send_to_host(struct msc_application_data *app_data,
  *
  * In the case of success, pass true to @p passed, indicating that the data
  * requested by an @p MSC_READ() callback has all been passed to the MSC
- * class using @p msc_send_to_host().  This will cause the transfer to
+ * class using @p msc_start_send_to_host().  This will cause the transfer to
  * complete successfully.
  *
  * If the read failed, pass false to @p passed.  This will cause a SCSI
