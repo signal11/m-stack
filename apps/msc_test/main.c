@@ -167,6 +167,9 @@ struct msc_rw_data msc_rw_data;
  * requiring the MSC class to be reset */
 static bool msc_reset_required;
 
+/* The buffer used for both transmitting and receiving data. Reads will use
+ * the entire buffer, and writes will only use WRITE_BUF_SIZE bytes (which
+ * is defined below). Thus MMC_BLOCK_SIZE must be >= WRITE_BUF_SIZE. */
 static uint8_t mmc_read_buf[MMC_BLOCK_SIZE];
 
 /* Transmission complete callback. This is called when an entire block has
@@ -362,11 +365,12 @@ int main(void)
 	while (1) {
 		if (usb_is_configured()) {
 
-			/* Handle reading from the MMC card if necessary.
-			 * Since reading from the MMC is a blocking operation,
-			 * is handled here in the main thread. The read
+			/* Handle reading/writing the MMC card if necessary.
+			 * Since reading/writing is a blocking operation,
+			 * it is handled here in the main thread. The read
 			 * is initiated (from interrupt context) in
-			 * app_msc_start_read(). */
+			 * app_msc_start_read(). The write is initiated
+			 * (from interrupt context) in app_msc_start_write().*/
 
 			if (msc_reset_required) {
 				/* Reset the MSC. */
@@ -629,7 +633,7 @@ int8_t app_msc_start_write(
 }
 
 /* MMC implementation callbacks. These just glue the MMC implementation
- * to the SPI implementation. */
+ * to the SPI implementation and the timer implementation. */
 
 void app_spi_transfer(uint8_t instance,
                       const uint8_t *out_buf,
