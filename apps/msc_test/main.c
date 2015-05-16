@@ -155,6 +155,7 @@ static struct mmc_card mmc;
 struct msc_rw_data {
 	bool read_operation_needed;
 	bool write_operation_needed;
+	bool cancel_multiblock_write;
 	uint8_t lun;
 	uint32_t lba_address;
 	uint16_t num_blocks;
@@ -171,6 +172,45 @@ static bool msc_reset_required;
  * the entire buffer, and writes will only use WRITE_BUF_SIZE bytes (which
  * is defined below). Thus MMC_BLOCK_SIZE must be >= WRITE_BUF_SIZE. */
 static uint8_t mmc_read_buf[MMC_BLOCK_SIZE];
+
+/* Define MULTI_BLOCK_WRITE to use the multi-block write API of the MMC
+ * layer. In practice there is no reason to _not_ use multi-block writes. */
+#define MULTI_BLOCK_WRITE
+
+/* Setting the write buffer to something smaller than one block will allow the
+ * USB peripheral to be working at the same time as the main CPU thread is
+ * writing to the device. Setting it to the endpoint size will trigger a write
+ * operation to the MMC card each time a data transaction is received from
+ * the host (allowing the MSC stack to begin receiving the next packet during
+ * the write).
+ *
+ * In this implementation, since the code in this main.c file uses
+ * mmc_read_buf for both reading and writing, this buffer size must be smaller
+ * than or equal to MMC_BLOCK_SIZE. It also must be at least as large as the
+ * OUT endpoint size. It must also be divisible by the OUT endpoint size. */
+#ifdef MULTI_BLOCK_WRITE
+	#define WRITE_BUF_SIZE 64
+#else
+	#define WRITE_BUF_SIZE MMC_BLOCK_SIZE
+#endif
+
+#define CONCAT3(x, y, z) x ## y ## z
+#define CONCAT(x, y, z) CONCAT3(x, y, z)
+
+/* Make sure the write buffer is an appropriate size */
+#if WRITE_BUF_SIZE > MMC_BLOCK_SIZE
+	#error "WRITE_BUF_SIZE must be <= MMC_BLOCK_SIZE"
+#elif WRITE_BUF_SIZE < CONCAT(EP_, APP_MSC_OUT_ENDPOINT, _OUT_LEN)
+	#error WRITE_BUF_SIZE must be >= the OUT endpoint size
+#elif WRITE_BUF_SIZE % CONCAT(EP_, APP_MSC_OUT_ENDPOINT, _OUT_LEN) != 0
+	#error WRITE_BUF_SIZE must be divisible by the OUT endpoint size
+#endif
+#if !defined(MULTI_BLOCK_WRITE) && WRITE_BUF_SIZE != MMC_BLOCK_SIZE
+	#error WRITE_BUF_SIZE must be set to MMC_BLOCK_SIZE if MULTI_BLOCK_WRITE is not set.
+#endif
+
+#undef CONCAT3
+#undef CONCAT
 
 /* Transmission complete callback. This is called when an entire block has
  * been transfered to the host. */
@@ -238,7 +278,73 @@ static int8_t do_write(struct msc_application_data *msc,
 {
 	int8_t res = 0;
 
-	/* Perform the blocking write */
+#ifdef MULTI_BLOCK_WRITE
+	if (msc_rw_data.cancel_multiblock_write) {
+		/* The transport has been canceled from the USB side either by
+		 * a USB reset or an MSC Reset Recovery. It's safe to call
+		 * msc_multiblock_write_cancel() even if there is not a write
+		 * in progress. */
+		mmc_multiblock_write_cancel(&mmc);
+		msc_rw_data.write_operation_needed = false;
+		msc_rw_data.num_blocks = 0;
+		msc_rw_data.bytes_handled = 0;
+		msc_rw_data.cancel_multiblock_write = false;
+
+		return 0;
+	}
+
+	if (msc_rw_data.bytes_handled == 0) {
+		/* Write is requested, but hasn't started yet.
+		 * Start the write operation. */
+		res = mmc_multiblock_write_start(&mmc, msc_rw_data.lba_address);
+		if (res < 0)
+			goto fail;
+	}
+
+	/* Give the data to the MMC card */
+	res = mmc_multiblock_write_data(&mmc, mmc_read_buf, WRITE_BUF_SIZE);
+	if (res < 0)
+		goto fail;
+
+	/* Set the write_operation_needed flag false before the call to
+	 * msc_notify_write_data_handled() because
+	 * msc_notify_write_data_handled() _might_ call the
+	 * rx_complete_callback() which would set write_operation_needed
+	 * back to true if another transaction is already waiting (which is
+	 * a likely case). */
+	msc_rw_data.write_operation_needed = false;
+
+	/* Tell the MSC stack that the data was processed */
+	msc_notify_write_data_handled(msc);
+
+	msc_rw_data.bytes_handled += WRITE_BUF_SIZE;
+
+	if (msc_rw_data.bytes_handled ==
+	    (uint32_t) msc_rw_data.num_blocks * MMC_BLOCK_SIZE) {
+		/* All the expected data has been received. Finish
+		 * the write operation. */
+		res = mmc_multiblock_write_end(&mmc);
+		if (res < 0)
+			goto fail;
+
+		/* Tell the MSC stack that the write operation has completed */
+		msc_notify_write_operation_complete(msc,
+		                            true, msc_rw_data.bytes_handled);
+	}
+
+	return res;
+fail:
+	/* Report failure to the MSC layer. Ideally we could report the
+	 * number of bytes that were successfully written (in the case that
+	 * they were, but that isn't supported by the MMC layer at the
+	 * current time. Reporting zero bytes written is safe, as the host
+	 * will then try to write all the blocks again. */
+	msc_notify_write_operation_complete(msc, false, 0/*TODO*/);
+	msc_rw_data.write_operation_needed = false;
+
+	return res;
+#else
+	/* Perform the blocking, single-block write */
 	res = mmc_write_block(&mmc, msc_rw_data.lba_address, mmc_read_buf);
 	msc_rw_data.write_operation_needed = false;
 
@@ -267,6 +373,7 @@ static int8_t do_write(struct msc_application_data *msc,
 
 fail:
 	return res;
+#endif
 }
 #endif
 
@@ -373,6 +480,15 @@ int main(void)
 			 * (from interrupt context) in app_msc_start_write().*/
 
 			if (msc_reset_required) {
+				/* Make sure to cancel any multi-block
+				 * write operations in progress. */
+				msc_rw_data.write_operation_needed = true;
+				msc_rw_data.cancel_multiblock_write = true;
+
+				/* do_write() will now reset the MMC card to a
+				 * known state */
+				do_write(&msc_data, &msc_rw_data);
+
 				/* Reset the MSC. */
 				msc_init(&msc_data, 1);
 				msc_reset_required = false;
@@ -626,7 +742,7 @@ int8_t app_msc_start_write(
 	msc_rw_data.num_blocks = num_blocks;
 	msc_rw_data.bytes_handled = 0;
 	*buffer = mmc_read_buf;
-	*buffer_len = MMC_BLOCK_SIZE;
+	*buffer_len = WRITE_BUF_SIZE;
 	*callback = rx_complete_callback;
 
 	return MSC_SUCCESS;
