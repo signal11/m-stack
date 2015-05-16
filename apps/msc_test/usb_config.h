@@ -83,6 +83,7 @@
 
 /* Callbacks from the MSC class (usb_msc.h) */
 #define MSC_GET_MAX_LUN_CALLBACK app_get_max_lun
+#define MSC_BULK_ONLY_MASS_STORAGE_RESET_CALLBACK app_msc_reset
 #define MSC_GET_STORAGE_INFORMATION app_get_storage_info
 #define MSC_UNIT_READY app_get_unit_ready
 #define MSC_START_STOP_UNIT app_start_stop_unit

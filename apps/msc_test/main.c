@@ -163,6 +163,9 @@ struct msc_rw_data {
 };
 struct msc_rw_data msc_rw_data;
 
+/* This flag is set when a USB protocol reset is initiated by the host,
+ * requiring the MSC class to be reset */
+static bool msc_reset_required;
 
 static uint8_t mmc_read_buf[MMC_BLOCK_SIZE];
 
@@ -364,6 +367,13 @@ int main(void)
 			 * is handled here in the main thread. The read
 			 * is initiated (from interrupt context) in
 			 * app_msc_start_read(). */
+
+			if (msc_reset_required) {
+				/* Reset the MSC. */
+				msc_init(&msc_data, 1);
+				msc_reset_required = false;
+			}
+
 			if (msc_rw_data.read_operation_needed) {
 				do_read(&msc_data, &msc_rw_data);
                         }
@@ -450,10 +460,19 @@ void app_start_of_frame_callback(void)
 void app_usb_reset_callback(void)
 {
 	/* Reset the MSC class */
-	msc_init(&msc_data, 1);
+	msc_reset_required = true;
 }
 
 /* MSC class callbacks */
+
+int8_t app_msc_reset(uint8_t interface)
+{
+	/* RESET control transfer. In our case it's the same
+	 * as a USB reset. */
+	app_usb_reset_callback();
+
+	return 0;
+}
 
 int8_t app_get_storage_info(const struct msc_application_data *app_data,
                             uint8_t lun,
@@ -564,6 +583,10 @@ int8_t app_start_stop_unit(const struct msc_application_data *app_data,
 int8_t app_msc_start_read(struct msc_application_data *app_data, uint8_t lun,
                   uint32_t lba_address, uint16_t num_blocks)
 {
+	/* If a reset is in progress, don't allow any reads to start. */
+	if (msc_reset_required)
+		return MSC_ERROR_MEDIUM_NOT_PRESENT;
+
 	if (lun > 0)
 		return MSC_ERROR_INVALID_LUN;
 
@@ -585,6 +608,10 @@ int8_t app_msc_start_write(
 		uint8_t **buffer, size_t *buffer_len,
 		msc_completion_callback *callback)
 {
+	/* If a reset is in progress, don't allow any writes to start. */
+	if (msc_reset_required)
+		return MSC_ERROR_MEDIUM_NOT_PRESENT;
+
 	if (lun > 0)
 		return MSC_ERROR_INVALID_LUN;
 
