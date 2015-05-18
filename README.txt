@@ -26,6 +26,7 @@ operations:
 The following device classes are supported:
  * HID - Human Interface Device
  * CDC-ACM - Communication Device Class - Abstract Control Model
+ * Mass Storage Class (MSC) with MMC/SD card support
 
 Other features include:
  * Clean, well-documented examples (device, and PC-host (libusb))
@@ -173,10 +174,15 @@ Source Tree Structure
  +- usb/                   <- USB stack software
  |   +- include/           <- API include file directory
  |   +- src/               <- Source files
+ +- storage/               <- MMC/SD card implementation
+     +- include/           <- API include files
+     +- src/               <- Source files
  +- apps/                  <- Firmware USB device applications,
      |                        examples, and tests
      +- unit_test/         <- Unit test firmware
      +- hid_mouse/         <- HID Mouse example
+     +- cdc_acm/           <- CDC/ACM virtual COM port example
+     +- msc_test/          <- Mass Storage Class example
      +- bootloader/        <- USB bootloader firmware and software
  +- host_test/             <- Software applications to run from a PC Host
 
