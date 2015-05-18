@@ -1,0 +1,195 @@
+M-Stack Mass Storage Class Implementation
+==========================================
+
+M-Stack supports the USB Mass Storage Class (MSC), specifically the
+Bulk-Only-Transport (BOT) subclass.  Source code can be found in
+usb/*/usb_msc.[h|c].  There is a test application in apps/msc_test which
+implements a basic SD card reader device.  The MSC class can optionally
+be built read-only to save flash space, if desired.
+
+The Mass Storage Class provides block-level access to the medium.  This
+means the filesystem is expected to be implemented by the host (and not in
+the MSC code itself), much as it would on any other type of media.  This of
+course also means any manipulation of the filesystem from the MCU side will
+require the MCU application to handle the filesystem details (without making
+use of the host).  Implementing a filesystem is outside the scope of
+M-Stack, but there are several 3rd-Party implementations which will read and
+write the common FAT and vFAT filesystems including FatFS, EFSL, Netlabs.
+
+Temporary Note about XC8
+-------------------------
+The XC8 compiler as of version 1.34 has several bugs which prevent the MSC
+class and msc_test example program from working properly.  There is a #error
+line in main.c which prevents compiling with XC8.  Once a version of XC8 is
+released which does not have these problems, this #error will be removed.
+
+MSC Class
+==========
+Like other classes in M-Stack, the MSC class has a set of static callback
+functions which must be defined by the application's usb_config.h. For MSC,
+these include callbacks for getting information about a storage medium,
+getting the status of the storage medium, reading, writing, and unmounting.
+More documentation can be found about these callback functions in
+the documentation in usb/include/usb_msc.h.
+
+The MSC source code contains references to USB standards. The standards
+referenced are listed in the comments at the top of usb_msc.h.
+
+While M-Stack only provides an example application which uses an MMC/SD
+card, any type of storage may be used including (but not limited to) on-MCU
+flash, external serial or parallel NOR flash, eMMC, NAND, CompactFlash
+cards, etc.
+
+MMC Implementation
+===================
+
+In order to have something with which to demonstrate the MSC class, an
+implementation of MultiMediaCard (MMC) specification was implemented.  In
+addition to a high-speed protocol, MMC cards are required to support a
+simple SPI protocol as well, for use with simple systems such as
+microcontrollers.  The Secure Digital (SD) specification is designed to be
+an extension of the MMC specification and supports larger devices.  Most
+devices found today are SD, and the SD extensions to the MMC standard are
+supported.
+
+The files located in storage/ implement the SD simplified specification
+(which contains the SPI protocol), and contains backwards-compatibility for
+MMC, as much as can be determined.  With true MMC cards becoming difficult
+to find, it was not tested with a true MMC card, but was tested with SDSC
+and SDHC cards.  MMC and also SDXC cards should work however, as SDXC shares
+the same protocol with SDHC when in SPI mode.  User reports of success or
+failure are welcome.
+
+The files in storage/ are a blocking implementation.  No effort has been
+made to turn it into a state machine for true non-blocking operation.  It
+was decided for the purposes of this demo that the implementation be kept
+simple.  Further, when microcontrollers are implementing the MSC protocol,
+they are typically in a special mode and not running any other critical
+software. If the blocking implementation doesn't work for you, contact the
+author, and he would be happy to help you come up with a solution to your
+problem.
+
+The MMC implementation uses the MMC multi-block write commands.  Rather than
+writing one block at a time, multi-block write allows the application to
+begin a write operation and send as many blocks as it desires before
+closing the write operation. This gives increased performance and also
+increases the lifespan of the MMC card. The msc_test application makes use
+of the multi-block write.
+
+The MMC implementation does not provide an SPI implementation itself, but
+relies on one being provided by the application.  The connection between the
+MMC and SPI implementations is not hard-coded, but makes use of static
+callbacks the same way M-Stack does.  The static callback functions are
+defined in mmc_config.h, which must be provided by the application.
+
+It also makes use of an external timer implementation which is used for
+determining whether read or write operations have timed out.  As with SPI,
+the connection between the MMC and the timer implementation is defined by
+static callback functions defined in the application-provided mmc_config.h
+
+storage/include/mmc.h contains detailed documentation about the API,
+requirements and behavior for the the static callbacks, and information
+about the standards implemented.
+
+
+MSC Test Application
+=====================
+
+The MSC test application in apps/msc_test/ is the place where all of the
+pieces (USB, MSC, MMC, SPI, and Timers) are all connected together to make
+the working demo. Note that only the USB, MSC, and MMC components are
+considered to be part of M-Stack itself. The SPI and Timer implementations
+reside in the apps/msc_test/ directory and are part of the application. The
+reason is that the SPI and Timer implementations are not designed to be
+general-purpose, but are designed to directly meet the needs of this test
+application, and not much more.
+
+SPI Implementation
+-------------------
+The SPI implementation uses the hardware SPI peripheral on PIC18, 24, and
+32. It does this using programmed I/O (PIO) and does not use DMA. This is
+done for simplicity of implementation, and for being able to work out of the
+box on as many devices as possible. As a result it is not as fast as it
+could be if DMA were implemented. If you find the existing implementation
+too limiting, contact the author who can help you come up with options.
+
+Since the SPI component is the part which touches the acutal pins on the
+MCU, it must be configured properly on each target board.  spi.c includes
+board.h, which must be provided by the application.  In the test
+application, board.h provides pin configurations for three different
+development boards.  These configurations will need to be modified to port
+the software to a custom board.  board.h also specifies which hardware SPI
+peripheral to use.
+
+The SPI component also makes use of the board_setup_spi_pins() function
+located in board.c.  This will also need to be modified to suit your needs
+in porting to a custom board.
+
+Timer Implementation
+---------------------
+Like the SPI implementation, the Timer implementation resides in the
+apps/msc_test/ directory and is considered part of the application, rather
+than part of M-Stack.  Detailed information about how the timers are
+implemented (including which hardware timer resources are used) are located
+in the comment at the top of timer.h.  It's worth noting that the timer
+maximums are different on each MCU family, but they are all possible of
+generating timeouts of 1 second, which is the maximum required by the MMC
+implementation.
+
+
+Supported Hardware
+===================
+
+Three target boards are currently supported:
+	1. ChipKit Max32 board with Network Shield (PIC32MX795F512L).
+	2. Breadboard with PIC24FJ64GB002
+	3. PIC18F Starter Kit. (PIC18F46J50)
+
+ChipKit Max32 with Network Shield
+----------------------------------
+This board does not have and MMC/SD card slot, so one has to be connected
+manually using jumper wires and a breadboard. The configuration is as
+follows:
+	SPI peripheral: SPI2
+	SPI chip select - RG1
+	MMC card detect - RG0
+
+Complete connection:
+	Chipkit Network Shield           SD Card
+	  Pin 78 (RG1)        -->          1 (CS)
+	  Pin 51 (MOSI)       -->          2 (DI)
+	  Pin 52 (CLK)        -->          5 (SCLK)
+	  Pin 50 (MISO)       -->          7 (DO)
+	  Pin 79 (RG0)        -->         10 (Card Detect)
+
+
+Breadboard with PIC24FJ64GB002
+-------------------------------
+Since this is a breadboard, everything must be wired manually. The
+configuration is as follows:
+	SPI peripheral: SPI1
+	SPI chip select: RB9
+	MMC card detect: RB8 (which is on the pin with CN22).
+
+The PIC24 parts use the peripheral-pin select (PPS) which can assign
+peripherals to any PPS-capable pin. Because of this, knowing the above
+(SPI1) doesn't tell which pins are acutally being used. In the demo, the
+following pins are used for SPI:
+	SPI SCK - RP15
+	SPI SDI - RP14
+	SPI SDO - RP13
+
+Complete connection:
+	PIC24FJ64GB002                   SD Card
+	  Pin 18 (RB9)        -->          1 (CS)
+	  Pin 24 (MOSI)       -->          2 (DI)
+	  Pin 26 (CLK)        -->          5 (SCLK)
+	  Pin 25 (MISO)       -->          7 (DO)
+	  Pin 17 (RB8)        -->         10 (Card Detect)
+
+
+PIC18F Starter Kit
+-------------------
+The PIC18F Starter Kit has an MMC card slot built-in. Refer to the board
+documentation for the signals used. It's worth noting that the card-detect
+line is not connected on this board.
