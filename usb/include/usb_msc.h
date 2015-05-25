@@ -59,10 +59,10 @@
  *  devices.
  *
  *  Document sections listed in the comments are prefixed with the document
- *  they reference as follows:
- *  MSCO: USB Mass Storage Class, revision 1.4
- *  BOT:  USB Mass Storage Class Bulk-Only Transport, revision 1.0
- *  Axelson: Jan Axelson's "USB Mass Storage" book
+ *  they reference as follows:\n
+ *  \b MSCO: USB Mass Storage Class, revision 1.4\n
+ *  \b BOT:  USB Mass Storage Class Bulk-Only Transport, revision 1.0\n
+ *  \b Axelson: Jan Axelson's "USB Mass Storage" book\n
  *
  *  For more information, see the above referenced document, available from
  *  http://www.usb.org .
