@@ -223,10 +223,8 @@ static int8_t usb_dfu_request_helper_Upload(const struct setup_packet *setup)
 	rc = USB_DFU_READ_FUNC(_dfu_block_num * DFU_TRANSFER_SIZE,
 			       _dfu_buf, DFU_TRANSFER_SIZE,
 			       _dfu_context);
-	if (rc != 0) {
-		usb_dfu_set_status(rc);
+	if (rc != 0)
 		return -1;
-	}
 #endif
 	setup2->wValue = _dfu_block_num++;
 	usb_send_data_stage(_dfu_buf, DFU_TRANSFER_SIZE, _send_data_stage_cb, NULL);
@@ -259,10 +257,8 @@ static void _recieve_data_stage_cb(bool transfer_ok, void *context)
 	rc = USB_DFU_WRITE_FUNC(_dfu_block_num * DFU_TRANSFER_SIZE,
 				_dfu_buf, DFU_TRANSFER_SIZE,
 				_dfu_context);
-	if (rc != 0) {
-		usb_dfu_set_status(rc);
+	if (rc != 0)
 		return;
-	}
 #endif
 
 	/* done */
