@@ -134,7 +134,7 @@ void	 usb_dfu_set_status		(uint8_t			 status);
  *   Return 0 if the write completed or -1 if it cannot, or if the alternate
  *   setting was invalid.
  */
-extern int8_t USB_DFU_WRITE_FUNC(uint16_t addr, const uint8_t *data,
+extern int8_t USB_DFU_WRITE_FUNC(uint16_t addr, uint8_t *data,
 				 uint16_t len, void *context);
 #endif
 
