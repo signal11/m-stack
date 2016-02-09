@@ -530,7 +530,7 @@ struct buffer_descriptor {
 			uint32_t BSTALL : 1;
 			uint32_t DTSEN : 1;    /* DTS in datasheet */
 			uint32_t reserved : 2; /* NINC, KEEP */
-			uint32_t DTS : 1;      /* DATA0/1 in datasheet */
+			uint32_t /*DTS*/ : 1;  /* DATA0/1 in datasheet */
 			uint32_t /*UOWN*/ : 1;
 
 			uint32_t : 8;
