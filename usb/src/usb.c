@@ -36,6 +36,8 @@
 #include <delays.h>
 #elif __XC8
 #include <xc.h>
+#elif __GNUC__
+#include <xc.h>
 #else
 #error "Compiler not supported"
 #endif

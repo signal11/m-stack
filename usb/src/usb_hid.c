@@ -91,7 +91,8 @@ uint8_t process_hid_setup_request(const struct setup_packet *setup)
 		if (len < 0)
 			return -1;
 
-		usb_send_data_stage((void*) desc, min(len, setup->wLength), NULL, NULL);
+		usb_send_data_stage((void*)desc,
+            (len<setup->wLength)? len : setup->wLength, NULL, NULL);
 		return 0;
 	}
 
@@ -112,7 +113,8 @@ uint8_t process_hid_setup_request(const struct setup_packet *setup)
 		if (len < 0)
 			return -1;
 
-		usb_send_data_stage((void*)desc, min(len, setup->wLength), callback, context);
+		usb_send_data_stage((void*)desc,
+            (len<setup->wLength)? len : setup->wLength, callback, context);
 		return 0;
 	}
 #endif

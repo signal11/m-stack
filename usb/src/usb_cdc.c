@@ -159,7 +159,7 @@ uint8_t process_cdc_setup_request(const struct setup_packet *setup)
 			return -1;
 
 		usb_send_data_stage((void*)response,
-		                    min(len, setup->wLength),
+                            (len<setup->wLength)? len : setup->wLength,
 		                    callback, context);
 		return 0;
 	}
@@ -227,8 +227,8 @@ uint8_t process_cdc_setup_request(const struct setup_packet *setup)
 				(uint16_t) data_multiplexed_state << 1;
 
 		usb_send_data_stage((char*)&transfer_data.comm_feature,
-		                    min(setup->wLength,
-		                        sizeof(transfer_data.comm_feature)),
+                            (setup->wLength<sizeof(transfer_data.comm_feature))?
+		                    setup->wLength : sizeof(transfer_data.comm_feature)
 		                    NULL/*callback*/, NULL);
 		return 0;
 	}
@@ -241,8 +241,8 @@ uint8_t process_cdc_setup_request(const struct setup_packet *setup)
 		transfer_interface = interface;
 		usb_start_receive_ep0_data_stage(
 		                      (char*)&transfer_data.line_coding,
-		                      min(setup->wLength,
-		                          sizeof(transfer_data.line_coding)),
+                              (setup->wLength<sizeof(transfer_data.comm_feature))?
+                                  setup->wLength : sizeof(transfer_data.comm_feature)
 		                      set_line_coding, NULL);
 		return 0;
 	}
@@ -260,8 +260,8 @@ uint8_t process_cdc_setup_request(const struct setup_packet *setup)
 			return -1;
 
 		usb_send_data_stage((char*)&transfer_data.line_coding,
-		                    min(setup->wLength,
-		                        sizeof(transfer_data.line_coding)),
+                            (setup->wLength<sizeof(transfer_data.comm_feature))?
+                                setup->wLength : sizeof(transfer_data.comm_feature)
 		                    /*callback*/NULL, NULL);
 		return 0;
 	}
