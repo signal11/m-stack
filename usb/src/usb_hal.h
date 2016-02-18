@@ -437,7 +437,7 @@ struct buffer_descriptor {
 #define FAR
 #define memcpy_from_rom(x,y,z) memcpy(x,y,z)
 
-#elif __XC32__
+#elif __XC32__ || (defined(__GNUC__) && __mips == 32)
 
 #define USB_NEEDS_POWER_ON
 #define USB_NEEDS_SET_BD_ADDR_REG

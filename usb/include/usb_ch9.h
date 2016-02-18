@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(push, 1)
 #elif __XC8
 #else
@@ -273,7 +273,7 @@ struct interface_association_descriptor {
 /** @endcond */
 
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(pop)
 #elif __XC8
 #else

@@ -39,7 +39,7 @@
 #include <stdint.h>
 #include "usb_config.h"
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(push, 1)
 #elif __XC8
 #else
@@ -488,7 +488,7 @@ extern int8_t CDC_SEND_BREAK_CALLBACK(uint8_t interface, uint16_t duration);
 /** @}*/
 
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(pop)
 #elif __XC8
 #else
