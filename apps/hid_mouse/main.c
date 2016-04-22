@@ -55,7 +55,7 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config IOL1WAY = OFF
 #pragma config WPDIS = OFF /* This pragma seems backwards */
 
-#elif _16F1459
+#elif _16F1459 || _16F1455 || _16F1454
 #pragma config FOSC = INTOSC
 #pragma config WDTE = OFF
 #pragma config PWRTE = OFF
@@ -103,7 +103,7 @@ int main(void)
 	OSCTUNEbits.PLLEN = 1;
 	while (pll_startup--)
 		;
-#elif _16F1459
+#elif _16F1459 || _16F1455 || _16F1454
 	OSCCONbits.IRCF = 0b1111; /* 0b1111 = 16MHz HFINTOSC postscalar */
 
 	/* Enable Active clock-tuning from the USB */
