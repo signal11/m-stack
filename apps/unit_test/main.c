@@ -189,10 +189,11 @@ void app_in_transaction_complete_callback(uint8_t endpoint)
 
 static char buf[512];
 
-static void data_cb(bool transfer_ok, void *context)
+static int8_t data_cb(bool transfer_ok, void *context)
 {
 	/* For OUT control transfers, data from the data stage of the request
 	 * is in buf[]. */
+	return 0;
 }
 
 int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)

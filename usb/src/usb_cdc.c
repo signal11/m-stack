@@ -81,12 +81,12 @@ static union transfer_data {
 
 #if defined(CDC_SET_COMM_FEATURE_CALLBACK) || defined(CDC_CLEAR_COMM_FEATURE_CALLBACK)
 static uint8_t set_or_clear_request;
-static void set_or_clear_comm_feature_callback(bool transfer_ok, void *context)
+static int8_t set_or_clear_comm_feature_callback(bool transfer_ok, void *context)
 {
 	/* Only ABSTRACT_STATE is supported here. */
 
 	if (!transfer_ok)
-		return;
+		return -1;
 
 	bool idle_setting = (transfer_data.comm_feature & 1) != 0;
 	bool data_multiplexed_state = (transfer_data.comm_feature & 2) != 0;
@@ -102,16 +102,18 @@ static void set_or_clear_comm_feature_callback(bool transfer_ok, void *context)
 		                                idle_setting,
 		                                data_multiplexed_state);
 	}
+	return 0;
 }
 #endif
 
 #if defined(CDC_SET_LINE_CODING_CALLBACK)
-static void set_line_coding(bool transfer_ok, void *context) {
+static int8_t set_line_coding(bool transfer_ok, void *context) {
 	if (!transfer_ok)
-		return;
+		return -1;
 
 	CDC_SET_LINE_CODING_CALLBACK(transfer_interface,
 	                             &transfer_data.line_coding);
+	return 0;
 }
 #endif
 

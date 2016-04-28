@@ -262,12 +262,13 @@ int main(void)
 	return 0;
 }
 
-static void empty_cb(bool transfer_ok, void *context)
+static int8_t empty_cb(bool transfer_ok, void *context)
 {
 	/* Nothing to do here. */
+	return 0;
 }
 
-static void reset_cb(bool transfer_ok, void *context)
+static int8_t reset_cb(bool transfer_ok, void *context)
 {
 	/* Delay before resetting*/
 	uint16_t i = 65535;
@@ -275,15 +276,19 @@ static void reset_cb(bool transfer_ok, void *context)
 		;
 
 	asm("reset");
+
+	return 0;
 }
 
-static void write_data_cb(bool transfer_ok, void *context)
+static int8_t write_data_cb(bool transfer_ok, void *context)
 {
 	/* For OUT control transfers, data from the data stage of the request
 	 * is in buf[]. */
 
 	if (transfer_ok)
 		write_flash_row();
+
+	return 0;
 }
 
 int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)

@@ -244,11 +244,12 @@ void app_usb_reset_callback(void)
 
 static uint8_t report_buf[3];
 
-static void get_report_callback(bool transfer_ok, void *context)
+static int8_t get_report_callback(bool transfer_ok, void *context)
 {
 	/* Nothing to do here really. It either succeeded or failed. If it
 	 * failed, the host will ask for it again. It's nice to be on the
 	 * device side in USB. */
+	return 0;
 }
 
 int16_t app_get_report_callback(uint8_t interface, uint8_t report_type,

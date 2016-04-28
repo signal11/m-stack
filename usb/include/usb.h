@@ -529,7 +529,7 @@ uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buffer);
  *                      @a false if there was an error
  * @param context       A pointer to application-provided context data
  */
-typedef void (*usb_ep0_data_stage_callback)(bool transfer_ok, void *context);
+typedef int8_t (*usb_ep0_data_stage_callback)(bool data_ok, void *context);
 
 /** @brief Start the data stage of an OUT control transfer
  *
