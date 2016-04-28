@@ -522,12 +522,36 @@ uint8_t usb_get_out_buffer(uint8_t endpoint, const unsigned char **buffer);
  *
  * This is the callback function type expected to be passed to @p
  * usb_start_receive_ep0_data_stage() and @p usb_send_data_stage().
- * Callback functions will be called by the stack when the event for which
- * they are registered occurs.
  *
- * @param transfer_ok   @a true if transaction completed successfully, or
- *                      @a false if there was an error
+ * For OUT transfers with data, the callback function will be called by the
+ * stack when the data stage of the transfer completes. For this type of
+ * transfer, the callback can return -1 or 0:
+ * -1: The application has rejected the data. This will cause the stack to
+ *     send a STALL to the host.
+ *  0: The application has accepted and processed the data. This will cause
+ *     the stack to send a zero-length packet (indicating success) to be sent
+ *     as the status stage.
+ *
+ * For OUT transfers without data (which do not have a data stage), the
+ * callback function will be called when the status stage of the transfer
+ * completes; the return value is ignored.
+ *
+ * For IN transfers, the callback function will be called by the stack when
+ * the status stage of the transfer completes; the return value is ignored.
+ *
+ * Note that the functionality is different for different types of transfers.
+ * The callback gets called at the place which which has the most meaning for
+ * each type of transfer.
+ *
+ * @param data_ok       True if transaction(s) completed successfully, or
+ *                      false if there was an error
  * @param context       A pointer to application-provided context data
+ *
+ * @returns
+ *   For OUT transfers with data, -1 or 0 can be returned as described.
+ *
+ *   For IN transfers and for OUT transfers without data, the return value
+ *   is ignored.
  */
 typedef int8_t (*usb_ep0_data_stage_callback)(bool data_ok, void *context);
 

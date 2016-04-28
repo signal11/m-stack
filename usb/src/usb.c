@@ -1314,8 +1314,29 @@ static inline void handle_ep0_out()
 					reset_ep0_data_stage();
 				}
 				else {
-					/* The data stage has completed. Set up the status stage. */
-					send_zero_length_packet_ep0();
+					/* The data stage has completed. Notify the application
+					 * and set up the status stage accordingly as success
+					 * (zero-length packet) or failure (STALL). */
+					int8_t res = 0;
+
+					if (ep0_data_stage_callback)
+						res = ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
+
+					if (res < 0) {
+						/* The application has indicated failure of
+						 * some kind, so stall the transfer */
+						stall_ep0();
+					}
+					else {
+						/* Set up the successful status
+						 * stage. */
+						send_zero_length_packet_ep0();
+					}
+
+					/* Remove the callback pointer so it
+					 * is not called again at the end of
+					 * the status stage */
+					ep0_data_stage_callback = NULL;
 				}
 			}
 		}
@@ -1356,8 +1377,8 @@ static inline void handle_ep0_in()
 		if (ep0_data_stage_direc == 0/*OUT*/) {
 			/* An IN on the control endpoint with no data pending
 			 * and during an OUT transfer means the STATUS stage
-			 * of the control transfer has completed. Notify the
-			 * application, if applicable. */
+			 * of the control transfer has completed. If there
+			 * is still a callback, call it. */
 			if (ep0_data_stage_callback)
 				ep0_data_stage_callback(1/*true*/, ep0_data_stage_context);
 			reset_ep0_data_stage();
