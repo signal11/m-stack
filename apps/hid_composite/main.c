@@ -320,6 +320,8 @@ int16_t app_get_report_callback(uint8_t interface, uint8_t report_type,
 		*context = NULL;
 		return 4;
 	}
+
+	return -1;
 }
 
 int8_t app_set_report_callback(uint8_t interface, uint8_t report_type,
