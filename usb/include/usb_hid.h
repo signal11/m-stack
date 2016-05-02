@@ -186,8 +186,8 @@ extern int16_t USB_HID_PHYSICAL_DESCRIPTOR_FUNC(uint8_t interface, uint8_t index
  *                       does not dereference this pointer.
  *
  * @returns
- *   Return 0 if the request can be handled or -1 if it cannot. Returning -1
- *   will cause STALL to be returned to the host.
+ *   Return the length of the report or -1 if the request is invalid.
+ *   Returning -1 will cause STALL to be returned to the host.
  */
 extern int16_t HID_GET_REPORT_CALLBACK(uint8_t interface, uint8_t report_type,
                                        uint8_t report_id, const void **report,
