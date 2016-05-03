@@ -25,6 +25,8 @@
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
       <itemPath>../usb_config.h</itemPath>
+      <itemPath>../../common/hardware.c</itemPath>
+      <itemPath>../../common/hardware.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -36,6 +38,7 @@
     <Elem>../../bootloader/firmware/gld</Elem>
     <Elem>../../../usb/src</Elem>
     <Elem>../../../usb/include</Elem>
+    <Elem>../../common</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -124,7 +127,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -339,7 +343,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -568,7 +573,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -796,7 +802,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -1015,7 +1022,8 @@
       <HI-TECH-COMP>
         <property key="asmlist" value="true"/>
         <property key="define-macros" value=""/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="identifier-length" value="255"/>
         <property key="operation-mode" value="free"/>
         <property key="opt-xc8-compiler-strict_ansi" value="false"/>
@@ -1149,7 +1157,8 @@
       <HI-TECH-COMP>
         <property key="asmlist" value="true"/>
         <property key="define-macros" value=""/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="identifier-length" value="255"/>
         <property key="operation-mode" value="free"/>
         <property key="opt-xc8-compiler-strict_ansi" value="false"/>
@@ -1314,7 +1323,8 @@
       <HI-TECH-COMP>
         <property key="asmlist" value="true"/>
         <property key="define-macros" value=""/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="identifier-length" value="255"/>
         <property key="operation-mode" value="free"/>
         <property key="opt-xc8-compiler-strict_ansi" value="false"/>
@@ -1500,7 +1510,8 @@
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common/"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="false"/>
