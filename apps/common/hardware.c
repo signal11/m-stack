@@ -20,10 +20,8 @@
  */
 
 #include <xc.h>
+#include <stdint.h>
 #include "usb_config.h"
-#ifdef __PIC32MX__
-	#include <plib.h>
-#endif
 #include "hardware.h"
 
 #if __PIC24FJ64GB002__ || __PIC24FJ32GB002__
@@ -120,6 +118,86 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #endif
 
 
+#ifdef __PIC32MX__
+static void system_config_performance(uint32_t cpu_speed)
+{
+#define MAX_FLASH_SPEED 30000000
+#define MAX_PERIPHERAL_BUS_SPEED 80000000
+
+	uint8_t wait_states;
+
+	/* Handle the peripheral bus first */
+	if (cpu_speed > MAX_PERIPHERAL_BUS_SPEED) {
+		uint32_t irq_state;
+		uint32_t dma_suspend_state;
+
+		/* Disable interrupts and store the state */
+		asm volatile("di %0" : "=r" (irq_state));
+
+		/* Suspend the DMA if it's not already suspended */
+		dma_suspend_state = DMACONbits.SUSPEND;
+		if (!dma_suspend_state) {
+			DMACONSET = _DMACON_SUSPEND_MASK;
+#if defined(__32MX460F512L__) || defined(__32MX470F512L__)
+			/* Some PIC32MX don't have DMACONbits.BUSY. As far as
+			   I know there is not a good way to test for this. */
+			while (!DMACONbits.SUSPEND)
+				;
+#else
+			/* If this breaks, your CPU might not have
+			 * DMACONbits.busy. In that case, add your chip to the
+			 * section above. It's not clear which PIC32MX lines
+			 * have it from the family reference manual. */
+			while (DMACONbits.DMABUSY)
+				;
+#endif
+		}
+
+		/* Unlock the OSCCON. The documentation says the writes to
+		 * SYSKEY have to be "back-to-back," whatever that means. The
+		 * only way to be sure is to do it in ASM. */
+		__asm__ volatile(
+	        "LI $t0, 0xaa996655\n"
+	        "LI $t1, 0x556699aa\n"
+	        "LA $t3, (SYSKEY)\n"
+	        "SW $0,  ($t3)\n"
+		"SW $t0, ($t3)\n"
+	        "SW $t1, ($t3)\n"
+	        : /* no outputs */
+		: /* no inputs */
+		: /* clobber */ "t0", "t1", "t3");
+
+		/* Set the peripheral bus clock appropriately */
+		if (cpu_speed <= MAX_PERIPHERAL_BUS_SPEED * 2)
+			OSCCONbits.PBDIV = 0x1; /* 0x1 = 1:2 */
+		else if (cpu_speed <= MAX_PERIPHERAL_BUS_SPEED * 4)
+			OSCCONbits.PBDIV = 0x2; /* 0x2 = 1:4 */
+		else
+			OSCCONbits.PBDIV = 0x3; /* 0x3 = 1:8 */
+
+		/* Re-lock the OSCON */
+		SYSKEY = 0x33333333;
+
+		/* Restore DMA suspend state */
+		if (!dma_suspend_state)
+			DMACONbits.SUSPEND = 0;
+
+		/* Restore interrupts */
+		if (irq_state & 0x1)
+			asm volatile("ei");
+	}
+
+	/* Handle the PCACHE wait states and enable predictive prefetch.
+	 * This sets predictive prefetch for all regions, including both
+	 * KSEG0 and KSEG1. Caching can be done on the uncached region
+	 * (KSEG1) because the PCACHE is invalidated automatically if
+	 * there is a write to the flash memory. */
+	wait_states = cpu_speed / MAX_FLASH_SPEED;
+	CHECONbits.PFMWS = wait_states;
+	CHECONbits.PREFEN = 0x3; /* 0x3 = predictive prefetch for all regions */
+}
+#endif /* __PIC32MX */
+
 
 void hardware_init(void)
 {
@@ -139,9 +217,9 @@ void hardware_init(void)
 	ACTCONbits.ACTSRC = 1; /* 1=USB */
 	ACTCONbits.ACTEN = 1;
 #elif __32MX460F512L__
-	SYSTEMConfigPerformance(80000000);
+	system_config_performance(80000000);
 #elif __32MX795F512L__
-	SYSTEMConfigPerformance(60000000);
+	system_config_performance(60000000);
 #else
 	#error "Add configuration for your processor here"
 #endif
