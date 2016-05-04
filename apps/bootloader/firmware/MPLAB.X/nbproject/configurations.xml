@@ -26,6 +26,8 @@
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
       <itemPath>../usb_config.h</itemPath>
+      <itemPath>../../../common/hardware.c</itemPath>
+      <itemPath>../../../common/hardware.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -34,6 +36,8 @@
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
+    <Elem>..</Elem>
+    <Elem>../../../common</Elem>
     <Elem>../gld</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
@@ -112,7 +116,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../../usb/include;../../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -254,7 +259,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../../usb/include;../../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -396,7 +402,8 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="..;../../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../../usb/include;../../../common"/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="false"/>
         <property key="oXC16gcc-align-arr" value="false"/>

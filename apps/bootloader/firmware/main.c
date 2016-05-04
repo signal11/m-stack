@@ -29,36 +29,7 @@
 #include <string.h>
 #include "usb_config.h"
 #include "usb_ch9.h"
-
-#if __PIC24FJ64GB002__ || __PIC24FJ32GB002__
-_CONFIG1(WDTPS_PS16 & FWPSA_PR32 & WINDIS_OFF & FWDTEN_OFF & ICS_PGx1 & GWRP_OFF & GCP_OFF & JTAGEN_OFF)
-_CONFIG2(POSCMOD_NONE & I2C1SEL_PRI & IOL1WAY_OFF & OSCIOFNC_OFF & FCKSM_CSDCMD & FNOSC_FRCPLL & PLL96MHZ_ON & PLLDIV_NODIV & IESO_OFF)
-_CONFIG3(WPFP_WPFP0 & SOSCSEL_IO & WUTSEL_LEG & WPDIS_WPDIS & WPCFG_WPCFGDIS & WPEND_WPENDMEM)
-_CONFIG4(DSWDTPS_DSWDTPS3 & DSWDTOSC_SOSC & RTCOSC_SOSC & DSBOREN_OFF & DSWDTEN_OFF)
-
-#elif __PIC24FJ256DA206__
-_CONFIG1(WDTPS_PS32768 & FWPSA_PR128 & WINDIS_OFF & FWDTEN_OFF & ICS_PGx2 & GWRP_OFF & GCP_OFF & JTAGEN_OFF)
-_CONFIG2(POSCMOD_NONE & IOL1WAY_OFF & OSCIOFNC_ON & FCKSM_CSECMD & FNOSC_FRCPLL & PLL96MHZ_ON & PLLDIV_NODIV & IESO_OFF)
-_CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDIS & WPCFG_WPCFGDIS & WPEND_WPENDMEM)
-
-#elif _18F46J50
-#pragma config PLLDIV = 3 /* 3 = Divide by 3. 12MHz crystal => 4MHz */
-#pragma config XINST = OFF
-#pragma config WDTEN = OFF
-#pragma config CPUDIV = OSC1
-#pragma config IESO = OFF
-#pragma config FCMEN = OFF
-#pragma config LPT1OSC = OFF
-#pragma config T1DIG = ON
-#pragma config OSC = ECPLL
-#pragma config DSWDTEN = OFF
-#pragma config IOL1WAY = OFF
-#pragma config WPDIS = OFF /* This pragma seems backwards */
-
-#else
-	#error "Set Configuration bits for your platform"
-#endif
-
+#include "hardware.h"
 
 /* Variables from linker script.
  * 
@@ -224,22 +195,7 @@ int main(void)
 	CONFIG_WORDS_BASE = LINKER_VAR(CONFIG_WORDS_BASE);
 	CONFIG_WORDS_TOP = LINKER_VAR(CONFIG_WORDS_TOP);
 
-
-#if defined(__PIC24FJ64GB002__) || defined(__PIC24FJ256DA206__)
-	unsigned int pll_startup_counter = 600;
-	CLKDIVbits.PLLEN = 1;
-	while(pll_startup_counter--);
-#elif _18F46J50
-	unsigned int pll_startup = 600;
-	OSCTUNEbits.PLLEN = 1;
-	while (pll_startup--)
-		;
-#endif
-
-#if defined(USB_USE_INTERRUPTS) && defined (_PIC18)
-	INTCONbits.PEIE = 1;
-	INTCONbits.GIE = 1;
-#endif
+	hardware_init();
 
 	if (!(RCONbits.POR || RCONbits.BOR)) {
 		/* Jump to application */
