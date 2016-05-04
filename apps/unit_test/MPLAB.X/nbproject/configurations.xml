@@ -26,6 +26,8 @@
       <itemPath>../usb_descriptors.c</itemPath>
       <itemPath>../main.c</itemPath>
       <itemPath>../usb_config.h</itemPath>
+      <itemPath>../../common/hardware.c</itemPath>
+      <itemPath>../../common/hardware.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -35,6 +37,7 @@
   </logicalFolder>
   <sourceRootList>
     <Elem>../../bootloader/firmware/gld</Elem>
+    <Elem>../../common</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -103,7 +106,8 @@
         </C30Global>
       </item>
       <C30>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
       </C30>
       <C30-AS>
       </C30-AS>
@@ -202,7 +206,8 @@
         </C30Global>
       </item>
       <C30>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
       </C30>
       <C30-AS>
       </C30-AS>
@@ -313,7 +318,8 @@
         </C30Global>
       </item>
       <C30>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
       </C30>
       <C30-AS>
       </C30-AS>
@@ -412,7 +418,8 @@
         </C30Global>
       </item>
       <C30>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
       </C30>
       <C30-AS>
       </C30-AS>
@@ -517,7 +524,8 @@
         </XC8-config-global>
       </item>
       <HI-TECH-COMP>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
       </HI-TECH-COMP>
       <HI-TECH-LINK>
       </HI-TECH-LINK>
@@ -586,7 +594,8 @@
       </item>
       <HI-TECH-COMP>
         <property key="define-macros" value=""/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="identifier-length" value="255"/>
         <property key="operation-mode" value="free"/>
         <property key="opt-xc8-compiler-strict_ansi" value="false"/>
@@ -754,7 +763,8 @@
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
-        <property key="extra-include-directories" value="..;../../../usb/include"/>
+        <property key="extra-include-directories"
+                  value="..;../../../usb/include;../../common"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="isolate-each-function" value="false"/>
         <property key="make-warnings-into-errors" value="false"/>
