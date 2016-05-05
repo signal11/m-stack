@@ -30,6 +30,7 @@
 #include "usb_config.h"
 #include "usb_ch9.h"
 #include "hardware.h"
+#include "../common/bootloader_protocol.h"
 
 /* Variables from linker script.
  * 
@@ -83,25 +84,6 @@ static uint32_t CONFIG_WORDS_TOP;
 #endif
 
 #define BUFFER_LENGTH (INSTRUCTIONS_PER_ROW * WORDS_PER_INSTRUCTION)
-
-/* Protocol commands */
-#define CLEAR_FLASH 100
-#define SEND_DATA 101
-#define GET_CHIP_INFO 102
-#define REQUEST_DATA 103
-#define SEND_RESET 105
-
-struct chip_info {
-	uint32_t user_region_base;
-	uint32_t user_region_top;
-	uint32_t config_words_base;
-	uint32_t config_words_top;
-
-	uint8_t bytes_per_instruction;
-	uint8_t instructions_per_row;
-	uint8_t pad0;
-	uint8_t pad1;
-};
 
 /* Data-to-program: buffer and attributes. */
 static uint32_t write_address; /* program space word address */

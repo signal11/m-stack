@@ -44,32 +44,13 @@
 #include "hex.h"
 #include "bootloader.h"
 #include "log.h"
+#include "../common/bootloader_protocol.h"
 
 #ifdef _MSC_VER
 	#pragma warning (disable:4996)
 #endif
 
-/* Protocol commands */
-#define CLEAR_FLASH 100
-#define SEND_DATA 101
-#define GET_CHIP_INFO 102
-#define REQUEST_DATA 103
-#define SEND_RESET 105
-
 #define MIN(X,Y) ((X)<(Y)? (X): (Y))
-
-/* Shared with the firmware */
-struct chip_info {
-	uint32_t user_region_base;
-	uint32_t user_region_top;
-	uint32_t config_words_base;
-	uint32_t config_words_top;
-
-	uint8_t bytes_per_instruction;
-	uint8_t instructions_per_row;
-	uint8_t pad0;
-	uint8_t pad1;
-};
 
 /* Bootloader Object */
 struct bootloader {
