@@ -277,10 +277,10 @@ int bootloader_verify(struct bootloader *bl)
 				fprintf(stderr, "Verify Failed on block starting at %lx\n", address);
 
 				printf("Read from device: \n");
-				print_data(ptr, len_to_request);
+				print_data(buf, len_to_request);
 				
 				printf("\nExpected:\n");
-				print_data(buf, len_to_request);
+				print_data(ptr, len_to_request);
 				
 				res = -1;
 				goto failure;
