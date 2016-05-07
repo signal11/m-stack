@@ -54,6 +54,17 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config IOL1WAY = OFF
 #pragma config WPDIS = OFF /* This pragma seems backwards */
 
+#elif defined(_18F25K50) || defined(_18F45K50)
+#pragma config PLLSEL = PLL3X   /* 16 Mhz * 3 = 48 Mhz */
+#pragma config CFGPLLEN = ON
+#pragma config CPUDIV = NOCLKDIV
+#pragma config LS48MHZ = SYS48X8
+#pragma config FOSC = HSH
+#pragma config nPWRTEN = ON
+#pragma config WDTEN = OFF
+#pragma config STVREN = ON
+#pragma config XINST = OFF
+
 #elif _16F1459
 #pragma config FOSC = INTOSC
 #pragma config WDTE = OFF
