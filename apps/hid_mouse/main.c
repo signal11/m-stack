@@ -55,6 +55,25 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config IOL1WAY = OFF
 #pragma config WPDIS = OFF /* This pragma seems backwards */
 
+#elif _18F87J50
+#pragma config PLLDIV = 3 /* 3 = Divide by 3. 12MHz crystal => 4MHz */
+#pragma config XINST = OFF
+#pragma config WDTEN = OFF
+#pragma config WDTPS = 32768
+#pragma config CPUDIV = OSC1
+#pragma config IESO = OFF
+#pragma config FCMEN = OFF
+#pragma config FOSC = HSPLL
+#pragma config CP0 = OFF
+#pragma config EASHFT = ON
+#pragma config MODE = MM
+#pragma config BW = 16
+#pragma config WAIT = OFF
+#pragma config CCP2MX = DEFAULT
+#pragma config ECCPMX = DEFAULT
+#pragma config PMPMX = DEFAULT
+#pragma config MSSPMSK = MSK7
+
 #elif _16F1459
 #pragma config FOSC = INTOSC
 #pragma config WDTE = OFF
@@ -98,7 +117,7 @@ int main(void)
 	unsigned int pll_startup_counter = 600;
 	CLKDIVbits.PLLEN = 1;
 	while(pll_startup_counter--);
-#elif _18F46J50
+#elif defined(_18F46J50) || defined(_18F87J50)
 	unsigned int pll_startup = 600;
 	OSCTUNEbits.PLLEN = 1;
 	while (pll_startup--)

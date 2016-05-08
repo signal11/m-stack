@@ -285,7 +285,7 @@ struct buffer_descriptor {
 #define BDN_LENGTH(REG) (REG.BDnCNT)
 #endif
 
-#ifdef _18F46J50
+#if defined(_18F46J50) || defined(_18F87J50)
 #define BD_ADDR 0x400
 //#undef BUFFER_ADDR
 #else
