@@ -40,6 +40,13 @@
 #define REQUEST_DATA 103
 #define SEND_RESET 105
 
+#define MAX_SKIP_REGIONS 10
+
+struct skip_region {
+	uint32_t base;
+	uint32_t top;
+};
+
 struct chip_info {
 	uint32_t user_region_base;
 	uint32_t user_region_top;
@@ -48,8 +55,13 @@ struct chip_info {
 
 	uint8_t bytes_per_instruction;
 	uint8_t instructions_per_row;
-	uint8_t pad0;
+	uint8_t number_of_skip_regions;
 	uint8_t pad1;
+
+	uint32_t reserved;
+	uint32_t reserved2;
+
+	struct skip_region skip_regions[10];
 };
 
 #endif /* BL_PROTOCOL_H__ */

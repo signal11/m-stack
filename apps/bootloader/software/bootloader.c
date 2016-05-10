@@ -237,13 +237,29 @@ int bootloader_verify(struct bootloader *bl)
 		const unsigned char *endptr = region->data + region->len;
 		size_t address = region->address;
 		unsigned char buf[128]; /* This array size is arbitrary */
+		int skip_regions;
+		int i;
 
 		if (address >= bl->chip_info.config_words_base &&
 		    address < bl->chip_info.config_words_top) {
 			log("Verify: skipping config words at %lx\n", address);
 			goto end_region_verify;
 		}
-		
+
+		skip_regions = bl->chip_info.number_of_skip_regions;
+		if (skip_regions > MAX_SKIP_REGIONS)
+			skip_regions = MAX_SKIP_REGIONS;
+		for (i = 0; i < skip_regions; i++) {
+			uint32_t skip_base = bl->chip_info.skip_regions[i].base;
+			uint32_t skip_top = bl->chip_info.skip_regions[i].top;
+			if (address >= skip_base &&
+			    address + region->len <  skip_top) {
+				log("Verify: skipping region at %lx\n",
+					address);
+				goto end_region_verify;
+			}
+		}
+
 		while (ptr < endptr) {
 			size_t len_to_request = MIN(sizeof(buf), endptr-ptr);
 
@@ -290,12 +306,29 @@ int bootloader_program(struct bootloader *bl)
 		const unsigned char *ptr = region->data;
 		const unsigned char *endptr = region->data + region->len;
 		size_t address = region->address;
+		int skip_regions;
+		int i;
 		
 		if (address >= bl->chip_info.config_words_base &&
 		    address < bl->chip_info.config_words_top) {
 			log("Program: skipping config words at %lx\n", address);
 			goto end_region;
 		}
+
+		skip_regions = bl->chip_info.number_of_skip_regions;
+		if (skip_regions > MAX_SKIP_REGIONS)
+			skip_regions = MAX_SKIP_REGIONS;
+		for (i = 0; i < skip_regions; i++) {
+			uint32_t skip_base = bl->chip_info.skip_regions[i].base;
+			uint32_t skip_top = bl->chip_info.skip_regions[i].top;
+			if (address >= skip_base &&
+			    address + region->len <  skip_top) {
+				log("Program: skipping region at %lx\n",
+					address);
+				goto end_region;
+			}
+		}
+
 
 		/* If the data isn't aligned to a row, add some extra padding
 		 * bytes (0xff) to the beginning of the first packet so that
