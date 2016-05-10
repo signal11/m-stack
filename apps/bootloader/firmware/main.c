@@ -297,7 +297,9 @@ int8_t app_unknown_setup_request_callback(const struct setup_packet *setup)
 			chip_info.bytes_per_instruction = BYTES_PER_INSTRUCTION;
 			chip_info.instructions_per_row = INSTRUCTIONS_PER_ROW;
 
-			usb_send_data_stage((char*)&chip_info, sizeof(struct chip_info), empty_cb/*TODO*/, NULL);
+			usb_send_data_stage((char*)&chip_info,
+				MIN(sizeof(struct chip_info), setup->wLength),
+				empty_cb/*TODO*/, NULL);
 		}
 
 		if (setup->bRequest == REQUEST_DATA) {
