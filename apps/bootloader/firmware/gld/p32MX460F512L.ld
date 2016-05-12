@@ -68,11 +68,32 @@ INPUT("processor.o")
 OPTIONAL("libmchp_peripheral.a")
 OPTIONAL("libmchp_peripheral_32MX460F512L.a")
 
+/* Definitions used for bootloader */
+#define SPECIAL 0x3000 /* includes boot mem, exception mem, debug exec mem */
+#define BL_LENGTH 0x4000 /* Length of bootloader's main flash component */
+
+/* Variables to pass into the bootloader. All addresses are virtual.
+   These represent the base and length of the user or application
+   flash memory. */
+_APP_BASE = 0x9D000000 + BL_LENGTH;
+_APP_LENGTH =  0x80000 - BL_LENGTH;
+_FLASH_BLOCK_SIZE = 0x1000; /* From the datasheet */
+_CONFIG_WORDS_BASE = 0x1fc02ff0;
+_CONFIG_WORDS_TOP  = 0x1fc03ff0;
+
+#if !defined(BOOTLOADER) && !defined(BOOTLOADER_APP)
+	#error "Must define BOOTLOADER or BOOTLOADER_APP to use this linker script"
+#endif
+
 /*************************************************************************
  * For interrupt vector handling
  *************************************************************************/
 PROVIDE(_vector_spacing = 0x00000001);
+#ifdef BOOTLOADER
 _ebase_address = 0x9FC01000;
+#else
+_ebase_address = 0x9D001000 + BL_LENGTH;
+#endif
 
 /*************************************************************************
  * Memory Address Equates
@@ -83,12 +104,21 @@ _ebase_address = 0x9FC01000;
  * _DBG_CODE_SIZE                 -- In-circuit Debug Executive size
  * _GEN_EXCPT_ADDR                -- General Exception Vector
  *************************************************************************/
+#ifdef BOOTLOADER
 _RESET_ADDR                    = 0xBFC00000;
 _BEV_EXCPT_ADDR                = 0xBFC00380;
 _DBG_EXCPT_ADDR                = 0xBFC00480;
 _DBG_CODE_ADDR                 = 0xBFC02000;
 _DBG_CODE_SIZE                 = 0xFF0;
 _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
+#elif defined(BOOTLOADER_APP)
+_RESET_ADDR                    = 0xBD000000 + BL_LENGTH;
+_BEV_EXCPT_ADDR                = 0xBD000380 + BL_LENGTH;
+_DBG_EXCPT_ADDR                = 0xBD000480 + BL_LENGTH;
+_DBG_CODE_ADDR                 = 0xBD002000 + BL_LENGTH;
+_DBG_CODE_SIZE                 = 0xFF0;
+_GEN_EXCPT_ADDR                = _ebase_address + 0x180;
+#endif
 
 /*************************************************************************
  * Memory Regions
@@ -104,11 +134,19 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
  *************************************************************************/
 MEMORY
 {
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x80000
+#ifdef BOOTLOADER
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = BL_LENGTH
   kseg0_boot_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x970
   exception_mem               : ORIGIN = 0x9FC01000, LENGTH = 0x1000
   kseg1_boot_mem              : ORIGIN = 0xBFC00000, LENGTH = 0x490
   debug_exec_mem              : ORIGIN = 0xBFC02000, LENGTH = 0xFF0
+#else
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000+BL_LENGTH+SPECIAL, LENGTH = 0x80000 - BL_LENGTH - SPECIAL
+  kseg0_boot_mem              : ORIGIN = 0x9D000490+BL_LENGTH, LENGTH = 0x970
+  exception_mem               : ORIGIN = 0x9D001000+BL_LENGTH, LENGTH = 0x1000
+  kseg1_boot_mem              : ORIGIN = 0xBD000000+BL_LENGTH, LENGTH = 0x490
+  debug_exec_mem              : ORIGIN = 0xBD002000+BL_LENGTH, LENGTH = 0xFF0
+#endif
   config3                     : ORIGIN = 0xBFC02FF0, LENGTH = 0x4
   config2                     : ORIGIN = 0xBFC02FF4, LENGTH = 0x4
   config1                     : ORIGIN = 0xBFC02FF8, LENGTH = 0x4
