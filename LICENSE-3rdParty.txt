@@ -1,0 +1,13 @@
+3rd Party Licenses
+===================
+
+The following files in M-Stack are of 3rd Party origin and are used under
+their respective licenes.  Depending on your configuration, these files may
+or may not be in use by your application.  Determining whether they are in
+use should be fairly straight-forward.
+
+PIC32MX Linker Scripts
+-----------------------
+Files:   apps/bootloader/firmware/gld/p32MX*
+License: Microchip BSD License
+Notes:   See the copyright/license header of each file.
