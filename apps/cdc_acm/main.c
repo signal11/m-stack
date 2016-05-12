@@ -280,18 +280,18 @@ int16_t app_get_encapsulated_response(uint8_t interface,
 	return -1;
 }
 
-void app_set_comm_feature_callback(uint8_t interface,
+int8_t app_set_comm_feature_callback(uint8_t interface,
                                      bool idle_setting,
                                      bool data_multiplexed_state)
 {
-
+	return -1;
 }
 
-void app_clear_comm_feature_callback(uint8_t interface,
+int8_t app_clear_comm_feature_callback(uint8_t interface,
                                        bool idle_setting,
                                        bool data_multiplexed_state)
 {
-
+	return -1;
 }
 
 int8_t app_get_comm_feature_callback(uint8_t interface,
@@ -301,10 +301,10 @@ int8_t app_get_comm_feature_callback(uint8_t interface,
 	return -1;
 }
 
-void app_set_line_coding_callback(uint8_t interface,
+int8_t app_set_line_coding_callback(uint8_t interface,
                                     const struct cdc_line_coding *coding)
 {
-
+	return -1;
 }
 
 int8_t app_get_line_coding_callback(uint8_t interface,

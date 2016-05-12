@@ -356,8 +356,12 @@ extern int16_t CDC_GET_ENCAPSULATED_RESPONSE_CALLBACK(uint8_t interface,
  *                       the idle setting.
  * @param data_multiplexed_state  Whether to set the data multiplexed
  *                                state. True = clear the multiplexed state.
+ *
+ * @returns
+ *   Return 0 if the request can be handled or -1 if it cannot. Returning -1
+ *   will cause STALL to be returned to the host.
  */
-extern void CDC_SET_COMM_FEATURE_CALLBACK(uint8_t interface,
+extern int8_t CDC_SET_COMM_FEATURE_CALLBACK(uint8_t interface,
                                             bool idle_setting,
                                             bool data_multiplexed_state);
 #endif
@@ -376,10 +380,14 @@ extern void CDC_SET_COMM_FEATURE_CALLBACK(uint8_t interface,
  *                       the idle setting.
  * @param data_multiplexed_state  Whether to clear the data multiplexed
  *                                state. True = clear the multiplexed state.
+ *
+ * @returns
+ *   Return 0 if the request can be handled or -1 if it cannot. Returning -1
+ *   will cause STALL to be returned to the host.
  */
-extern void CDC_CLEAR_COMM_FEATURE_CALLBACK(uint8_t interface,
-                                            bool idle_setting,
-                                            bool data_multiplexed_state);
+extern int8_t CDC_CLEAR_COMM_FEATURE_CALLBACK(uint8_t interface,
+                                              bool idle_setting,
+                                              bool data_multiplexed_state);
 #endif
 
 #ifdef CDC_GET_COMM_FEATURE_CALLBACK
@@ -416,8 +424,11 @@ extern int8_t CDC_GET_COMM_FEATURE_CALLBACK(
  * @param interface      The interface for which the command is intended
  * @param coding         The new line coding set by the host
  *
+ * @returns
+ *   Return 0 if the request can be handled or -1 if it cannot. Returning -1
+ *   will cause STALL to be returned to the host.
  */
-extern void CDC_SET_LINE_CODING_CALLBACK(uint8_t interface,
+extern int8_t CDC_SET_LINE_CODING_CALLBACK(uint8_t interface,
                                          const struct cdc_line_coding *coding);
 #endif
 

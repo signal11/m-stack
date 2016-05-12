@@ -92,15 +92,15 @@ static int8_t set_or_clear_comm_feature_callback(bool transfer_ok, void *context
 	bool data_multiplexed_state = (transfer_data.comm_feature & 2) != 0;
 
 	if (set_or_clear_request == CDC_SET_COMM_FEATURE) {
-		CDC_SET_COMM_FEATURE_CALLBACK(transfer_interface,
-		                              idle_setting,
-		                              data_multiplexed_state);
+		return CDC_SET_COMM_FEATURE_CALLBACK(transfer_interface,
+		                                     idle_setting,
+		                                     data_multiplexed_state);
 	}
 	else {
 		/* request == CDC_CLEAR_COMM_FEATURE */
-		CDC_CLEAR_COMM_FEATURE_CALLBACK(transfer_interface,
-		                                idle_setting,
-		                                data_multiplexed_state);
+		return CDC_CLEAR_COMM_FEATURE_CALLBACK(transfer_interface,
+		                                       idle_setting,
+		                                       data_multiplexed_state);
 	}
 	return 0;
 }
@@ -111,9 +111,8 @@ static int8_t set_line_coding(bool transfer_ok, void *context) {
 	if (!transfer_ok)
 		return -1;
 
-	CDC_SET_LINE_CODING_CALLBACK(transfer_interface,
-	                             &transfer_data.line_coding);
-	return 0;
+	return CDC_SET_LINE_CODING_CALLBACK(transfer_interface,
+	                                    &transfer_data.line_coding);
 }
 #endif
 
