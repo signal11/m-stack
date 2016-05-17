@@ -181,13 +181,13 @@ static int write_and_read(libusb_device_handle *handle, const unsigned char *buf
 	if (res)
 		return res;
 
-	memset(work_buf, 0xaa, sizeof(buf));
+	memset(work_buf, 0xaa, sizeof(work_buf));
 
 	res = read_ep(handle, work_buf, len, expected_failure & READ_SHOULD_FAIL);
 	if (res)
 		return res;
 
-	if (memcmp(buf, work_buf, sizeof(buf))) {
+	if (memcmp(buf, work_buf, len)) {
 		printf("Data received is not correct\n");
 		return -1;
 	}
