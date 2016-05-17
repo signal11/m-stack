@@ -45,11 +45,15 @@ The master web page for this project can be found at:
 License
 ========
 
-The software is licensed under the LGPL. It may be used in commercial and
-open hardware projects so long as the conditions of the LGPL can be met.
+The software is dual-licensed under the GNU Lesser General Public License
+(LGPL) version 3.0 and the Apache License, version 2.0.  It may be used
+under the terms of either one of these licenses as seen fit.  It may be
+used in commercial and open hardware projects so long as the conditions of
+one of these licenses can be met.
 
-Commercial licenses are available for purchase for companies and projects
-which cannot or wish to not comply with the terms of the LGPL.
+Separate commercial licenses are available for purchase for companies and
+projects which cannot or wish to not comply with the terms of the LGPL or
+Apache License.
 
 Contribution
 -------------
