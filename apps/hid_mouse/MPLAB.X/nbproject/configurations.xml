@@ -527,6 +527,7 @@
       <HI-TECH-COMP>
         <property key="extra-include-directories"
                   value="..;../../../usb/include;../../common"/>
+        <property key="warning-level" value="0"/>
       </HI-TECH-COMP>
       <HI-TECH-LINK>
       </HI-TECH-LINK>
