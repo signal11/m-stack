@@ -98,12 +98,12 @@ void usb_dfu_set_status(uint8_t status)
 	_dfu_status = status;
 }
 
-static void _send_data_stage_cb(bool transfer_ok, void *context)
+static int8_t _send_data_stage_cb(bool transfer_ok, void *context)
 {
 	/* error */
 	if (!transfer_ok) {
 		usb_dfu_set_state(DFU_STATE_DFU_ERROR);
-		return;
+		return -1;
 	}
 
 #ifdef USB_DFU_USE_RUNTIME
@@ -118,6 +118,7 @@ static void _send_data_stage_cb(bool transfer_ok, void *context)
 #endif
 
 #endif
+	return 0;
 }
 
 /**
@@ -243,12 +244,12 @@ static int8_t usb_dfu_request_helper_Abort(void)
 /**
  * _recieve_data_stage_cb:
  **/
-static void _recieve_data_stage_cb(bool transfer_ok, void *context)
+static int8_t _recieve_data_stage_cb(bool transfer_ok, void *context)
 {
 	/* error */
 	if (!transfer_ok) {
 		usb_dfu_set_state(DFU_STATE_DFU_ERROR);
-		return;
+		return -1;
 	}
 
 	/* write */
@@ -258,11 +259,12 @@ static void _recieve_data_stage_cb(bool transfer_ok, void *context)
 				_dfu_buf, DFU_TRANSFER_SIZE,
 				_dfu_context);
 	if (rc != 0)
-		return;
+		return 0;
 #endif
 
 	/* done */
 	_dfu_block_num++;
+	return 0;
 }
 
 /**
