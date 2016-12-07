@@ -1178,7 +1178,7 @@ static inline void handle_ep0_setup()
 	 * in progress and thus invalidates any IN transactions which were
 	 * pending for a previous control transfer. Cancel any of these IN
 	 * transactions which were pending. */
-#ifdef PPB_EP0_OUT
+#ifdef PPB_EP0_IN
 	/* For ping-pong mode on EP 0, note below that ppbi is the next
 	 * ping-pong buffer which would be written to, meaning that !ppbi is
 	 * the buffer which would have an IN transaction pending (if any).
