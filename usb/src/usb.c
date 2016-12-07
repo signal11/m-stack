@@ -843,6 +843,8 @@ static void start_control_return(const void *ptr, size_t len, size_t bytes_asked
 		copy_to_ep0_in_buf(ptr, bytes_to_send);
 	ep0_data_stage_in_buffer = ((char*)ptr) + bytes_to_send;
 	ep0_data_stage_buf_remaining = MIN(bytes_asked_for, len) - bytes_to_send;
+	if (ep0_data_stage_buf_remaining == 0 && returning_short)
+		control_need_zlp = 1;
 
 	/* Send back the first transaction */
 	ep0_buf.flags |= EP_TX_DTS;
