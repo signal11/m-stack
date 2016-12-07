@@ -750,6 +750,10 @@ static void stall_ep_out(uint8_t ep)
 #endif
 }
 
+/* This function is only called in either:
+ *   1. a direct response to a SETUP packet, or
+ *   2. as a STATUS stage,
+ * hence the hard-coding of DTS to 1, which is appropriate in both cases. */
 static void send_zero_length_packet_ep0()
 {
 #ifdef PPB_EP0_IN
