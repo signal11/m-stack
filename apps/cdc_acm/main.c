@@ -301,17 +301,27 @@ int8_t app_get_comm_feature_callback(uint8_t interface,
 	return -1;
 }
 
+static struct cdc_line_coding line_coding =
+{
+	.dwDTERate = 115200,
+	.bCharFormat = CDC_CHAR_FORMAT_1_STOP_BIT,
+	.bParityType = CDC_PARITY_NONE,
+	.bDataBits = 8,
+};
+
 int8_t app_set_line_coding_callback(uint8_t interface,
                                     const struct cdc_line_coding *coding)
 {
-	return -1;
+	line_coding = *coding;
+	return 0;
 }
 
 int8_t app_get_line_coding_callback(uint8_t interface,
                                     struct cdc_line_coding *coding)
 {
 	/* This is where baud rate, data, stop, and parity bits are set. */
-	return -1;
+	*coding = line_coding;
+	return 0;
 }
 
 int8_t app_set_control_line_state_callback(uint8_t interface,
