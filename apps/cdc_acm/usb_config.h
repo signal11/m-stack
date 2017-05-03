@@ -22,6 +22,14 @@
 #ifndef USB_CONFIG_H__
 #define USB_CONFIG_H__
 
+/* Uncomment these lines only if you have purchased a valid
+ * VID/PID pair.  Do not attempt to use a VID/PID pair that
+ * you do not own or that has not been sub-licensed to you.
+ * A VID/PID pair should only be used for a single device,
+ * and should not be re-used between multiple projects.  */
+//#define MY_VID 0xA0A0
+//#define MY_PID 0x0004
+
 /* Number of endpoint numbers besides endpoint zero. It's worth noting that
    and endpoint NUMBER does not completely describe an endpoint, but the
    along with the DIRECTION does (eg: EP 1 IN).  The #define below turns on
