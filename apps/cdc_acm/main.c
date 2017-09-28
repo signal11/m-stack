@@ -303,10 +303,10 @@ int8_t app_get_comm_feature_callback(uint8_t interface,
 
 static struct cdc_line_coding line_coding =
 {
-	.dwDTERate = 115200,
-	.bCharFormat = CDC_CHAR_FORMAT_1_STOP_BIT,
-	.bParityType = CDC_PARITY_NONE,
-	.bDataBits = 8,
+	115200,
+	CDC_CHAR_FORMAT_1_STOP_BIT,
+	CDC_PARITY_NONE,
+	8,
 };
 
 int8_t app_set_line_coding_callback(uint8_t interface,
