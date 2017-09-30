@@ -39,7 +39,7 @@
 #include <stdint.h>
 #include "usb_config.h"
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(push, 1)
 #elif __XC8
 #else
@@ -333,7 +333,7 @@ uint8_t process_hid_setup_request(const struct setup_packet *setup);
 /** @}*/
 
 
-#if defined(__XC16__) || defined(__XC32__)
+#if defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 #pragma pack(pop)
 #elif __XC8
 #else

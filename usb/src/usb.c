@@ -36,6 +36,8 @@
 #include <delays.h>
 #elif __XC8
 #include <xc.h>
+#elif defined(__GNUC__) && __mips == 32
+    /* You need to have an include in usb_config.h. */
 #else
 #error "Compiler not supported"
 #endif
@@ -116,7 +118,7 @@ STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_compat_header), 16);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_compat_function), 24);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_properties_header), 10);
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct microsoft_extended_property_section_header), 8);
-#ifdef __XC32__
+#if defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 8);
 #else
 STATIC_SIZE_CHECK_EQUAL(sizeof(struct buffer_descriptor), 4);
@@ -205,7 +207,7 @@ static struct buffer_descriptor bds[NUM_BD] BD_ATTR_TAG;
    0x400 and 0x7FF per the datasheet.*/
 /* This addr is for the PIC18F4550 */
 #pragma udata usb_buffers=0x500
-#elif defined(__XC16__) || defined(__XC32__)
+#elif defined(__XC16__) || defined(__XC32__) || (defined(__GNUC__) && __mips == 32)
 	/* Buffers can go anywhere on PIC24/PIC32 parts which are supported
 	   (so far). */
 #elif __XC8
@@ -623,7 +625,7 @@ void usb_init(void)
 
 	SFR_BD_ADDR_REG = w.hb;
 
-#elif __XC32__
+#elif __XC32__ || (defined(__GNUC__) && __mips == 32)
 	union WORD {
 		struct {
 			uint8_t lb;
@@ -1720,7 +1722,7 @@ void _ISR __attribute((auto_psv)) _USB1Interrupt()
 	usb_service();
 }
 
-#elif __XC32__
+#elif __XC32__ || (defined(__GNUC__) && __mips == 32)
 
 /* No parameter for interrupt() means to use IPL=RIPL and to detect whether
    to use shadow registers or not. This is the safest option, but if a user

@@ -437,7 +437,7 @@ struct buffer_descriptor {
 #define FAR
 #define memcpy_from_rom(x,y,z) memcpy(x,y,z)
 
-#elif __XC32__
+#elif __XC32__ || (defined(__GNUC__) && __mips == 32)
 
 #define USB_NEEDS_POWER_ON
 #define USB_NEEDS_SET_BD_ADDR_REG
@@ -530,7 +530,7 @@ struct buffer_descriptor {
 			uint32_t BSTALL : 1;
 			uint32_t DTSEN : 1;    /* DTS in datasheet */
 			uint32_t reserved : 2; /* NINC, KEEP */
-			uint32_t DTS : 1;      /* DATA0/1 in datasheet */
+			uint32_t /*DTS*/ : 1;  /* DATA0/1 in datasheet */
 			uint32_t /*UOWN*/ : 1;
 
 			uint32_t : 8;
