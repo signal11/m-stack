@@ -146,6 +146,9 @@ struct buffer_descriptor {
 #if defined(_16F1459) || defined(_16F1454)
 #define BD_ADDR 0x2000
 #define BUFFER_ADDR 0x2080
+#elif defined _18F2550
+#define BD_ADDR 0x0400
+#define BUFFER_ADDR 0x500
 #else
 #error "CPU not supported yet"
 #endif
