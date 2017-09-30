@@ -29,6 +29,28 @@
 #define ROMPTR
 #endif
 
+/* VID/PID Descriptor Definitions
+ *
+ * Utilize user-defined VID/PID values if provided in usb_config.h
+ * otherwise, defaults are provided by the stack.  The defaults are
+ * only intended for testing purposes, and a unique VID/PID pair
+ * should be provided for an end-product release, otherwise driver
+ * issues may occur due to VID/PID conflicts.
+ */
+#ifdef MY_VID
+#define DESC_VID MY_VID
+#else
+#define DESC_VID 0xA0A0
+#warning "No user-defined VID, using the default instead.  MY_VID should be set in usb_config.h"
+#endif
+
+#ifdef MY_PID
+#define DESC_PID MY_PID
+#else
+#define DESC_PID 0x0003
+#warning "No user-defined PID, using the default instead.  MY_PID should be set in usb_config.h"
+#endif
+
 /* Configuration Packet
  *
  * This packet contains a configuration descriptor, one or more interface
@@ -80,8 +102,8 @@ const ROMPTR struct device_descriptor this_device_descriptor =
 	0x00, // Device Subclass
 	0x00, // Protocol.
 	EP_0_LEN, // bMaxPacketSize0
-	0xA0A0, // Vendor
-	0x0003, // Product
+	DESC_VID, // Vendor ID: Defined in usb_config.h
+	DESC_PID, // Product ID: Defined in usb_config.h
 	0x0001, // device release (1.0)
 	1, // Manufacturer
 	2, // Product
