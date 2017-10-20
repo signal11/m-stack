@@ -49,6 +49,14 @@ _CONFIG3(WPFP_WPFP255 & SOSCSEL_SOSC & WUTSEL_LEG & ALTPMP_ALPMPDIS & WPDIS_WPDI
 #pragma config IOL1WAY = OFF
 #pragma config WPDIS = OFF /* This pragma seems backwards */
 
+#elif defined(_18F25K50) || defined(_18F45K50)
+#pragma config PLLSEL = PLL3X    //PLL = 3x 16MHz = 48Mhz
+#pragma config CFGPLLEN = ON    //PLL Enabled
+#pragma config CPUDIV = NOCLKDIV    //No CPU Clock Divider
+#pragma config LS48MHZ = SYS48X8    //USB LS needs 6MHz, 48MHz/8=6MHz
+#pragma config FOSC = INTOSCIO    //Internal oscillator with IO on OSC pins
+#pragma config WDTEN = OFF    //WDT disabled in hardware (SWDTEN ignored)
+
 #elif _16F1459 || _16F1454
 #pragma config FOSC = INTOSC
 #pragma config WDTE = OFF
@@ -216,6 +224,17 @@ void hardware_init(void)
 	/* Enable Active clock-tuning from the USB */
 	ACTCONbits.ACTSRC = 1; /* 1=USB */
 	ACTCONbits.ACTEN = 1;
+#elif defined(_18F25K50) || defined(_18F45K50)
+	// SCS FOSC; IDLEN disabled; IRCF 16MHz;
+	OSCCON = 0x70;
+	// INTSRC INTRC_31_25KHz; PLLEN disabled; PRISD disabled; SOSCGO disabled;
+	OSCCON2 = 0x00;
+	// SPLLMULT 4xPLL; TUN 0;
+	OSCTUNE = 0x00;
+	// ACTSRC Full speed USB events; ACTUD enabled; ACTEN enabled;
+	ACTCON = 0x90;
+	// Wait for PLL to stabilize
+	while(PLLRDY == 0){}
 #elif __32MX460F512L__
 	system_config_performance(80000000);
 #elif __32MX795F512L__
