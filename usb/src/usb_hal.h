@@ -186,14 +186,14 @@ struct buffer_descriptor {
 #define SFR_USB_STALL_IF         UIRbits.STALLIF
 #define SFR_USB_TOKEN_IF         UIRbits.TRNIF
 #define SFR_USB_SOF_IF           UIRbits.SOFIF
-#define SFR_USB_IF               PIR2bits.USBIF
+#define SFR_USB_IF               USBIF
 
 #define SFR_USB_INTERRUPT_EN     UIE
 #define SFR_TRANSFER_IE          UIEbits.TRNIE
 #define SFR_STALL_IE             UIEbits.STALLIE
 #define SFR_RESET_IE             UIEbits.URSTIE
 #define SFR_SOF_IE               UIEbits.SOFIE
-#define SFR_USB_IE               PIE2bits.USBIE
+#define SFR_USB_IE               USBIE
 
 #define SFR_USB_EXTENDED_INTERRUPT_EN UEIE
 
@@ -288,6 +288,9 @@ struct buffer_descriptor {
 #ifdef _18F46J50
 #define BD_ADDR 0x400
 //#undef BUFFER_ADDR
+#elif (defined(_18F25K50) || defined(_18F45K50))
+#define BD_ADDR 0x400
+#define BUFFER_ADDR 0x500
 #else
 #error "CPU not supported yet"
 #endif
