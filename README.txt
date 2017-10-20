@@ -112,11 +112,12 @@ The following MCU's and configurations have been tested:
  * PIC24FJ64GB002
  * PIC24FJ256DA206
  * PIC18F46J50 - PIC18F Starter Kit
+ * PIC18F25K50
  * PIC16F1459
  * PIC16F1454 - similar to PIC16F1459
 
 If your hardware is not supported, and it's in the PIC16F/18F/24F/32MX
-family, I can probably easily make you a port without very much trouble. 
+family, I can probably easily make you a port without very much trouble.
 The easiest way is for you to send me a development board.  If your hardware
 is in another MCU family which is not currently supported, I can also make
 you a port, but it will be more effort.  In either case, I'd be happy to

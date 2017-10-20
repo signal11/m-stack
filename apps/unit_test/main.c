@@ -12,7 +12,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  For details, see sections 7, 8, and 9
  * of the Apache License, version 2.0 which apply to this file.  If you have
  * purchased a commercial license for this software from Signal 11 Software,
- * your commerical license superceeds the information in this header.
+ * your commercial license supersedes the information in this header.
  *
  * Alan Ott
  * Signal 11 Software
