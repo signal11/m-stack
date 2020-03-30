@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	if (libusb_init(NULL))
 		return -1;
 
-	handle = libusb_open_device_with_vid_pid(NULL, 0xa0a0, 0x0001);
+	handle = libusb_open_device_with_vid_pid(NULL, 0xa0a0, 0x0003);
 	if (!handle) {
 		perror("libusb_open failed: ");
 		return 1;
